@@ -210,6 +210,13 @@ end
 
 crafting.register = function(typeof,def)
 	def.ret = def.ret or {}
+	for k,v in pairs(def.input) do
+		local group = string.match(k,"^group:(%S+)$")
+		if group then
+			def.input[group] = v
+			def.input[k] = nil
+		end
+	end
 	recipes[#recipes+1] = def
 	for k,v in pairs(def.output) do
 		recipes_by_out[k] = recipes_by_out[k] or {} 

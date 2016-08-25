@@ -1,6 +1,6 @@
 crafting.register("table",{
 	input = {
-		["default:stone"] = 1,
+		["group:stone"] = 1,
 		["default:lava_source"] = 1,
 	},
 	output = {
