@@ -11,11 +11,13 @@ local function itemlist_to_countlist(list)
 		if not v:is_empty() then
 			local name = v:get_name()
 			count_list[name] = (count_list[name] or 0) + v:get_count()
-			for group,_ in pairs(minetest.registered_items[name].groups or {}) do
-				if not count_list[group] 
-				or (count_list[group] 
-				and count_list[count_list[group]] < count_list[name]) then
-					count_list[group] = name
+			if minetest.registered_items[name] then
+				for group,_ in pairs(minetest.registered_items[name].groups or {}) do
+					if not count_list[group] 
+					or (count_list[group] 
+					and count_list[count_list[group]] < count_list[name]) then
+						count_list[group] = name
+					end
 				end
 			end
 		end
