@@ -260,7 +260,8 @@ minetest.register_node("crafting:table",{
 		,"default_chest_side.png","default_chest_side.png"
 		,"default_chest_side.png","default_chest_side.png"},
 	paramtype2 = "facedir",
-		is_ground_content = false,
+	is_ground_content = false,
+	groups = {oddly_breakable_by_hand = 1,choppy=3},
 	on_construct = function(pos)
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
@@ -325,6 +326,11 @@ minetest.register_node("crafting:table",{
 		local form, page = make_formspec(page,inv:get_size("output"))
 		meta:set_int("page",page)
 		meta:set_string("formspec",form)
+	end,
+	can_dig = function(pos,player)
+		local meta = minetest.get_meta(pos)
+		local inv = meta:get_inventory()
+		return inv:is_empty("store")
 	end,
 	--allow_metadata_inventory_take = function(pos,lname,i,stack,player) end,
 })
