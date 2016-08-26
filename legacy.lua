@@ -30,16 +30,15 @@ minetest.register_craft = function(recipe)
 	if not recipe.type or recipe.type == "shapeless" then
 		local legacy = {items={},output=recipe.output}
 		if not recipe.type then
-			for _,v in ipairs(recipe.recipe) do
-				for _,item in ipairs(v) do
-					legacy.items[item] = (legacy.items[item] or 0) + 1
+			for _,row in ipairs(recipe.recipe) do
+				for _,item in ipairs(row) do
+					legacy.items[#legacy.items+1] = item
 				end
 			end
 		elseif recipe.type == "shapeless" then
-			for _,item in ipairs(recipe.recipe) do
-				legacy.items[item] = (legacy.items[item] or 0) + 1
-			end
+			legacy.items = recipe.recipe
 		end
+		create_recipe(legacy)
 	end
 	return register_craft(recipe)
 end
