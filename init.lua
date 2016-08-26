@@ -330,3 +330,4 @@ minetest.register_node("crafting:table",{
 })
 
 dofile(minetest.get_modpath("crafting") .. "/recipe.lua")
+dofile(minetest.get_modpath("crafting") .. "/legacy.lua")
