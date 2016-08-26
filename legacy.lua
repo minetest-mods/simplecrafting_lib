@@ -7,7 +7,7 @@ local function create_recipe(legacy)
 	recipe.output = {[output] = nout}
 	recipe.input = {}
 	for i=1,9 do
-		if items[i] then
+		if items[i] and items[i] ~= "" then
 			recipe.input[items[i]] = (recipe.input[items[i]] or 0) + 1
 		end
 	end
@@ -42,3 +42,13 @@ minetest.register_craft = function(recipe)
 	end
 	return register_craft(recipe)
 end
+
+
+minetest.register_craft({
+	output = "crafting:table",
+	recipe = {
+		{"group:wood","group:wood",""},
+		{"group:wood","group:wood",""},
+		{"","",""},
+	},
+})
