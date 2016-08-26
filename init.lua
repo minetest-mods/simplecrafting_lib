@@ -256,9 +256,9 @@ end
 		
 minetest.register_node("crafting:table",{
 	drawtype = "normal",
-	tiles = {"crafting.table_top.png","crafting.table_bottom.png"
-		,"crafting.table_x.png","crafting.table_x.png"
-		,"crafting.table_z.png","crafting.table_z.png"},
+	tiles = {"default_chest_top.png^default_rail_crossing.png","default_chest_top.png"
+		,"default_chest_side.png","default_chest_side.png"
+		,"default_chest_side.png","default_chest_side.png"},
 	paramtype2 = "facedir",
 		is_ground_content = false,
 	on_construct = function(pos)
