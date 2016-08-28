@@ -214,7 +214,7 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 	end
 end
 
-crafting.table.register = function(typeof,def)
+crafting.table.register = function(def)
 	def.ret = def.ret or {}
 	for item,count in pairs(def.input) do
 		local group = string.match(item,"^group:(%S+)$")
