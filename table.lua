@@ -1,4 +1,3 @@
-crafting = {}
 crafting.table = {}
 crafting.table.recipes = {}
 crafting.table.recipes_by_output = {}
@@ -340,6 +339,3 @@ minetest.register_node("crafting:table",{
 	end,
 	--allow_metadata_inventory_take = function(pos,lname,i,stack,player) end,
 })
-
-dofile(minetest.get_modpath("crafting") .. "/recipe.lua")
-dofile(minetest.get_modpath("crafting") .. "/legacy.lua")
