@@ -5,17 +5,17 @@ crafting.recipes_by_output = {}
 local recipes = crafting.recipes
 local recipes_by_out = crafting.recipes_by_output
 
-local function itemlist_to_countlist(list)
+local function itemlist_to_countlist(inv)
 	local count_list = {}
-	for i,v in ipairs(list) do
-		if not v:is_empty() then
-			local name = v:get_name()
-			count_list[name] = (count_list[name] or 0) + v:get_count()
+	for _,stack in ipairs(inv) do
+		if not stack:is_empty() then
+			local name = stack:get_name()
+			count_list[name] = (count_list[name] or 0) + stack:get_count()
+			-- If it is the most common item in a group, alias the group to it
 			if minetest.registered_items[name] then
 				for group,_ in pairs(minetest.registered_items[name].groups or {}) do
 					if not count_list[group] 
-					or (count_list[group] 
-					and count_list[count_list[group]] < count_list[name]) then
+					or (count_list[group] and count_list[count_list[group]] < count_list[name]) then
 						count_list[group] = name
 					end
 				end
@@ -26,28 +26,32 @@ local function itemlist_to_countlist(list)
 end
 
 local function get_craft_no(input_list,recipe)
-	local no = math.huge
+	-- Recipe without groups (most common node in group instead)
 	local work_recipe = {input={},output=table.copy(recipe.output)
 		,ret=table.copy(recipe.ret)}
-	local input = work_recipe.input
-	for k,v in pairs(recipe.input) do
-		if not input_list[k] then
+	local required_input = work_recipe.input
+	for item,count in pairs(recipe.input) do
+		if not input_list[item] then
 			return 0
 		end
-		if type(input_list[k]) == "string" then
-			input[input_list[k]] = (input[input_list[k]] or 0) + v
+		-- Groups are a string alias to most common member item
+		if type(input_list[item]) == "string" then
+			required_input[input_list[item]] 
+				= (required_input[input_list[item]] or 0) + count
 		else
-			input[k] = (input[k] or 0) + v
+			required_input[item] = (required_input[item] or 0) + count
 		end
 	end
-	for k,v in pairs(input) do
-		local max = input_list[k] / v
+	local no = math.huge
+	for ingredient,count in pairs(required_input) do
+		local max = input_list[ingredient] / count
 		if max < 1 then
 			return 0
 		elseif max < no then
 			no = max
 		end
 	end
+	-- Return no of possible crafts as integer
 	return math.floor(no),work_recipe
 end
 
@@ -58,14 +62,14 @@ local function get_craftable_items(input_list)
 	for i=1,#recipes do
 		local no,recipe = get_craft_no(input_list,recipes[i])
 		if no > 0 then
-			for j,v in pairs(recipe.output) do
-				if craftable[j] and v*no > craftable[j] then
-					craftable[j] = v*no
-					chosen[j] = recipe
-				elseif not craftable[j] and v*no > 0 then
-					craftable[#craftable+1] = j
-					craftable[j] = v*no
-					chosen[j] = recipe
+			for item,count in pairs(recipe.output) do
+				if craftable[item] and count*no > craftable[item] then
+					craftable[item] = count*no
+					chosen[item] = recipe
+				elseif not craftable[item] and count*no > 0 then
+					craftable[#craftable+1] = item
+					craftable[item] = count*no
+					chosen[item] = recipe
 				end
 			end
 		end
@@ -155,21 +159,21 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 	-- Take consumed items
 	local input = craft_using.input
 	local no_crafts = math.floor(no / output_factor)
-	for k,v in pairs(input) do
-		inv:remove_item("store",k .. " " .. tostring(no_crafts * v))
+	for item,count in pairs(input) do
+		inv:remove_item("store",item .. " " .. tostring(no_crafts * count))
 	end
 
 	-- Add excess items
 	local output = craft_using.output
-	for k,v in pairs(output) do
+	for item,count in pairs(output) do
 		local to_add 
-		if k == name then
+		if item == name then
 			to_add = no - no_crafted
 		else
-			to_add = no_crafts * v
+			to_add = no_crafts * count
 		end
 		if no > 0 then
-			local stack = ItemStack(k)
+			local stack = ItemStack(item)
 			local max = stack:get_stack_max()
 			stack:set_count(max)
 			while to_add > 0 do
@@ -187,11 +191,11 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 		end
 	end
 	-- Add return items - copied code from above
-	for k,v in pairs(craft_using.ret) do
+	for item,count in pairs(craft_using.ret) do
 		local to_add 
-		to_add = no_crafts * v
+		to_add = no_crafts * count
 		if no > 0 then
-			local stack = ItemStack(k)
+			local stack = ItemStack(item)
 			local max = stack:get_stack_max()
 			stack:set_count(max)
 			while to_add > 0 do
@@ -212,23 +216,24 @@ end
 
 crafting.register = function(typeof,def)
 	def.ret = def.ret or {}
-	for k,v in pairs(def.input) do
-		local group = string.match(k,"^group:(%S+)$")
+	for item,count in pairs(def.input) do
+		local group = string.match(item,"^group:(%S+)$")
 		if group then
-			def.input[group] = v
-			def.input[k] = nil
+			def.input[group] = count
+			def.input[item] = nil
 		end
 	end
 	recipes[#recipes+1] = def
-	for k,v in pairs(def.output) do
-		recipes_by_out[k] = recipes_by_out[k] or {} 
-		recipes_by_out[k][#recipes_by_out[k]+1] = def
+	for item,_ in pairs(def.output) do
+		recipes_by_out[item] = recipes_by_out[item] or {} 
+		recipes_by_out[item][#recipes_by_out[item]+1] = def
 	end
 end
 
 local function swap_fix(inv,stack,new_stack,tinv,tlist,player)
 	if (not new_stack:is_empty() 
 	and new_stack:get_name() ~= stack:get_name())
+	-- Only effective if stack limits are ignored by table
 	or new_stack:get_count() == new_stack:get_stack_max() then
 		local excess = tinv:add_item(tlist,new_stack)
 		if not excess:is_empty() then
