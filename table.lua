@@ -216,6 +216,7 @@ end
 
 crafting.table.register = function(def)
 	def.ret = def.ret or {}
+	-- Strip group: from group names to simplify comparison later
 	for item,count in pairs(def.input) do
 		local group = string.match(item,"^group:(%S+)$")
 		if group then
@@ -228,6 +229,7 @@ crafting.table.register = function(def)
 		recipes_by_out[item] = recipes_by_out[item] or {} 
 		recipes_by_out[item][#recipes_by_out[item]+1] = def
 	end
+	return true
 end
 
 local function swap_fix(inv,stack,new_stack,tinv,tlist,player)
