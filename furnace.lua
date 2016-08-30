@@ -170,109 +170,82 @@ local function sort_input(meta)
 	return false
 end
 
-local function clear_item_meta(meta)
-	meta:set_string("item","")
-	meta:set_float("itemtime",0)
-end
-
-local function set_burnout(timer,meta)
-	local burntime = meta:get_float("burntime") - timer:get_elapsed()
-	meta:set_float("burntime",burntime)
-	timer:set(burntime,0)
-end
-
 local function is_recipe(item,fuel)
 	local recipes = is_ingredient(item)
 	local fuel_def = is_fuel(fuel)
 	if not recipes or not fuel_def then
-		return nil
+		return nil, nil
 	end
-	return get_fueled_recipe(recipes,fuel_def)
+	return get_fueled_recipe(recipes,fuel_def),fuel_def
 end
 
-local function update_furnace(pos)
+local function get_items(inv)
+	return inv:get_stack("input",1), inv:get_stack("input",2)
+end
+
+local function get_old_items(meta)
+	return meta:get_string("item"), meta:get_string("fuel")
+end
+
+local function burn_fuel(meta,inv)
+	local fuel = inv:get_stack("input",2)
+	local fuel_def = is_fuel(fuel:get_name())
+	meta:set_string("fuel",fuel:get_name())
+	meta:set_float("burntime",fuel_def.burntime)
+	fuel:set_count(fuel:get_count() - 1)
+	inv:set_stack("input",2,fuel)
+end
+
+local function set_ingredient(meta,item,recipe)
+	meta:set_string("item",item:get_name())
+	meta:set_float("itemtime",recipe.time)
+end
+
+local function clear_item(meta)
+	meta:set_string("item","")
+	meta:set_float("itemtime",math.huge)
+end
+
+local function set_timer(pos,itemtime,burntime)
+	minetest.get_node_timer(pos):start(math.min(itemtime,burntime))
+end
+
+local function enough_items(item_stack,recipe)
+	if item_stack:is_empty() then
+		return false
+	end
+	return item_stack:get_count() >= recipe.input[item_stack:get_name()]
+end
+
+local function room_for_out(recipe,inv)
+	for output,count in pairs(recipe.output) do
+		if not inv:room_for_item("output",output .. " " .. count) then
+			return false
+		end
+	end
+	return true
+end
+
+local function try_start(pos)
+	minetest.chat_send_all("try_strat()")
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
-	local item = inv:get_stack("input",1)
-	local old_item = meta:get_string("item")
-	local fuel = inv:get_stack("input",2)
-	local old_fuel = meta:get_string("fuel")
+	local item,fuel = get_items(inv)
+	local recipe,fuel_def = is_recipe(item:get_name(),fuel:get_name())
 
-	local active = meta:get_string("active")
-	local timer = minetest.get_node_timer(pos)
-	if active == "true" then
-		-- Check all item conditions
-		if item:is_empty() then
-			clear_item_meta(meta)
-			set_burnout(timer,meta)
-			return
-		end
-
-		if item:get_name() ~= old_item then
-			clear_item_meta(meta)
-			local recipe = is_recipe(item:get_name(),old_fuel)
-			if recipe then
-				meta:set_string("item",item:get_name())
-				meta:set_float("itemtime",recipe.time)
-				local burntime = meta:get_float("burntime") - timer:get_elapsed()
-				meta:set_float("burntime",burntime)
-				burntime = math.min(burntime,recipe.time)
-				timer:set(burntime,0)
-			else
-				set_burnout(timer,meta)
-			end
-			return
-		end
-
-		local recipe = is_recipe(old_item,old_fuel)
-		if item:get_count() < recipe.input[old_item] then
-			clear_item_meta(meta)
-			set_burnout(timer,meta)
-			return
-		end
-
-		for k,v in pairs(recipe.output) do
-			if not inv:room_for_item("output",k .. " " .. tostring(v)) then
-				clear_item_meta(meta)
-				set_burnout(timer,meta)
-				return
-			end
-		end
-
-		-- If fuel has changed, the time should already be set to
-		-- it's burnout or smaller
-	else
-		if item:is_empty() or fuel:is_empty() then
-			return
-		end
-
-		local recipe = is_recipe(item:get_name(),fuel:get_name())
-		if not recipe then
-			return
-		end
-
-		for k,v in pairs(recipe.output) do
-			if not inv:room_for_item("output",k .. " " .. tostring(v)) then
-				return
-			end
-		end
-
-		if item:get_count() < recipe.input[item:get_name()] then
-			return
-		end
-
-		-- Everything has been checked - furnace can be started
-		meta:set_string("item",item:get_name())
-		meta:set_float("itemtime",recipe.time)
-		local fuel_def = is_fuel(fuel:get_name())
-		meta:set_string("fuel",fuel:get_name())
-		meta:set_float("burntime",fuel_def.burntime)
-		meta:set_string("active","true")
-		timer:set(math.min(fuel_def.burntime,recipe.time),0)
+	if not recipe
+	or not enough_items(item,recipe)
+	or not room_for_out(recipe,inv) then
+		return
 	end
+
+	set_ingredient(meta,item,recipe)
+	burn_fuel(meta,inv)
+
+	set_timer(pos,recipe.time,fuel_def.burntime)
+	minetest.swap_node(pos,{name="crafting:furnace_active"})
 end
-			
 
 minetest.register_node("crafting:furnace",{
 	drawtype = "normal",
@@ -307,27 +280,210 @@ minetest.register_node("crafting:furnace",{
 		if tlist == "input" then
 			sort_input(meta)
 		end
-		update_furnace(pos)
+		try_start(pos)
 	end,
 	on_metadata_inventory_take = function(pos,lname,i,stack,player)
 		local meta = minetest.get_meta(pos)
-		update_furnace(pos)
+		try_start(pos)
 	end,
 	on_metadata_inventory_put = function(pos,lname,i,stack,player)
 		local meta = minetest.get_meta(pos)
 		if lname == "input" then
 			sort_input(meta)
 		end
-		update_furnace(pos)
+		try_start(pos)
 	end,
 	can_dig = function(pos,player)
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
 		return inv:is_empty("output") and inv:is_empty("input")
 	end,
-	on_timer = function(pos,elapsed)
+})
+
+local function on_timeout(pos)
+	minetest.chat_send_all("on_timeout()")
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+
+	local item = inv:get_stack("input",1)
+	local old_fuel = meta:get_string("fuel")
+	local old_item = meta:get_string("item")
+
+	local recipe,fuel_def = is_recipe(item:get_name(),old_fuel)
+	local timer = minetest.get_node_timer(pos)
+
+	if item:get_name() ~= old_item then
+		if recipe then
+			set_ingredient(meta,item,recipe)
+			return true
+		else
+			clear_item(meta)
+			return false
+		end
+	end
+
+	if not room_for_out(recipe,inv)
+	or not enough_items(item,recipe) then
+		clear_item(meta)
+		return false
+	end
+
+	for output,count in pairs(recipe.output) do
+		inv:add_item("output",output .. " " .. count)
+	end
+	item:set_count(item:get_count() - recipe.input[item:get_name()])
+	inv:set_stack("input",1,item)
+
+	if not room_for_out(recipe,inv)
+	or not enough_items(item,recipe) then
+		clear_item(meta)
+		return false
+	else
+		set_ingredient(meta,item,recipe)
+		return true
+	end
+end
+
+local function on_burnout(pos)
+	minetest.chat_send_all("on_burnout()")
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+
+	local item,fuel = get_items(inv)
+	local old_item, old_fuel = get_old_items(meta)
+
+	local recipe,fuel_def = is_recipe(item:get_name(),fuel:get_name())
+	local old_recipe,fuel_def = is_recipe(item:get_name(),old_fuel)
+
+	if not recipe then
+		clear_item(meta)
+		return false
+	end
+
+	if not room_for_out(recipe,inv)
+	or not enough_items(item,recipe) then
+		clear_item(meta)
+		return false
+	end
+
+	burn_fuel(meta,inv)
+	return true
+end
+	
+local function try_change(pos)
+	minetest.chat_send_all("try_change()")
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+
+	local item = inv:get_stack("input",1)
+	local fuel = inv:get_stack("input",2)
+	local old_fuel = meta:get_string("fuel")
+	local old_item = meta:get_string("item")
+
+	local recipe,fuel_def = is_recipe(item:get_name(),fuel:get_name())
+	local timer = minetest.get_node_timer(pos)
+
+	if item:get_name() ~= old_item and recipe then
+		-- Check if remains of old fuel can be used
+		local old_recipe = is_recipe(item:get_name(),old_fuel)
+		if old_recipe == recipe then
+			set_ingredient(meta,item,recipe)
+			local burntime = meta:get_float("burntime") - timer:get_elapsed()
+			meta:set_float("burntime",burntime)
+			timer:start(math.min(burntime,recipe.time))
+			return
+		else
+			burn_fuel(meta,inv)
+			set_ingredient(meta,item,recipe)
+			timer:start(math.min(recipe.time,fuel_def.burntime))
+			return
+		end
+	end
+
+	if fuel:get_name() ~= old_fuel then
+		local old_recipe = is_recipe(item:get_name(),old_fuel)
+		if recipe and recipe ~= old_recipe then
+			burn_fuel(meta,inv)
+			set_ingredient(meta,item,recipe)
+			timer:start(math.min(recipe.time,fuel_def.burntime))
+			return
+		end
+	end
+end
+
+local function furnace_timer(pos,elapsed)
+	minetest.chat_send_all("on_timer()")
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+	minetest.chat_send_all("elapsed: " .. tostring(elapsed))
+
+	local item = inv:get_stack("input",1)
+	local fuel = inv:get_stack("input",2)
+	local old_fuel = meta:get_string("fuel")
+	local old_item = meta:get_string("item")
+
+	local recipe,fuel_def = is_recipe(item:get_name(),fuel:get_name())
+	local timer = minetest.get_node_timer(pos)
+
+	local burntime = meta:get_float("burntime") - elapsed
+	local itemtime = meta:get_float("itemtime") - elapsed
+
+	minetest.chat_send_all(burntime)
+	minetest.chat_send_all(itemtime)
+
+	meta:set_float("itemtime",itemtime)
+	meta:set_float("burntime",burntime)
+
+	local create_timer = burntime > 0
+
+	if itemtime <= 0 then
+		on_timeout(pos)
+	end
+	if burntime <= 0 then
+		create_timer = on_burnout(pos)
+	end
+
+	if create_timer then
+		timer:start(math.min(meta:get_float("burntime"),meta:get_float("itemtime")))
+	else
+		minetest.swap_node(pos,{name="crafting:furnace"})
+	end
+	return false
+end
+
+minetest.register_node("crafting:furnace_active",{
+	drawtype = "normal",
+	tiles = {
+		"default_furnace_top.png", "default_furnace_bottom.png",
+		"default_furnace_side.png", "default_furnace_side.png",
+		"default_furnace_side.png", "default_furnace_front.png"
+	},
+	paramtype2 = "facedir",
+	is_ground_content = false,
+	groups = {oddly_breakable_by_hand = 1,choppy=3},
+	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
 		local meta = minetest.get_meta(pos)
+		if tlist == "input" then
+			sort_input(meta)
+		end
+		try_change(pos)
 	end,
+	on_metadata_inventory_take = function(pos,lname,i,stack,player)
+		try_change(pos)
+	end,
+	on_metadata_inventory_put = function(pos,lname,i,stack,player)
+		local meta = minetest.get_meta(pos)
+		if lname == "input" then
+			sort_input(meta)
+		end
+		try_change(pos)
+	end,
+	can_dig = function(pos,player)
+		local meta = minetest.get_meta(pos)
+		local inv = meta:get_inventory()
+		return inv:is_empty("output") and inv:is_empty("input")
+	end,
+	on_timer = furnace_timer,
 })
 	--allow_metadata_inventory_take = function(pos,lname,i,stack,player) end,
 	--]]
