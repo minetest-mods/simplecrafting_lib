@@ -179,6 +179,24 @@ local function is_recipe(item,fuel)
 	return get_fueled_recipe(recipes,fuel_def),fuel_def
 end
 
+local function swap_furnace(pos)
+	local node = minetest.get_node(pos)
+	if node.name == "crafting:furnace" then
+		node.name = "crafting:furnace_active"
+	elseif node.name == "crafting:furnace_active" then
+		node.name = "crafting:furnace"
+	end
+	minetest.swap_node(pos,node)
+end
+
+local function set_infotext(meta)
+	meta:set_string("infotext", "Fuel time: " 
+		.. tostring(meta:get_float("burntime"))
+		.. " | Item time: "
+		.. tostring(meta:get_float("itemtime"))
+	)
+end
+
 local function get_items(inv)
 	return inv:get_stack("input",1), inv:get_stack("input",2)
 end
@@ -243,7 +261,8 @@ local function try_start(pos)
 	burn_fuel(meta,inv)
 
 	set_timer(pos,recipe.time,fuel_def.burntime)
-	minetest.swap_node(pos,{name="crafting:furnace_active"})
+	swap_furnace(pos)
+	set_infotext(meta)
 end
 
 minetest.register_node("crafting:furnace",{
@@ -255,7 +274,7 @@ minetest.register_node("crafting:furnace",{
 	},
 	paramtype2 = "facedir",
 	is_ground_content = false,
-	groups = {oddly_breakable_by_hand = 1,choppy=3},
+	groups = {oddly_breakable_by_hand = 1,cracky=3},
 	on_construct = function(pos)
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
@@ -318,6 +337,12 @@ local function on_timeout(pos)
 			clear_item(meta)
 			return false
 		end
+	end
+
+	-- Triggered if active furnace placed
+	if not recipe then
+		clear_item(meta)
+		return false
 	end
 
 	if not room_for_out(recipe,inv)
@@ -438,8 +463,9 @@ local function furnace_timer(pos,elapsed)
 	if create_timer then
 		timer:start(math.min(meta:get_float("burntime"),meta:get_float("itemtime")))
 	else
-		minetest.swap_node(pos,{name="crafting:furnace"})
+		swap_furnace(pos)
 	end
+	set_infotext(meta)
 	return false
 end
 
@@ -448,11 +474,21 @@ minetest.register_node("crafting:furnace_active",{
 	tiles = {
 		"default_furnace_top.png", "default_furnace_bottom.png",
 		"default_furnace_side.png", "default_furnace_side.png",
-		"default_furnace_side.png", "default_furnace_front.png"
+		"default_furnace_side.png",
+		{
+			image = "default_furnace_front_active.png",
+			backface_culling = false,
+			animation = {
+				type = "vertical_frames",
+				aspect_w = 16,
+				aspect_h = 16,
+				length = 1.5
+			},
+		},
 	},
 	paramtype2 = "facedir",
 	is_ground_content = false,
-	groups = {oddly_breakable_by_hand = 1,choppy=3},
+	groups = {oddly_breakable_by_hand = 1,cracky=3},
 	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
 		local meta = minetest.get_meta(pos)
 		if tlist == "input" then
