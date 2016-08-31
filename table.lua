@@ -236,6 +236,7 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	if (not new_stack:is_empty() 
 	and new_stack:get_name() ~= stack:get_name())
 	-- Only effective if stack limits are ignored by table
+	-- Stops below fix being triggered incorrectly when swapping
 	or new_stack:get_count() == new_stack:get_stack_max() then
 		local excess = tinv:add_item(tlist,new_stack)
 		if not excess:is_empty() then
@@ -260,7 +261,10 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 		return count
 	end
 
-	-- Fix for listring movement causing multiple updates
+	-- Fix for listring movement causing multiple updates with
+	-- incorrect values wen trying to move items onto a stack and
+	-- exceeding stack max
+	-- A second update then tries to move the remaining items
 	if (not new_stack:is_empty()
 	and new_stack:get_name() == stack:get_name()
 	and new_stack:get_count() + stack:get_count() > stack:get_stack_max()) then
