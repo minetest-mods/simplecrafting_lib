@@ -232,7 +232,7 @@ crafting.table.register = function(def)
 	return true
 end
 
-local function swap_fix(inv,stack,new_stack,tinv,tlist,player)
+local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	if (not new_stack:is_empty() 
 	and new_stack:get_name() ~= stack:get_name())
 	-- Only effective if stack limits are ignored by table
@@ -259,6 +259,13 @@ local function swap_fix(inv,stack,new_stack,tinv,tlist,player)
 		end
 		return count
 	end
+
+	-- Fix for listring movement causing multiple updates
+	if (not new_stack:is_empty()
+	and new_stack:get_name() == stack:get_name()
+	and new_stack:get_count() + stack:get_count() > stack:get_stack_max()) then
+		return stack:get_count() - new_stack:get_count()
+	end
 end
 		
 minetest.register_node("crafting:table",{
@@ -281,7 +288,7 @@ minetest.register_node("crafting:table",{
 		if tlist == "output" then
 			return 0
 		end
-		return no + 1
+		return no
 	end,
 	allow_metadata_inventory_put = function(pos,lname,i,stack,player)
 		if lname == "output" then
@@ -295,7 +302,7 @@ minetest.register_node("crafting:table",{
 			local inv = meta:get_inventory()
 			local stack = inv:get_stack(tlist,ti)
 			local new_stack = inv:get_stack(flist,fi)
-			local count = swap_fix(inv,stack,new_stack,inv
+			local count = count_fixes(inv,stack,new_stack,inv
 				,"store",player) or no 
 			pay_items(inv,stack,inv,"store",player,count)
 		end
@@ -306,10 +313,8 @@ minetest.register_node("crafting:table",{
 		if lname == "output" then
 			local inv = meta:get_inventory()
 			local new_stack = inv:get_stack(lname,i)
-			local count = swap_fix(inv,stack,new_stack
+			local count = count_fixes(inv,stack,new_stack
 				,player:get_inventory(),"main",player) or stack:get_count()
-
-			-- Fix issues with swapping
 
 			pay_items(inv,stack,player:get_inventory(),"main",player,count)
 		end

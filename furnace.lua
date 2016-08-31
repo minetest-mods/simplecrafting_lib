@@ -412,11 +412,13 @@ local function try_change(pos)
 			local burntime = meta:get_float("burntime") - timer:get_elapsed()
 			meta:set_float("burntime",burntime)
 			timer:start(math.min(burntime,recipe.time))
+			set_infotext(meta)
 			return
 		else
 			burn_fuel(meta,inv)
 			set_ingredient(meta,item,recipe)
 			timer:start(math.min(recipe.time,fuel_def.burntime))
+			set_infotext(meta)
 			return
 		end
 	end
@@ -427,6 +429,7 @@ local function try_change(pos)
 			burn_fuel(meta,inv)
 			set_ingredient(meta,item,recipe)
 			timer:start(math.min(recipe.time,fuel_def.burntime))
+			set_infotext(meta)
 			return
 		end
 	end
