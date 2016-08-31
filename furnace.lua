@@ -77,7 +77,7 @@ local function is_ingredient(item)
 			end
 		end
 	end
-	return false
+	return nil
 end
 
 local function is_fuel(item,grade)
@@ -101,7 +101,7 @@ local function is_fuel(item,grade)
 			return fuel_group
 		end
 	end
-	return false
+	return nil
 end
 
 local function get_fueled_recipe(item_recipes,fuel)
