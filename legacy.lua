@@ -75,8 +75,8 @@ minetest.register_craft({
 minetest.register_craft({
 	output = "crafting:furnace",
 	recipe = {
-		{"group:wood","group:wood",""},
-		{"group:wood","group:wood",""},
-		{"","",""},
+		{"default:stone","default:stone","default:stone"},
+		{"default:stone","defualt:coal_lump","default:stone"},
+		{"default:stone","default:stone","default:stone"},
 	},
 })
