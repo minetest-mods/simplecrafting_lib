@@ -29,6 +29,7 @@ end
 --]]
 
 -- Furnace
+--[[
 crafting.register("furnace",{
 	input = {
 		-- Must only have one input type, or will be ignored by furnace
@@ -66,20 +67,6 @@ crafting.register("furnace",{
 	},
 })
 
-crafting.register("furnace",{
-	input = {
-		["default:cobble"] = 2,
-	},
-	output = {
-		["default:mese"] = 2,
-	},
-	time = 5.6,
-	fuel_grade = {
-		min = 1,
-		max = 3,
-	},
-})
-
 crafting.register("fuel",{
 	-- Group names are allowed
 	-- If there is not an item specific recipe then it will take the
@@ -88,3 +75,4 @@ crafting.register("fuel",{
 	burntime = 25.4,
 	grade = 3,
 })
+--]]

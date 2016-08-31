@@ -20,6 +20,14 @@ for item,_ in pairs(minetest.registered_items) do
 		for i,v in ipairs(crafts) do
 			if v.method == "normal" then
 				create_recipe(v,item)
+			elseif v.method == "cooking" then
+				local legacy = {input={},output={}}
+				legacy.output[v.output] = 1
+				legacy.input[v.input[1]] = 1
+				-- TODO correct detection of time - this is always 3
+				legacy.time = v.time or 3
+				crafting.register("furnace",legacy)
+			-- TODO detection of fuels
 			end
 		end
 	end
@@ -39,6 +47,18 @@ minetest.register_craft = function(recipe)
 			legacy.items = recipe.recipe
 		end
 		create_recipe(legacy)
+	elseif recipe.type == "cooking" then
+		local legacy = {input={},output={}}
+		legacy.output[recipe.output] = 1
+		legacy.input[recipe.recipe] = 1
+		legacy.time = recipe.cooktime or 3
+		crafting.register("furnace",legacy)
+	elseif recipe.type == "fuel" then
+		local legacy = {}
+		legacy.name = recipe.recipe
+		legacy.burntime = recipe.burntime
+		legacy.grade = 1
+		crafting.register("fuel",legacy)
 	end
 	return register_craft(recipe)
 end
@@ -46,6 +66,14 @@ end
 
 minetest.register_craft({
 	output = "crafting:table",
+	recipe = {
+		{"group:wood","group:wood",""},
+		{"group:wood","group:wood",""},
+		{"","",""},
+	},
+})
+minetest.register_craft({
+	output = "crafting:furnace",
 	recipe = {
 		{"group:wood","group:wood",""},
 		{"group:wood","group:wood",""},
