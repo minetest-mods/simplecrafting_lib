@@ -190,10 +190,11 @@ local function swap_furnace(pos)
 end
 
 local function set_infotext(meta)
-	meta:set_string("infotext", "Fuel time: " 
-		.. tostring(meta:get_float("burntime"))
-		.. " | Item time: "
-		.. tostring(meta:get_float("itemtime"))
+	meta:set_string("infotext", 
+		string.format("Fuel time: %.1f | Item time: %.1f"
+			,meta:get_float("burntime")
+			,meta:get_float("itemtime")
+		)
 	)
 end
 
@@ -372,19 +373,18 @@ local function on_burnout(pos)
 	local inv = meta:get_inventory()
 
 	local item,fuel = get_items(inv)
-	local old_item, old_fuel = get_old_items(meta)
-
 	local recipe,fuel_def = is_recipe(item:get_name(),fuel:get_name())
-	local old_recipe,fuel_def = is_recipe(item:get_name(),old_fuel)
 
 	if not recipe then
 		clear_item(meta)
+		meta:set_float("burntime",0)
 		return false
 	end
 
 	if not room_for_out(recipe,inv)
 	or not enough_items(item,recipe) then
 		clear_item(meta)
+		meta:set_float("burntime",0)
 		return false
 	end
 
@@ -514,5 +514,3 @@ minetest.register_node("crafting:furnace_active",{
 	end,
 	on_timer = furnace_timer,
 })
-	--allow_metadata_inventory_take = function(pos,lname,i,stack,player) end,
-	--]]
