@@ -227,7 +227,6 @@ local function room_for_out(recipe,inv)
 end
 
 local function try_start(pos)
-	minetest.chat_send_all("try_strat()")
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
@@ -301,7 +300,6 @@ minetest.register_node("crafting:furnace",{
 })
 
 local function on_timeout(pos)
-	minetest.chat_send_all("on_timeout()")
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
@@ -345,7 +343,6 @@ local function on_timeout(pos)
 end
 
 local function on_burnout(pos)
-	minetest.chat_send_all("on_burnout()")
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
@@ -371,7 +368,6 @@ local function on_burnout(pos)
 end
 	
 local function try_change(pos)
-	minetest.chat_send_all("try_change()")
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 
@@ -412,10 +408,8 @@ local function try_change(pos)
 end
 
 local function furnace_timer(pos,elapsed)
-	minetest.chat_send_all("on_timer()")
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	minetest.chat_send_all("elapsed: " .. tostring(elapsed))
 
 	local item = inv:get_stack("input",1)
 	local fuel = inv:get_stack("input",2)
@@ -428,8 +422,6 @@ local function furnace_timer(pos,elapsed)
 	local burntime = meta:get_float("burntime") - elapsed
 	local itemtime = meta:get_float("itemtime") - elapsed
 
-	minetest.chat_send_all(burntime)
-	minetest.chat_send_all(itemtime)
 
 	meta:set_float("itemtime",itemtime)
 	meta:set_float("burntime",burntime)
