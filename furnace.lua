@@ -487,6 +487,7 @@ minetest.register_node("crafting:furnace_active",{
 		},
 	},
 	paramtype2 = "facedir",
+	drop = "crafting:furnace",
 	is_ground_content = false,
 	groups = {oddly_breakable_by_hand = 1,cracky=3},
 	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
