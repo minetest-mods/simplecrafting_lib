@@ -8,7 +8,7 @@ local function create_recipe(legacy)
 	recipe.input = {}
 	for _,item in ipairs(items) do
 		if item ~= "" then
-			recipe.input[items[i]] = (recipe.input[items[i]] or 0) + 1
+			recipe.input[item] = (recipe.input[items] or 0) + 1
 		end
 	end
 	crafting.register("table",recipe)
