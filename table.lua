@@ -119,7 +119,7 @@ local function make_formspec(page,noitems)
 	end
 	inventory[#inventory+1] = "label[13,6.2;Page " .. tostring(page) .. "]"
 
-	return table.concat(inventory) , page
+	return table.concat(inventory),page
 end
 
 local function refresh_inv(meta)
@@ -138,6 +138,14 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 	local itemlist = itemlist_to_countlist(inv:get_list("store"))
 	local max = 0
 	local craft_using
+
+	-- Catch items in output without recipe (reported by cx384)
+	if not recipes_by_out[name] then
+		minetest.log("error","Item in table output list without recipe: "
+			.. name)
+		return
+	end
+
 	-- Get recipe which can craft the most
 	for i=1,#recipes_by_out[name] do
 		local out,recipe = get_craft_no(itemlist,recipes_by_out[name][i])
@@ -149,7 +157,7 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 
 	-- Catch items in output without recipe (reported by cx384)
 	if not craft_using then
-		minetest.log("error","Item in table output list without recipe: "
+		minetest.log("error","Item in table output list without valid recipe: "
 			.. name)
 		return
 	end
