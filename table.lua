@@ -147,6 +147,13 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 		end
 	end
 
+	-- Catch items in output without recipe (reported by cx384)
+	if not craft_using then
+		minetest.log("error","Item in table output list without recipe: "
+			.. name)
+		return
+	end
+
 	-- Increase amount taken if not a multiple of recipe output
 	local output_factor = craft_using.output[name]
 	if no % output_factor ~= 0 then

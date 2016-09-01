@@ -6,8 +6,8 @@ local function create_recipe(legacy)
 	local nout = stack:get_count()
 	recipe.output = {[output] = nout}
 	recipe.input = {}
-	for i=1,9 do
-		if items[i] and items[i] ~= "" then
+	for _,item in ipairs(items) do
+		if item ~= "" then
 			recipe.input[items[i]] = (recipe.input[items[i]] or 0) + 1
 		end
 	end
