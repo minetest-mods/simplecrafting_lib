@@ -80,6 +80,24 @@ local function is_ingredient(item)
 	return nil
 end
 
+local function get_recipe_name(item_stack)
+	local item = item_stack:get_name()
+	
+	if recipes[item] then
+		return item
+	end
+
+	local def = minetest.registered_items[item]
+	if def and def.groups then
+		for group,_ in pairs(def.groups) do
+			if recipes[group] then
+				return group
+			end
+		end
+	end
+	return nil
+end
+
 local function is_fuel(item,grade)
 	if fuels[item] then
 		return fuels[item]
@@ -233,7 +251,7 @@ local function enough_items(item_stack,recipe)
 	if item_stack:is_empty() then
 		return false
 	end
-	return item_stack:get_count() >= recipe.input[item_stack:get_name()]
+	return item_stack:get_count() >= recipe.input[get_recipe_name(item_stack)]
 end
 
 local function room_for_out(recipe,inv)
@@ -355,7 +373,7 @@ local function on_timeout(pos)
 	for output,count in pairs(recipe.output) do
 		inv:add_item("output",output .. " " .. count)
 	end
-	item:set_count(item:get_count() - recipe.input[item:get_name()])
+	item:set_count(item:get_count() - recipe.input[get_recipe_name(item)])
 	inv:set_stack("input",1,item)
 
 	if not room_for_out(recipe,inv)
