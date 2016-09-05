@@ -285,6 +285,7 @@ local function try_start(pos)
 end
 
 minetest.register_node("crafting:furnace",{
+	description = "Furnace",
 	drawtype = "normal",
 	tiles = {
 		"default_furnace_top.png", "default_furnace_bottom.png",
