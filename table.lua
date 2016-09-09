@@ -248,6 +248,24 @@ crafting.table.register = function(def)
 end
 
 local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
+	-- Re-calculate the no. items in the stack
+	-- This is used in both fixes		
+	local count = 0
+	local no_per_out = 1
+	local name = stack:get_name()
+	for i=1,#recipes_by_out[name] do
+		local out,recipe = get_craft_no(itemlist_to_countlist(inv:get_list("store")),recipes_by_out[name][i])
+		if out > 0 and out * recipe.output[name] > count then
+			count = out * recipe.output[name]
+			no_per_out = recipe.output[name]
+		end
+	end
+	-- Stack limit correction
+	local max = stack:get_stack_max()
+	if max < count then
+		count = max - (max % no_per_out)
+	end
+	
 	if (not new_stack:is_empty() 
 	and new_stack:get_name() ~= stack:get_name())
 	-- Only effective if stack limits are ignored by table
@@ -258,21 +276,6 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 			minetest.item_drop(excess,player,player:getpos())
 		end
 		-- Whole stack has been taken - calculate how many
-		local count = 0
-		local no_per_out = 1
-		local name = stack:get_name()
-		for i=1,#recipes_by_out[name] do
-			local out,recipe = get_craft_no(itemlist_to_countlist(inv:get_list("store")),recipes_by_out[name][i])
-			if out > 0 and out * recipe.output[name] > count then
-				count = out * recipe.output[name]
-				no_per_out = recipe.output[name]
-			end
-		end
-		-- Stack limit correction
-		local max = stack:get_stack_max()
-		if max < count then
-			count = max - (max % no_per_out)
-		end
 		return count
 	end
 
@@ -282,7 +285,7 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	-- A second update then tries to move the remaining items
 	if (not new_stack:is_empty()
 	and new_stack:get_name() == stack:get_name()
-	and new_stack:get_count() + stack:get_count() > stack:get_stack_max()) then
+	and new_stack:get_count() + stack:get_count() > count) then
 		return stack:get_count() - new_stack:get_count()
 	end
 end
