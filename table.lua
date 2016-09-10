@@ -247,7 +247,7 @@ crafting.table.register = function(def)
 	return true
 end
 
-local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
+local function get_craftable_no(inv,stack)
 	-- Re-calculate the no. items in the stack
 	-- This is used in both fixes		
 	local count = 0
@@ -265,18 +265,26 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	if max < count then
 		count = max - (max % no_per_out)
 	end
+
+	return count
+end
+
+local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	
+	local count = get_craftable_no(inv,stack)
+
 	if (not new_stack:is_empty() 
 	and new_stack:get_name() ~= stack:get_name())
 	-- Only effective if stack limits are ignored by table
 	-- Stops below fix being triggered incorrectly when swapping
 	or new_stack:get_count() == new_stack:get_stack_max() then
+		minetest.chat_send_all("Swap Fix triggered")
 		local excess = tinv:add_item(tlist,new_stack)
 		if not excess:is_empty() then
 			minetest.item_drop(excess,player,player:getpos())
 		end
 		-- Whole stack has been taken - calculate how many
-		return count
+		return count,true
 	end
 
 	-- Fix for listring movement causing multiple updates with
@@ -286,7 +294,8 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	if (not new_stack:is_empty()
 	and new_stack:get_name() == stack:get_name()
 	and new_stack:get_count() + stack:get_count() > count) then
-		return stack:get_count() - new_stack:get_count()
+		minetest.chat_send_all("Shift Fix triggered")
+		return stack:get_count() - new_stack:get_count(),false
 	end
 end
 		
@@ -323,10 +332,23 @@ minetest.register_node("crafting:table",{
 		if flist == "output" and tlist == "store" then
 			local inv = meta:get_inventory()
 			local stack = inv:get_stack(tlist,ti)
+			-- Set count to no, for the use of count_fixes
+			stack:set_count(no)
 			local new_stack = inv:get_stack(flist,fi)
-			local count = count_fixes(inv,stack,new_stack,inv
-				,"store",player) or no 
+			local count,refresh = count_fixes(inv,stack,new_stack,inv
+				,"store",player)
+
+			if not count then
+				count = no
+				refresh = true
+			end
+
 			pay_items(inv,stack,inv,"store",player,count)
+
+			if refresh then
+				refresh_inv(meta)
+			end
+			return
 		end
 		refresh_inv(meta)
 	end,
@@ -335,10 +357,20 @@ minetest.register_node("crafting:table",{
 		if lname == "output" then
 			local inv = meta:get_inventory()
 			local new_stack = inv:get_stack(lname,i)
-			local count = count_fixes(inv,stack,new_stack
-				,player:get_inventory(),"main",player) or stack:get_count()
+			local count,refresh = count_fixes(inv,stack,new_stack
+				,player:get_inventory(),"main",player) 
+
+			if not count then
+				count = stack:get_count()
+				refresh = true
+			end
 
 			pay_items(inv,stack,player:get_inventory(),"main",player,count)
+
+			if refresh then
+				refresh_inv(meta)
+			end
+			return
 		end
 		refresh_inv(meta)
 	end,
