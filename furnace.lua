@@ -347,7 +347,6 @@ local function on_timeout(pos)
 	local old_item = meta:get_string("item")
 
 	local recipe,fuel_def = is_recipe(item:get_name(),old_fuel)
-	local timer = minetest.get_node_timer(pos)
 
 	if item:get_name() ~= old_item then
 		if recipe then
@@ -456,34 +455,40 @@ end
 
 local function furnace_timer(pos,elapsed)
 	local meta = minetest.get_meta(pos)
-	local inv = meta:get_inventory()
 
-	local item = inv:get_stack("input",1)
-	local fuel = inv:get_stack("input",2)
-	local old_fuel = meta:get_string("fuel")
-	local old_item = meta:get_string("item")
-
-	local recipe,fuel_def = is_recipe(item:get_name(),fuel:get_name())
 	local timer = minetest.get_node_timer(pos)
 
-	local burntime = meta:get_float("burntime") - elapsed
-	local itemtime = meta:get_float("itemtime") - elapsed
+	local burntime = meta:get_float("burntime")
+	local itemtime = meta:get_float("itemtime")
+	local time_taken = math.min(burntime,itemtime)
 
+	local create_timer = true
+	local remaining = elapsed
+	if remaining >= time_taken then
+		remaining = elapsed - time_taken
+		itemtime = itemtime - time_taken
+		burntime = burntime - time_taken
 
-	meta:set_float("itemtime",itemtime)
-	meta:set_float("burntime",burntime)
+		meta:set_float("itemtime",itemtime)
+		meta:set_float("burntime",burntime)
 
-	local create_timer = burntime > 0
+		create_timer = burntime > 0
 
-	if itemtime <= 0 then
-		on_timeout(pos)
-	end
-	if burntime <= 0 then
-		create_timer = on_burnout(pos)
+		if itemtime <= 0 then
+			on_timeout(pos)
+		end
+		if burntime <= 0 then
+			create_timer = on_burnout(pos)
+		end
 	end
 
 	if create_timer then
-		timer:start(math.min(meta:get_float("burntime"),meta:get_float("itemtime")))
+		local time = math.min(meta:get_float("burntime"),meta:get_float("itemtime"))
+		if remaining > time then
+			return furnace_timer(pos,remaining)
+		else
+			timer:set(time,remaining)
+		end
 	else
 		swap_furnace(pos)
 	end

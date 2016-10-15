@@ -278,7 +278,6 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	-- Only effective if stack limits are ignored by table
 	-- Stops below fix being triggered incorrectly when swapping
 	or new_stack:get_count() == new_stack:get_stack_max() then
-		minetest.chat_send_all("Swap Fix triggered")
 		local excess = tinv:add_item(tlist,new_stack)
 		if not excess:is_empty() then
 			minetest.item_drop(excess,player,player:getpos())
@@ -294,7 +293,6 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	if (not new_stack:is_empty()
 	and new_stack:get_name() == stack:get_name()
 	and new_stack:get_count() + stack:get_count() > count) then
-		minetest.chat_send_all("Shift Fix triggered")
 		return stack:get_count() - new_stack:get_count(),false
 	end
 end
