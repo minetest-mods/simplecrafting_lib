@@ -175,7 +175,18 @@ local function pay_items(inv,crafted,to_inv,to_list,player,no_crafted)
 	local input = craft_using.input
 	local no_crafts = math.floor(no / output_factor)
 	for item,count in pairs(input) do
-		inv:remove_item("store",item .. " " .. tostring(no_crafts * count))
+		local to_remove = no_crafts * count
+		local stack = ItemStack(item)
+		stack:set_count(stack:get_stack_max())
+		while to_remove > stack:get_stack_max() do
+			inv:remove_item("store",stack)
+			to_remove = to_remove - stack:get_stack_max()
+		end
+
+		if to_remove > 0 then
+			stack:set_count(to_remove)
+			inv:remove_item("store",stack)
+		end
 	end
 
 	-- Add excess items
