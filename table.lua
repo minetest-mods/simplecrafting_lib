@@ -309,6 +309,7 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 end
 		
 minetest.register_node("crafting:table",{
+	description = "Crafting Table",
 	drawtype = "normal",
 	tiles = {"crafting.table_top.png","default_chest_top.png"
 		,"crafting.table_front.png","crafting.table_front.png"
