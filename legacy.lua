@@ -1,4 +1,7 @@
 local function create_recipe(legacy)
+	if not legacy.items[1] then
+		return
+	end
 	local recipe = {}
 	local items = legacy.items
 	local stack = ItemStack(legacy.output)
@@ -16,14 +19,14 @@ end
 
 for item,_ in pairs(minetest.registered_items) do
 	local crafts = minetest.get_all_craft_recipes(item)
-	if crafts then
+	if crafts and item ~= "" then
 		for i,v in ipairs(crafts) do
 			if v.method == "normal" then
 				create_recipe(v,item)
 			elseif v.method == "cooking" then
 				local legacy = {input={},output={}}
 				legacy.output[v.output] = 1
-				legacy.input[v.input[1]] = 1
+				legacy.input[v.items[1]] = 1 
 				-- TODO correct detection of time - this is always 3
 				legacy.time = v.time or 3
 				crafting.register("furnace",legacy)
