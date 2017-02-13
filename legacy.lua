@@ -9,6 +9,7 @@ local function create_recipe(legacy)
 	local nout = stack:get_count()
 	recipe.output = {[output] = nout}
 	recipe.input = {}
+	recipe.ret = legacy.ret
 	for _,item in ipairs(items) do
 		if item ~= "" then
 			recipe.input[item] = (recipe.input[item] or 0) + 1
@@ -22,6 +23,16 @@ for item,_ in pairs(minetest.registered_items) do
 	if crafts and item ~= "" then
 		for i,v in ipairs(crafts) do
 			if v.method == "normal" then
+				if v.replacements then
+					v.ret = {}
+					local count = {}
+					for _,item in ipairs(v.items) do
+						count[item] = (count[item] or 0) + 1
+					end
+					for _,pair in ipairs(v.replacements) do
+						v.ret[pair[2]] = count[pair[1]]
+					end
+				end
 				create_recipe(v,item)
 			elseif v.method == "cooking" then
 				local legacy = {input={},output={}}
@@ -39,11 +50,19 @@ end
 local register_craft = minetest.register_craft
 minetest.register_craft = function(recipe)
 	if not recipe.type or recipe.type == "shapeless" then
-		local legacy = {items={},output=recipe.output}
+		local legacy = {items={},ret={},output=recipe.output}
+		local count = {}
 		if not recipe.type then
 			for _,row in ipairs(recipe.recipe) do
 				for _,item in ipairs(row) do
 					legacy.items[#legacy.items+1] = item
+					count[item] = (count[item] or 0) + 1
+				end
+			end
+			if recipe.replacements then
+				minetest.log("error", recipe.output)
+				for _,pair in ipairs(recipe.replacements) do
+					legacy.ret[pair[2]] = count[pair[1]]
 				end
 			end
 		elseif recipe.type == "shapeless" then
