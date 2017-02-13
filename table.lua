@@ -93,33 +93,36 @@ end
 local function refresh_output(inv)
 	local itemlist = itemlist_to_countlist(inv:get_list("store"))
 	local craftable = get_craftable_items(itemlist)
-	inv:set_size("output",#craftable + ((16*5) - (#craftable%(16*5))))
+	inv:set_size("output",#craftable + ((8*6) - (#craftable%(8*6))))
 	inv:set_list("output",craftable)
 end
 
-local function make_formspec(page,noitems)
-	if noitems < page * 80 then
-		page = 0
+local function make_formspec(row,noitems)
+	if noitems < (8*6) then
+		row = 0
+	elseif (row*8)+(8*6) > noitems then
+		row = (noitems - (8*6)) / 8
 	end
+
 	local inventory = {
-		"size[16,12]"
-		, "list[context;output;0,0;16,5;" , tostring(page*(16*5)), "]"
-		, "list[context;store;4,5.2;8,2;]"
-		, "list[current_player;main;4,8;8,4;]"
+		"size[10.2,10.2]"
+		, "list[context;store;0,0.5;2,5;]"
+		, "list[context;output;2.2,0;8,6;" , tostring(row*8), "]"
+		, "list[current_player;main;1.1,6.2;8,4;]"
 		, "listring[context;output]"
 		, "listring[current_player;main]"
 		, "listring[context;store]"
 		, "listring[current_player;main]"
 	}
-	if noitems > (page+1) * 80 then
-		inventory[#inventory+1] = "button[14,5.2;1,1;next;>]"
+	if row >= 6 then
+		inventory[#inventory+1] = "button[9.3,6.7;1,0.75;prev;«]"
 	end
-	if page > 0 then
-		inventory[#inventory+1] = "button[13,5.2;1,1;prev;<]"
+	if noitems > ((row/6)+1) * (8*6) then
+		inventory[#inventory+1] = "button[9.1,6.2;1,0.75;next;»]"
 	end
-	inventory[#inventory+1] = "label[13,6.2;Page " .. tostring(page) .. "]"
+	inventory[#inventory+1] = "label[0,6.5;Row " .. tostring(row) .. "]"
 
-	return table.concat(inventory),page
+	return table.concat(inventory),row
 end
 
 local function refresh_inv(meta)
@@ -320,9 +323,9 @@ minetest.register_node("crafting:table",{
 	on_construct = function(pos)
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
-		inv:set_size("store", 8*2)
-		inv:set_size("output", 16*5)
-		meta:set_int("page",0)
+		inv:set_size("store", 2*5)
+		inv:set_size("output", 8*6)
+		meta:set_int("row",0)
 		meta:set_string("formspec",make_formspec(0,0))
 	end,
 	allow_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
@@ -391,16 +394,17 @@ minetest.register_node("crafting:table",{
 	on_receive_fields = function(pos,formname,fields,sender)
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
-		local page = meta:get_int("page")
+		local size = inv:get_size("output")
+		local row = meta:get_int("row")
 		if fields.next then
-			page = page + 1
+			row = row + 6
 		elseif fields.prev  then
-			page = page - 1
+			row = row - 6
 		else
 			return
 		end
-		local form, page = make_formspec(page,inv:get_size("output"))
-		meta:set_int("page",page)
+		local form, row = make_formspec(row,size)
+		meta:set_int("row",row)
 		meta:set_string("formspec",form)
 	end,
 	can_dig = function(pos,player)
