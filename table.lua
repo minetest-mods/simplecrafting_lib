@@ -285,7 +285,6 @@ end
 
 local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 	
-	local count = get_craftable_no(inv,stack)
 
 	if (not new_stack:is_empty() 
 	and new_stack:get_name() ~= stack:get_name())
@@ -296,12 +295,20 @@ local function count_fixes(inv,stack,new_stack,tinv,tlist,player)
 		if not excess:is_empty() then
 			minetest.item_drop(excess,player,player:getpos())
 		end
+
+		-- Delay re-calculation until items are back in input inv
+		local count = get_craftable_no(inv,stack)
+
 		-- Whole stack has been taken - calculate how many
 		return count,true
 	end
 
+	-- Delay re-calculation as condition above may cause items to not be
+	-- in the correct inv
+	local count = get_craftable_no(inv,stack)
+
 	-- Fix for listring movement causing multiple updates with
-	-- incorrect values wen trying to move items onto a stack and
+	-- incorrect values when trying to move items onto a stack and
 	-- exceeding stack max
 	-- A second update then tries to move the remaining items
 	if (not new_stack:is_empty()
@@ -344,12 +351,14 @@ minetest.register_node("crafting:table",{
 		local meta = minetest.get_meta(pos)
 		if flist == "output" and tlist == "store" then
 			local inv = meta:get_inventory()
+
 			local stack = inv:get_stack(tlist,ti)
+			local new_stack = inv:get_stack(flist,fi)
 			-- Set count to no, for the use of count_fixes
 			stack:set_count(no)
-			local new_stack = inv:get_stack(flist,fi)
 			local count,refresh = count_fixes(inv,stack,new_stack,inv
 				,"store",player)
+			minetest.chat_send_all(count)
 
 			if not count then
 				count = no
