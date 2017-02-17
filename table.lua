@@ -358,7 +358,6 @@ minetest.register_node("crafting:table",{
 			stack:set_count(no)
 			local count,refresh = count_fixes(inv,stack,new_stack,inv
 				,"store",player)
-			minetest.chat_send_all(count)
 
 			if not count then
 				count = no
