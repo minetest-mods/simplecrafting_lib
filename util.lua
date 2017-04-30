@@ -342,14 +342,22 @@ crafting.get_craftable_items = function(craft_type, item_list, max_craftable)
 end
 
 -- adds two count lists together, returns a new count list with the sum of the parameters' contents
--- useful for combining a recipe's products and returned items
 crafting.count_list_add = function(list1, list2)
 	local out_list = {}
 	for item, count in pairs(list1) do
 		out_list[item] = count
 	end
 	for item, count in pairs(list2) do
-		out_list[item] = (out_list[item] or 0) + count
+		if type(count) == "table" then
+			-- item is actually a group name, it has a set of items associated with it.
+			-- Perform a union with existing set.
+			out_list[item] = out_list[item] or {}			
+			for group_item, _ in pairs(count) do
+				out_list[item][group_item] = true
+			end
+		else
+			out_list[item] = (out_list[item] or 0) + count
+		end
 	end
 	return out_list
 end
