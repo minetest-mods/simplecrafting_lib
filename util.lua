@@ -285,7 +285,9 @@ end
 -- Returns a list of all the possible item stacks that could be crafted from the provided item list
 -- if max_craftable is true the returned stacks will have as many items in them as possible to craft,
 -- if max_craftable is false or nil the returned stacks will have only the minimum output
-crafting.get_craftable_items = function(craft_type, item_list, max_craftable)
+-- if alphabetize is true then the items will be sorted alphabetically by description
+-- if alphabetize is false or nil the items will be left in default order
+crafting.get_craftable_items = function(craft_type, item_list, max_craftable, alphabetize)
 	local count_list = itemlist_to_countlist(item_list)
 	local craftable_count_list = {}
 	local craftable_stacks = {}
@@ -316,7 +318,9 @@ crafting.get_craftable_items = function(craft_type, item_list, max_craftable)
 		stack:set_count(count)
 		table.insert(craftable_stacks, stack)
 	end
-	table.sort(craftable_stacks, compare_stacks_by_desc)
+	if alphabetize then
+		table.sort(craftable_stacks, compare_stacks_by_desc)
+	end
 	return craftable_stacks
 end
 

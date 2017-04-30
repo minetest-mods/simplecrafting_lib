@@ -1,4 +1,11 @@
 #When set to true, this mod will eliminate all recipes from the default
 #crafting system except for the recipe for this mod's crafting table.
-#
-crafting_clear_default_crafting (Clear default crafting system) bool false
+
+crafting_clear_default_crafting (Clear default crafting system recipes) bool false
+
+#When set to true, the crafting output list in the crafting table is
+#sorted alphabetically by name. When false, it's left in the order
+#in which items were registered, which usually groups items by
+#function (since similar items are often regitered by the same code)
+
+crafting_sort_alphabetically (Sort crafting output list alphabetically) bool false

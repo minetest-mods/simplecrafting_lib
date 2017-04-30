@@ -1,8 +1,10 @@
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
+local alphabetize_items = crafting.config.sort_alphabetically
+
 local function refresh_output(inv, max_mode)
-	local craftable = crafting.get_craftable_items("table", inv:get_list("store"), max_mode)
+	local craftable = crafting.get_craftable_items("table", inv:get_list("store"), max_mode, alphabetize_items)
 	inv:set_size("output", #craftable + ((8*6) - (#craftable%(8*6))))
 	inv:set_list("output", craftable)
 end
