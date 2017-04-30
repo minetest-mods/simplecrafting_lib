@@ -101,6 +101,7 @@ minetest.register_node("crafting:table", {
 	tiles = {"crafting.table_top.png", "default_chest_top.png",
 		"crafting.table_front.png", "crafting.table_front.png",
 		"crafting.table_side.png", "crafting.table_side.png"},
+	sounds = default.node_sound_wood_defaults(),
 	paramtype2 = "facedir",
 	is_ground_content = false,
 	groups = {oddly_breakable_by_hand = 1, choppy=3},

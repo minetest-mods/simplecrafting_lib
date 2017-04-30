@@ -206,6 +206,7 @@ minetest.register_node("crafting:furnace",{
 		"default_furnace_side.png", "default_furnace_side.png",
 		"default_furnace_side.png", "default_furnace_front.png"
 	},
+	sounds = default.node_sound_stone_defaults(),
 	paramtype2 = "facedir",
 	is_ground_content = false,
 	groups = {oddly_breakable_by_hand = 1,cracky=3},
@@ -410,6 +411,7 @@ minetest.register_node("crafting:furnace_active",{
 			},
 		},
 	},
+	sounds = default.node_sound_stone_defaults(),
 	paramtype2 = "facedir",
 	drop = "crafting:furnace",
 	is_ground_content = false,
