@@ -180,5 +180,4 @@ minetest.register_node("crafting:table", {
 		local inv = meta:get_inventory()
 		return inv:is_empty("store")
 	end,
-	--allow_metadata_inventory_take = function(pos,lname,i,stack,player) end,
 })

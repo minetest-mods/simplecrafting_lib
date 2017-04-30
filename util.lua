@@ -76,11 +76,12 @@ crafting.register = function(typeof, def)
 end
 
 -- Will automatically create and register a "reverse" craft of the same type
--- Note that this should generally only be done with craft that turn one type
--- of item into one other type of item. If there's more than one return type
--- it will use "returns" to give them to the player.
+-- Note that this should generally only be done with craft that turns one type
+-- of item into one other type of item (for example, metal ingots <-> metal blocks).
+-- If there's more than one input type it will use "returns" to give them to the
+-- player in the reverse craft.
 -- Don't use a recipe that has a "group:" input with this, because obviously that
--- can't be turned into an output. Script will assert if you try this.
+-- can't be turned into an output. The mod will assert if you try to do this.
 crafting.register_reversible = function(typeof, forward_def)
 	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
 	crafting.register(typeof, forward_def)
@@ -149,18 +150,44 @@ local function itemlist_to_countlist(itemlist)
 		if not stack:is_empty() then
 			local name = stack:get_name()
 			count_list[name] = (count_list[name] or 0) + stack:get_count()
-			-- If it is the most common item in a group, alias the group to it
+			-- alias its groups to the item
 			if minetest.registered_items[name] then
 				for group, _ in pairs(minetest.registered_items[name].groups or {}) do
-					if not count_list[group] 
-					or (count_list[group] and count_list[count_list[group]] < count_list[name]) then
-						count_list[group] = name
-					end
+					if not count_list[group] then count_list[group] = {} end
+					count_list[group][name] = true -- using names as keys makes this act as a set
 				end
 			end
 		end
 	end
 	return count_list
+end
+
+-- splits a string into an array of substrings based on a delimiter
+local function split(str, delimiter)
+    local result = {}
+    for match in (str..delimiter):gmatch("(.-)"..delimiter) do
+        table.insert(result, match)
+    end
+    return result
+end
+
+-- I apologise for this function.
+-- From the items in groupset, checks input_list to find the item 
+-- with the highest count and adds it to required_input
+local function get_highest_count_item_for_group(groupset, input_list, required_input, count)
+	local highest_item_name
+	local highest_item_count = 0
+	for group_item, _ in pairs(groupset) do
+		if input_list[group_item] > highest_item_count then
+			highest_item_count = input_list[group_item]
+			highest_item_name = group_item
+		end
+	end
+	if highest_item_count == 0 then
+		return false
+	end			
+	required_input[highest_item_name] = (required_input[highest_item_name] or 0) + count
+	return true
 end
 
 -- returns the number of times the recipe can be crafted from the given input_list,
@@ -172,14 +199,49 @@ local function get_craft_count(input_list, recipe)
 	work_recipe.input = {}
 	local required_input = work_recipe.input
 	for item, count in pairs(recipe.input) do
-		if not input_list[item] then
-			return 0
-		end
-		-- Groups are a string alias to most common member item
-		if type(input_list[item]) == "string" then
-			required_input[input_list[item]] = (required_input[input_list[item]] or 0) + count
+		if string.find(item, ",") then -- special syntax used to require an item that belongs to multiple groups
+			local groups = split(item, ",")
+
+			-- This unfortunate block of code builds up an intersection
+			-- of the items belonging to each group in the list of groups
+			-- that this recipe item slot requires.
+			local multigroup_itemset
+			for _, group in pairs(groups) do
+				if not input_list[group] then
+					return 0
+				end
+				if not multigroup_itemset then
+					multigroup_itemset = {}
+					for multigroup_item, _ in pairs(input_list[group]) do
+						multigroup_itemset[multigroup_item] = true
+					end				
+				else
+					local intersect = {}
+					for multigroup_item, _ in pairs(input_list[group]) do
+						if multigroup_itemset[multigroup_item] then
+							intersect[multigroup_item] = true
+						end
+					end
+					multigroup_itemset = intersect
+				end				
+			end
+			
+			if not get_highest_count_item_for_group(multigroup_itemset, input_list, required_input, count) then
+				return 0
+			end
 		else
-			required_input[item] = (required_input[item] or 0) + count
+			if not input_list[item] then
+				return 0
+			end
+			-- Groups are a string alias to most common member item
+			if type(input_list[item]) == "table" then
+				-- find group item with highest count
+				if not get_highest_count_item_for_group(input_list[item], input_list, required_input, count) then
+					return 0
+				end
+			else
+				required_input[item] = (required_input[item] or 0) + count
+			end
 		end
 	end
 	local number = math.huge
@@ -232,6 +294,7 @@ crafting.get_craftable_recipes = function(craft_type, item_list)
 	return craftable
 end
 
+-- Used for alphabetizing an array of itemstacks by description
 local function compare_stacks_by_desc(stack1, stack2)
 	local item1 = stack1:get_name()
 	local item2 = stack2:get_name()
