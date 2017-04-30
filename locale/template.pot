@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-29 19:56-0600\n"
+"POT-Creation-Date: 2017-04-30 09:51-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,38 +17,12 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: furnace.lua:83
-msgid "Furnace is empty"
+#: furnace.lua:112
+msgid "Fuel time: @1 | Item time: @2"
 msgstr ""
 
-#: furnace.lua:219
-msgid "100% (output full)"
-msgstr ""
-
-#: furnace.lua:221
-#: furnace.lua:232
-msgid "@1%"
-msgstr ""
-
-#: furnace.lua:224
-#: furnace.lua:227
-msgid "Empty"
-msgstr ""
-
-#: furnace.lua:239
-msgid "0%"
-msgstr ""
-
-#: furnace.lua:248
-msgid "Furnace active (Item: @1; Fuel: @2)"
-msgstr ""
-
-#: furnace.lua:250
-msgid "Furnace inactive (Item: @1; Fuel: @2)"
-msgstr ""
-
-#: furnace.lua:270
-#: furnace.lua:317
+#: furnace.lua:202
+#: furnace.lua:393
 msgid "Furnace"
 msgstr ""
 
