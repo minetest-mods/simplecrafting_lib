@@ -1,3 +1,5 @@
+local clear_default_crafting = crafting.config.clear_default_crafting
+
 local function create_recipe(legacy)
 	if not legacy.items[1] then
 		return
@@ -9,48 +11,71 @@ local function create_recipe(legacy)
 	local nout = stack:get_count()
 	recipe.output = {[output] = nout}
 	recipe.input = {}
-	recipe.ret = legacy.ret
-	for _,item in ipairs(items) do
-		if item ~= "" then
+	recipe.returns = legacy.returns
+	for i=1,9 do -- can't use pairs(), the items list can have nils in it
+		local item = items[i]
+		if item and item ~= "" then
 			recipe.input[item] = (recipe.input[item] or 0) + 1
 		end
 	end
 	crafting.register("table",recipe)
 end
 
+-- This loop goes through all recipes that have already been registered and
+-- converts them
 for item,_ in pairs(minetest.registered_items) do
 	local crafts = minetest.get_all_craft_recipes(item)
 	if crafts and item ~= "" then
-		for i,v in ipairs(crafts) do
-			if v.method == "normal" then
-				if v.replacements then
-					v.ret = {}
+		for i,recipe in ipairs(crafts) do
+			if recipe.method == "normal" then
+				if recipe.replacements then
+					recipe.returns = {}
 					local count = {}
-					for _,item in ipairs(v.items) do
+					for _,item in ipairs(recipe.items) do
 						count[item] = (count[item] or 0) + 1
 					end
-					for _,pair in ipairs(v.replacements) do
-						v.ret[pair[2]] = count[pair[1]]
+					for _,pair in ipairs(recipe.replacements) do
+						recipe.returns[pair[2]] = count[pair[1]]
 					end
 				end
-				create_recipe(v,item)
-			elseif v.method == "cooking" then
+				create_recipe(recipe)
+			elseif recipe.method == "cooking" then
 				local legacy = {input={},output={}}
-				legacy.output[v.output] = 1
-				legacy.input[v.items[1]] = 1 
-				-- TODO correct detection of time - this is always 3
-				legacy.time = v.time or 3
+				legacy.output[recipe.output] = 1
+				legacy.input[recipe.items[1]] = 1 
+				local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
+				legacy.time = cooked.time
+				
+				-- TODO: may make more sense to leave this nil and have these defaults on the util side
+				legacy.fuel_grade = {}
+				legacy.fuel_grade.min = 0
+				legacy.fuel_grade.max = math.huge	
 				crafting.register("furnace",legacy)
-			-- TODO detection of fuels
 			end
+		end
+		if clear_default_crafting then
+			minetest.clear_craft({output=item})
+		end
+	end
+	local fuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
+	if fuel.time ~= 0 then
+		local legacy = {}
+		legacy.name = item
+		legacy.burntime = fuel.time
+		legacy.grade = 1
+		crafting.register_fuel(legacy)
+		if clear_default_crafting then
+			minetest.clear_craft({type="fuel", recipe=item})
 		end
 	end
 end
 
-local register_craft = minetest.register_craft
+-- This replaces the core register_craft method so that any crafts
+-- registered after this one will be added to the new system.
+crafting.minetest_register_craft = minetest.register_craft
 minetest.register_craft = function(recipe)
 	if not recipe.type or recipe.type == "shapeless" then
-		local legacy = {items={},ret={},output=recipe.output}
+		local legacy = {items={},returns={},output=recipe.output}
 		local count = {}
 		if not recipe.type then
 			for _,row in ipairs(recipe.recipe) do
@@ -62,7 +87,7 @@ minetest.register_craft = function(recipe)
 			if recipe.replacements then
 				minetest.log("error", recipe.output)
 				for _,pair in ipairs(recipe.replacements) do
-					legacy.ret[pair[2]] = count[pair[1]]
+					legacy.returns[pair[2]] = count[pair[1]]
 				end
 			end
 		elseif recipe.type == "shapeless" then
@@ -74,31 +99,55 @@ minetest.register_craft = function(recipe)
 		legacy.output[recipe.output] = 1
 		legacy.input[recipe.recipe] = 1
 		legacy.time = recipe.cooktime or 3
+		
+		-- TODO: may make more sense to leave this nil and have these defaults on the util side
+		legacy.fuel_grade = {}
+		legacy.fuel_grade.min = 0
+		legacy.fuel_grade.max = math.huge
+		
 		crafting.register("furnace",legacy)
 	elseif recipe.type == "fuel" then
 		local legacy = {}
 		legacy.name = recipe.recipe
 		legacy.burntime = recipe.burntime
 		legacy.grade = 1
-		crafting.register("fuel",legacy)
+		crafting.register_fuel(legacy)
 	end
-	return register_craft(recipe)
+	if not clear_default_crafting then
+		return crafting.minetest_register_craft(recipe)
+	end
 end
 
-
-minetest.register_craft({
+local table_recipe = {
 	output = "crafting:table",
 	recipe = {
-		{"group:wood","group:wood",""},
-		{"group:wood","group:wood",""},
+		{"group:tree","group:tree",""},
+		{"group:tree","group:tree",""},
 		{"","",""},
 	},
-})
-minetest.register_craft({
+}
+local furnace_recipe = {
 	output = "crafting:furnace",
 	recipe = {
 		{"default:stone","default:stone","default:stone"},
 		{"default:stone","default:coal_lump","default:stone"},
 		{"default:stone","default:stone","default:stone"},
 	},
-})
+}
+
+minetest.register_craft(table_recipe)
+if clear_default_crafting then
+	-- If we've cleared all native crafting recipes, add the table in so that the player can
+	-- build that and access everything else
+	crafting.minetest_register_craft(table_recipe)
+end
+
+if clear_default_crafting then
+	-- If we've cleared native crafting, there's no point to the default furnace.
+	-- replace it with the crafting: mod furnace.
+	minetest.register_alias_force("default:furnace", "crafting:furnace")
+	minetest.register_alias_force("default:furnace_active", "crafting:furnace_active")
+else
+	-- If we haven't cleared native crafting, leave the existing furnace alone and add the crafting: mod one separately
+	minetest.register_craft(furnace_recipe)
+end

@@ -1,0 +1,4 @@
+#When set to true, this mod will eliminate all recipes from the default
+#crafting system except for the recipe for this mod's crafting table.
+#
+crafting_clear_default_crafting (Clear default crafting system) bool false

@@ -1,5 +1,28 @@
+This mod adds a new crafting system, either in parallel to the default grid-based
+crafting system or as complete replacement to it.
+
+The new crafting system doesn't care about the arrangement of raw materials, only
+the relative proportions of them. Effectively, every recipe is now "shapeless".
+Raw materials are placed into the input inventory of a crafting table and
+the possible outputs are displayed in an output inventory. Simply pick which
+output you want and take it, and the raw materials will be used up accordingly.
+
+You can continue to use minetest.register_craft to register crafts as normal,
+this mod hooks into it and will reinterpret recipes registered via it to use
+with the new crafting system as well.
+
+If the "Clear default crafting system" option is set to true then this mod will
+remove all crafting recipes from the default crafting system aside from the
+crafting table defined in this mod (to allow a player to get access to crafting).
+If you wish to add other items back to the default crafting system then use
+crafting.minetest_register_craft to access the original minetest.register_craft
+function.
+
+Alternately, use the "crafting.register" method to register recipes for the new
+system exclusively. Examples are given below:
+
 -- Crafting Table
---[[
+
 crafting.register("table",{
 	input = {
 		["group:stone"] = 1,
@@ -11,25 +34,13 @@ crafting.register("table",{
 	-- Items which the crafting recipe produces, but is not
 	-- formally used to make, e.g. returning an empty bucket
 	-- from a recipe using a water bucket
-	ret = {
+	returns = {
 		["default:stone"] = 1,
 	},
 })
 
-for i=1,100 do
-	crafting.register("table",{
-		input = {
-			["default:dirt_with_grass"] = 1,
-		},
-		output = {
-			["invalid:thing" .. tostring(i)] = 1,
-		},
-	})
-end
---]]
-
 -- Furnace
---[[
+
 crafting.register("furnace",{
 	input = {
 		-- Must only have one input type, or will be ignored by furnace
@@ -67,6 +78,8 @@ crafting.register("furnace",{
 	},
 })
 
+-- Fuel
+
 crafting.register("fuel",{
 	-- Group names are allowed
 	-- If there is not an item specific recipe then it will take the
@@ -75,4 +88,3 @@ crafting.register("fuel",{
 	burntime = 25.4,
 	grade = 3,
 })
---]]

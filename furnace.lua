@@ -1,497 +1,320 @@
-crafting.furnace = {}
-crafting.furnace.recipes = {}
-crafting.furnace.fuels = {}
-
--- For use by other mods
-crafting.furnace.recipes_by_out = {}
-local recipes_by_out = crafting.furnace.recipes_by_out
-
-local recipes = crafting.furnace.recipes
-local fuels = crafting.furnace.fuels
-
-crafting.furnace.register = function(def)
-	def.ret = def.ret or {}
-	-- Furnace recipes can only have one input and output
-	if #def.input > 1 or #def.output > 1 then
-		return false
-	end
-	-- Strip group: from group names to simplify comparison later
-	for item,count in pairs(def.input) do
-		local group = string.match(item,"^group:(%S+)$")
-		if group then
-			def.input[group] = count
-			def.input[item] = nil
-		end
-	end
-
-	-- Set fuel grade defaults
-	def.fuel_grade = def.fuel_grade or {}
-	def.fuel_grade.min = def.fuel_grade.min or 0
-	def.fuel_grade.max = def.fuel_grade.max or math.huge
-
-	-- Only one input, but pairs is easiest way to find it
-	for item,count in pairs(def.input) do
-		recipes[item] = recipes[item] or {}
-		local inserted = false
-		-- If a recipe is more specific, insert it before other recipe
-		for i,recipe in ipairs(recipes[item]) do
-			if def.fuel_grade.min > recipe.fuel_grade.min
-			or def.fuel_grade.max < recipe.fuel_grade.max then
-				table.insert(recipes[item],i,def)
-				inserted = true
-				break
-			end
-		end
-		if not inserted then
-			recipes[item][#recipes[item] + 1] = def
-		end
-	end
-
-	-- Only one output, but more may be allowed in future
-	for item,_ in pairs(def.output) do
-		recipes_by_out[item] = recipes_by_out[item] or {} 
-		recipes_by_out[item][#recipes_by_out[item]+1] = def
-	end
-	return true
-end
-
-crafting.furnace.register_fuel = function(def)
-	-- Strip group: from group names to simplify comparison later
-	local group = string.match(def.name,"^group:(%S+)$")
-	def.name = group or def.name
-
-	fuels[def.name] = def
-	return true
-end
+local MP = minetest.get_modpath(minetest.get_current_modname())
+local S, NS = dofile(MP.."/intllib.lua")
 
 local function is_ingredient(item)
-	if recipes[item] then
-		return recipes[item]
-	end
+	local recipes = crafting.type.furnace.recipes
 
-	local def = minetest.registered_items[item]
-	if def and def.groups then
-		for group,_ in pairs(def.groups) do
-			if recipes[group] then
-				return recipes[group]
-			end
-		end
-	end
-	return nil
-end
-
-local function get_recipe_name(item_stack)
-	local item = item_stack:get_name()
+	local outputs = crafting.get_craftable_recipes("furnace", {ItemStack(item)})
 	
-	if recipes[item] then
-		return item
-	end
-
-	local def = minetest.registered_items[item]
-	if def and def.groups then
-		for group,_ in pairs(def.groups) do
-			if recipes[group] then
-				return group
-			end
-		end
+	if #outputs > 0 then
+		return outputs[1]
 	end
 	return nil
 end
 
-local function is_fuel(item,grade)
-	if fuels[item] then
-		return fuels[item]
-	end
+--
+-- Formspecs
+--
 
-	local def = minetest.registered_items[item]
-	if def and def.groups then
-		local max = -1
-		local fuel_group
-		for group,_ in pairs(def.groups) do
-			if fuels[group] then
-				if fuels[group].burntime > max then
-					fuel_group = fuels[group]
-					max = fuel_group.burntime
+local function active_formspec(fuel_percent, item_percent)
+	local formspec =
+		"size[8,8.5]"..
+		default.gui_bg..
+		default.gui_bg_img..
+		default.gui_slots..
+		"list[current_name;src;2.75,0.5;1,1;]"..
+		"list[current_name;fuel;2.75,2.5;1,1;]"..
+		"image[2.75,1.5;1,1;default_furnace_fire_bg.png^[lowpart:"..
+		(100-fuel_percent)..":default_furnace_fire_fg.png]"..
+		"image[3.75,1.5;1,1;gui_furnace_arrow_bg.png^[lowpart:"..
+		(item_percent)..":gui_furnace_arrow_fg.png^[transformR270]"..
+		"list[current_name;dst;4.75,0.96;2,2;]"..
+		"list[current_player;main;0,4.25;8,1;]"..
+		"list[current_player;main;0,5.5;8,3;8]"..
+		"listring[current_name;dst]"..
+		"listring[current_player;main]"..
+		"listring[current_name;src]"..
+		"listring[current_player;main]"..
+		"listring[current_name;fuel]"..
+		"listring[current_player;main]"..
+		default.get_hotbar_bg(0, 4.25)
+	return formspec
+end
+
+local inactive_formspec =
+	"size[8,8.5]"..
+	default.gui_bg..
+	default.gui_bg_img..
+	default.gui_slots..
+	"list[current_name;src;2.75,0.5;1,1;]"..
+	"list[current_name;fuel;2.75,2.5;1,1;]"..
+	"image[2.75,1.5;1,1;default_furnace_fire_bg.png]"..
+	"image[3.75,1.5;1,1;gui_furnace_arrow_bg.png^[transformR270]"..
+	"list[current_name;dst;4.75,0.96;2,2;]"..
+	"list[current_player;main;0,4.25;8,1;]"..
+	"list[current_player;main;0,5.5;8,3;8]"..
+	"listring[current_name;dst]"..
+	"listring[current_player;main]"..
+	"listring[current_name;src]"..
+	"listring[current_player;main]"..
+	"listring[current_name;fuel]"..
+	"listring[current_player;main]"..
+	default.get_hotbar_bg(0, 4.25)
+
+--
+-- Node callback functions that are the same for active and inactive furnace
+--
+
+local function can_dig(pos, player)
+	local meta = minetest.get_meta(pos);
+	local inv = meta:get_inventory()
+	return inv:is_empty("fuel") and inv:is_empty("dst") and inv:is_empty("src")
+end
+
+local function allow_metadata_inventory_put(pos, listname, index, stack, player)
+	if minetest.is_protected(pos, player:get_player_name()) then
+		return 0
+	end
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+	if listname == "fuel" then
+		if crafting.is_fuel(stack:get_name()) then
+			if inv:is_empty("src") then
+				meta:set_string("infotext", S("Furnace is empty"))
+			end
+			return stack:get_count()
+		else
+			return 0
+		end
+	elseif listname == "src" then
+		if is_ingredient(stack:get_name()) then
+			return stack:get_count()
+		else
+			return 0
+		end
+	elseif listname == "dst" then
+		return 0
+	end
+end
+
+local function allow_metadata_inventory_move(pos, from_list, from_index, to_list, to_index, count, player)
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+	local stack = inv:get_stack(from_list, from_index)
+	return allow_metadata_inventory_put(pos, to_list, to_index, stack, player)
+end
+
+local function allow_metadata_inventory_take(pos, listname, index, stack, player)
+	if minetest.is_protected(pos, player:get_player_name()) then
+		return 0
+	end
+	return stack:get_count()
+end
+
+local function swap_node(pos, name)
+	local node = minetest.get_node(pos)
+	if node.name == name then
+		return
+	end
+	node.name = name
+	minetest.swap_node(pos, node)
+end
+
+local function furnace_node_timer(pos, elapsed)
+	--
+	-- Inizialize metadata
+	--
+	local meta = minetest.get_meta(pos)
+	local fuel_time = meta:get_float("fuel_time") or 0
+	local src_time = meta:get_float("src_time") or 0
+	local fuel_totaltime = meta:get_float("fuel_totaltime") or 0
+
+	local inv = meta:get_inventory()
+	local srclist, fuelitem
+
+	local cookable
+	local fuel_present
+
+	local update = true
+	while update do
+		update = false
+
+		srclist = inv:get_list("src")
+		fuelitem = inv:get_stack("fuel", 1)
+		fuel_present = crafting.is_fuel(fuelitem:get_name())
+
+		--
+		-- Cooking
+		--
+
+		-- Check if we have cookable content
+		
+		local craftable = crafting.get_craftable_recipes("furnace", srclist)
+		if #craftable > 0 then
+			cookable = craftable[1]
+		end
+		
+		-- Check if we have enough fuel to burn
+		if fuel_time < fuel_totaltime then
+			-- The furnace is currently active and has enough fuel
+			fuel_time = fuel_time + elapsed
+			-- If there is a cookable item then check if it is ready yet
+			if cookable then
+				src_time = src_time + elapsed
+				if src_time >= cookable.time then
+					-- Place result in dst list if possible					
+					if crafting.add_items(inv, "dst", cookable.output) then
+						crafting.remove_items(inv, "src", cookable.input)
+						if cookable.returns then
+							crafting.add_items(inv, "src", cookable.returns)
+						end
+						src_time = src_time - cookable.time
+						update = true
+					end
 				end
 			end
+		else
+			-- Furnace ran out of fuel
+			if cookable then
+				-- We need to get new fuel
+				if not fuel_present then
+					-- No valid fuel in fuel list
+					fuel_totaltime = 0
+					src_time = 0
+				else
+					-- Take fuel from fuel list
+					fuelitem:take_item(1)
+					inv:set_stack("fuel", 1, fuelitem)
+					update = true
+					fuel_totaltime = fuel_present.burntime + (fuel_time - fuel_totaltime)
+					src_time = src_time + elapsed
+				end
+			else
+				-- We don't need to get new fuel since there is no cookable item
+				fuel_totaltime = 0
+				src_time = 0
+			end
+			fuel_time = 0
 		end
-		if fuel_group then
-			return fuel_group
+
+		elapsed = 0
+	end
+
+	if fuel_present and fuel_totaltime > fuel_present.burntime then
+		fuel_totaltime = fuel_present.burntime
+	end
+	if srclist[1]:is_empty() then
+		src_time = 0
+	end
+
+	--
+	-- Update formspec, infotext and node
+	--
+	local formspec = inactive_formspec
+	local item_state = ""
+	local item_percent = 0
+	if cookable then
+		item_percent = math.floor(src_time / cookable.time * 100)
+		if item_percent > 100 then
+			item_state = S("100% (output full)")
+		else
+			item_state = S("@1%", item_percent)
 		end
+	elseif srclist[1]:is_empty() then
+		item_state = S("Empty")
 	end
-	return nil
-end
 
-local function get_fueled_recipe(item_recipes,fuel)
-	for _,recipe in ipairs(item_recipes) do
-		if  fuel.grade >= recipe.fuel_grade.min
-		and fuel.grade <= recipe.fuel_grade.max then
-			return recipe
+	local fuel_state = S("Empty")
+	local result = false
+
+	if fuel_totaltime ~= 0 then
+		local fuel_percent = math.floor(fuel_time / fuel_totaltime * 100)
+		fuel_state = S("@1%", fuel_percent)
+		formspec = active_formspec(fuel_percent, item_percent)
+		swap_node(pos, "crafting:furnace_active")
+		-- make sure timer restarts automatically
+		result = true
+	else
+		if not fuelitem:is_empty() then
+			fuel_state = S("0%")
 		end
-	end
-	return nil
-end
-
-local function sort_input(meta)
-	local inv = meta:get_inventory()
-	if inv:is_empty("input") then
-		return
+		swap_node(pos, "crafting:furnace")
+		-- stop timer on the inactive furnace
+		minetest.get_node_timer(pos):stop()
 	end
 
-	local item = inv:get_stack("input",1)
-	local fuel = inv:get_stack("input",2)
-
-	
-	local item_recipes
-	local item_fuel
-	if not item:is_empty() then
-		item_recipes = is_ingredient(item:get_name())
-		item_fuel = is_fuel(item:get_name())
+	local infotext
+	if result then
+		infotext = S("Furnace active (Item: @1; Fuel: @2)", item_state, fuel_state)
+	else
+		infotext = S("Furnace inactive (Item: @1; Fuel: @2)", item_state, fuel_state)
 	end
 
-	local fuel_recipes
-	local fuel_fuel
-	if not fuel:is_empty() then
-		fuel_recipes = is_ingredient(fuel:get_name())
-		fuel_fuel = is_fuel(fuel:get_name())
-	end
+	--
+	-- Set meta values
+	--
+	meta:set_float("fuel_totaltime", fuel_totaltime)
+	meta:set_float("fuel_time", fuel_time)
+	meta:set_float("src_time", src_time)
+	meta:set_string("formspec", formspec)
+	meta:set_string("infotext", infotext)
 
-	-- Assume correct combinations first
-	if item_recipes and fuel_fuel then
-		if get_fueled_recipe(item_recipes,fuel_fuel) then
-			return false
-		end
-	end
-	if fuel_recipes and item_fuel then
-		if get_fueled_recipe(fuel_recipes,item_fuel) then
-			return false
-		end
-	end
-
-	-- Assume one is a correct fuel
-	if fuel_fuel then
-		return false
-	elseif item_fuel then
-		inv:set_list("input",{fuel,item})
-		return true
-	end
-
-	-- Assume one is an ingredient
-	if item_recipes then
-		return false
-	elseif fuel_recipes then
-		inv:set_list("input",{fuel,item})
-		return true
-	end
-
-	-- If both wrong, don't do anything
-	return false
+	return result
 end
 
-local function is_recipe(item,fuel)
-	local recipes = is_ingredient(item)
-	local fuel_def = is_fuel(fuel)
-	if not recipes or not fuel_def then
-		return nil, nil
-	end
-	return get_fueled_recipe(recipes,fuel_def),fuel_def
-end
+--
+-- Node definitions
+--
 
-local function swap_furnace(pos)
-	local node = minetest.get_node(pos)
-	if node.name == "crafting:furnace" then
-		node.name = "crafting:furnace_active"
-	elseif node.name == "crafting:furnace_active" then
-		node.name = "crafting:furnace"
-	end
-	minetest.swap_node(pos,node)
-end
-
-local function set_infotext(state)
-	state.infotext = string.format("Fuel time: %.1f | Item time: %.1f"
-			,state.burntime
-			,state.itemtime
-		)
-end
-
-local function get_furnace_state(pos)
-	local meta = minetest.get_meta(pos)
-	local inv = meta:get_inventory()
-	return {
-		inv = inv,
-		meta = meta,
-		burntime = meta:get_float("burntime"),
-		itemtime = meta:get_float("itemtime"),
-		item = inv:get_stack("input",1),
-		fuel = inv:get_stack("input",2),
-		old_fuel = meta:get_string("fuel"),
-		old_item = meta:get_string("item"),
-		infotext = meta:get_string("infotext"),
-	}
-end
-
-local function set_furnace_state(pos,state)
-	local meta = minetest.get_meta(pos)
-	local inv = meta:get_inventory()
-	meta:set_float("burntime",state.burntime)
-	meta:set_float("itemtime",state.itemtime)
-	inv:set_stack("input",1,state.item)
-	inv:set_stack("input",2,state.fuel)
-	meta:set_string("fuel",state.old_fuel)
-	meta:set_string("item",state.old_item)
-	meta:set_string("infotext",state.infotext)
-end
-
-local function burn_fuel(state)
-	local fuel_def = is_fuel(state.fuel:get_name())
-	state.old_fuel = state.fuel:get_name()
-	state.burntime = fuel_def.burntime
-	state.fuel:set_count(state.fuel:get_count() - 1)
-end
-
-local function set_ingredient(state,item,recipe)
-	state.old_item = item:get_name()
-	state.itemtime = recipe.time
-end
-
-local function clear_item(state)
-	state.old_item = ""
-	state.itemtime = math.huge
-end
-
-local function set_timer(pos,itemtime,burntime)
-	minetest.get_node_timer(pos):start(math.min(itemtime,burntime))
-end
-
-local function enough_items(item_stack,recipe)
-	if item_stack:is_empty() then
-		return false
-	end
-	return item_stack:get_count() >= recipe.input[get_recipe_name(item_stack)]
-end
-
-local function room_for_out(recipe,inv)
-	for output,count in pairs(recipe.output) do
-		if not inv:room_for_item("output",output .. " " .. count) then
-			return false
-		end
-	end
-	return true
-end
-
-local function try_start(pos)
-	local state = get_furnace_state(pos)
-
-	local recipe,fuel_def = is_recipe(state.item:get_name(),state.fuel:get_name())
-
-	if not recipe
-	or not enough_items(state.item,recipe)
-	or not room_for_out(recipe,state.inv) then
-		return
-	end
-
-	set_ingredient(state,state.item,recipe)
-	burn_fuel(state)
-
-	set_timer(pos,recipe.time,fuel_def.burntime)
-	swap_furnace(pos)
-	set_infotext(state)
-	set_furnace_state(pos,state)
-end
-
-minetest.register_node("crafting:furnace",{
-	description = "Furnace",
-	drawtype = "normal",
+minetest.register_node("crafting:furnace", {
+	description = S("Furnace"),
 	tiles = {
 		"default_furnace_top.png", "default_furnace_bottom.png",
 		"default_furnace_side.png", "default_furnace_side.png",
 		"default_furnace_side.png", "default_furnace_front.png"
 	},
 	paramtype2 = "facedir",
+	groups = {cracky=2},
 	is_ground_content = false,
-	groups = {oddly_breakable_by_hand = 1,cracky=3},
+	sounds = default.node_sound_stone_defaults(),
+
+	can_dig = can_dig,
+
+	on_timer = furnace_node_timer,
+
 	on_construct = function(pos)
 		local meta = minetest.get_meta(pos)
+		meta:set_string("formspec", inactive_formspec)
 		local inv = meta:get_inventory()
-		inv:set_size("input", 2)
-		inv:set_size("output", 2*2)
-		meta:set_string("formspec",table.concat({
-			"size[12,9]",
-			"list[context;input;4,1;1,1;]",
-			"list[context;input;4,3;1,1;1]",
-			"list[context;output;6,1.5;2,2;]",
-			"list[current_player;main;2,5;8,1;0]",
-			"list[current_player;main;2,6;8,3;8]",
-			"listring[context;output]",
-			"listring[current_player;main]",
-			"listring[context;input]",
-			"listring[current_player;main]",
-		}))
+		inv:set_size('src', 1)
+		inv:set_size('fuel', 1)
+		inv:set_size('dst', 4)
 	end,
-	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
-		local meta = minetest.get_meta(pos)
-		if tlist == "input" then
-			sort_input(meta)
-		end
-		try_start(pos)
+
+	on_metadata_inventory_move = function(pos)
+		minetest.get_node_timer(pos):start(1.0)
 	end,
-	on_metadata_inventory_take = function(pos,lname,i,stack,player)
-		try_start(pos)
+	on_metadata_inventory_put = function(pos)
+		-- start timer function, it will sort out whether furnace can burn or not.
+		minetest.get_node_timer(pos):start(1.0)
 	end,
-	on_metadata_inventory_put = function(pos,lname,i,stack,player)
-		local meta = minetest.get_meta(pos)
-		if lname == "input" then
-			sort_input(meta)
-		end
-		try_start(pos)
+	on_blast = function(pos)
+		local drops = {}
+		default.get_inventory_drops(pos, "src", drops)
+		default.get_inventory_drops(pos, "fuel", drops)
+		default.get_inventory_drops(pos, "dst", drops)
+		drops[#drops+1] = "crafting:furnace"
+		minetest.remove_node(pos)
+		return drops
 	end,
-	can_dig = function(pos,player)
-		local meta = minetest.get_meta(pos)
-		local inv = meta:get_inventory()
-		return inv:is_empty("output") and inv:is_empty("input")
-	end,
+
+	allow_metadata_inventory_put = allow_metadata_inventory_put,
+	allow_metadata_inventory_move = allow_metadata_inventory_move,
+	allow_metadata_inventory_take = allow_metadata_inventory_take,
 })
 
-local function on_timeout(state)
-	local recipe,fuel_def = is_recipe(state.item:get_name(),state.old_fuel)
-
-	if state.item:get_name() ~= state.old_item then
-		if recipe then
-			set_ingredient(state,state.item,recipe)
-			return true
-		else
-			clear_item(state)
-			return false
-		end
-	end
-
-	-- Triggered if active furnace placed
-	if not recipe then
-		clear_item(state)
-		return false
-	end
-
-	if not room_for_out(recipe,state.inv)
-	or not enough_items(state.item,recipe) then
-		clear_item(state)
-		return false
-	end
-
-	for output,count in pairs(recipe.output) do
-		state.inv:add_item("output",output .. " " .. count)
-	end
-	state.item:set_count(state.item:get_count() - recipe.input[get_recipe_name(state.item)])
-
-	if not room_for_out(recipe,state.inv)
-	or not enough_items(state.item,recipe) then
-		clear_item(state)
-		return false
-	else
-		set_ingredient(state,state.item,recipe)
-		return true
-	end
-end
-
-local function on_burnout(state)
-	local recipe,fuel_def = is_recipe(state.item:get_name(),state.fuel:get_name())
-
-	if not recipe then
-		clear_item(state)
-		state.burntime = 0
-		return false
-	end
-
-	if not room_for_out(recipe,state.inv)
-	or not enough_items(state.item,recipe) then
-		clear_item(state)
-		state.burntime = 0
-		return false
-	end
-
-	burn_fuel(state)
-	return true
-end
-	
-local function try_change(pos)
-	local state = get_furnace_state(pos)
-	local recipe,fuel_def = is_recipe(state.item:get_name(),state.fuel:get_name())
-	local timer = minetest.get_node_timer(pos)
-
-	if state.item:get_name() ~= state.old_item and recipe then
-		-- Check if remains of old fuel can be used
-		local old_recipe = is_recipe(state.item:get_name(),state.old_fuel)
-		if old_recipe == recipe then
-			set_ingredient(state,state.item,recipe)
-			state.burntime = state.burntime - timer:get_elapsed()
-			timer:start(math.min(state.burntime,recipe.time))
-			set_infotext(state)
-			set_furnace_state(pos,state)
-			return
-		else
-			burn_fuel(state)
-			set_ingredient(state,state.item,recipe)
-			timer:start(math.min(recipe.time,fuel_def.burntime))
-			set_infotext(state)
-			set_furnace_state(pos,state)
-			return
-		end
-	end
-
-	if state.fuel:get_name() ~= state.old_fuel then
-		local old_recipe = is_recipe(state.item:get_name(),state.old_fuel)
-		if recipe and recipe ~= old_recipe then
-			burn_fuel(state)
-			set_ingredient(state,state.item,recipe)
-			timer:start(math.min(recipe.time,fuel_def.burntime))
-			set_infotext(state)
-			set_furnace_state(pos,state)
-			return
-		end
-	end
-end
-
-
-local function furnace_timer(pos,elapsed,state)
-	state = state or get_furnace_state(pos)
-
-	local timer = minetest.get_node_timer(pos)
-
-	local time_taken = math.min(state.burntime,state.itemtime)
-
-	local create_timer = true
-	local remaining = elapsed
-	if remaining >= time_taken then
-		remaining = elapsed - time_taken
-		state.itemtime = state.itemtime - time_taken
-		state.burntime = state.burntime - time_taken
-
-		create_timer = state.burntime > 0
-
-		if state.itemtime <= 0 then
-			on_timeout(state)
-		end
-		if state.burntime <= 0 then
-			create_timer = on_burnout(state)
-		end
-	end
-
-	if create_timer then
-		local time = math.min(state.burntime,state.itemtime)
-		if remaining > time then
-			return furnace_timer(pos,remaining,state)
-		else
-			timer:set(time,remaining)
-		end
-	else
-		swap_furnace(pos)
-	end
-	set_infotext(state)
-	set_furnace_state(pos,state)
-	return false
-end
-
-minetest.register_node("crafting:furnace_active",{
-	drawtype = "normal",
+minetest.register_node("crafting:furnace_active", {
+	description = S("Furnace"),
 	tiles = {
 		"default_furnace_top.png", "default_furnace_bottom.png",
 		"default_furnace_side.png", "default_furnace_side.png",
@@ -505,33 +328,23 @@ minetest.register_node("crafting:furnace_active",{
 				aspect_h = 16,
 				length = 1.5
 			},
-		},
+		}
 	},
 	paramtype2 = "facedir",
+	light_source = 8,
 	drop = "crafting:furnace",
+	groups = {cracky=2, not_in_creative_inventory=1},
 	is_ground_content = false,
-	groups = {oddly_breakable_by_hand = 1,cracky=3},
-	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
-		local meta = minetest.get_meta(pos)
-		if tlist == "input" then
-			sort_input(meta)
-		end
-		try_change(pos)
-	end,
-	on_metadata_inventory_take = function(pos,lname,i,stack,player)
-		try_change(pos)
-	end,
-	on_metadata_inventory_put = function(pos,lname,i,stack,player)
-		local meta = minetest.get_meta(pos)
-		if lname == "input" then
-			sort_input(meta)
-		end
-		try_change(pos)
-	end,
-	can_dig = function(pos,player)
-		local meta = minetest.get_meta(pos)
-		local inv = meta:get_inventory()
-		return inv:is_empty("output") and inv:is_empty("input")
-	end,
-	on_timer = furnace_timer,
+	sounds = default.node_sound_stone_defaults(),
+	on_timer = furnace_node_timer,
+
+	can_dig = can_dig,
+
+	allow_metadata_inventory_put = allow_metadata_inventory_put,
+	allow_metadata_inventory_move = allow_metadata_inventory_move,
+	allow_metadata_inventory_take = allow_metadata_inventory_take,
 })
+
+
+
+
