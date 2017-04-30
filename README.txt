@@ -88,3 +88,20 @@ crafting.register("fuel",{
 	burntime = 25.4,
 	grade = 3,
 })
+
+
+
+There is also a "crafting.register_reversible" method that takes the same
+parameters as crafting.register.
+
+It registers the provided crafting recipe, and also automatically creates
+and registers a "reverse" craft of the same type. This should generally
+only be done with craft that turns one type of item into one other type
+of item (for example, metal ingots <-> metal blocks), but it will still
+work if there are multiple inputs.
+
+If there's more than one input type it will use "returns" to give them to the
+player in the reverse craft.
+
+Don't use a recipe that has a "group:" input with this, because obviously that
+can't be turned into an output. The mod will assert if you try to do this.

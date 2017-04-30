@@ -75,9 +75,11 @@ crafting.register = function(typeof, def)
 	return true
 end
 
--- Will automatically create and register a "reverse" craft of the same type
--- Note that this should generally only be done with craft that turns one type
--- of item into one other type of item (for example, metal ingots <-> metal blocks).
+-- Registers the provided crafting recipe, and also
+-- automatically creates and registers a "reverse" craft of the same type.
+-- This should generally only be done with craft that turns one type of item into
+-- one other type of item (for example, metal ingots <-> metal blocks), but
+-- it will still work if there are multiple inputs.
 -- If there's more than one input type it will use "returns" to give them to the
 -- player in the reverse craft.
 -- Don't use a recipe that has a "group:" input with this, because obviously that
