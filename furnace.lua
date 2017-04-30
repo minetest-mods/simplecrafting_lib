@@ -216,6 +216,9 @@ minetest.register_node("crafting:furnace",{
 		inv:set_size("output", 2*2)
 		meta:set_string("formspec",table.concat({
 			"size[12,9]",
+			default.gui_bg,
+			default.gui_bg_img,
+			default.gui_slots,
 			"list[context;input;4,1;1,1;]",
 			"list[context;input;4,3;1,1;1]",
 			"list[context;output;6,1.5;2,2;]",
