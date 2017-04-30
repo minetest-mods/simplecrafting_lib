@@ -414,8 +414,8 @@ minetest.register_node("crafting:furnace_active",{
 	sounds = default.node_sound_stone_defaults(),
 	paramtype2 = "facedir",
 	drop = "crafting:furnace",
+	groups = {oddly_breakable_by_hand = 1,cracky=3,not_in_creative_inventory=1},
 	is_ground_content = false,
-	groups = {oddly_breakable_by_hand = 1,cracky=3},
 	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
 		local meta = minetest.get_meta(pos)
 		if tlist == "input" then

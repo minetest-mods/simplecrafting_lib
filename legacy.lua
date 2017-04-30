@@ -46,7 +46,6 @@ for item,_ in pairs(minetest.registered_items) do
 				local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
 				legacy.time = cooked.time
 				
-				-- TODO: may make more sense to leave this nil and have these defaults on the util side
 				legacy.fuel_grade = {}
 				legacy.fuel_grade.min = 0
 				legacy.fuel_grade.max = math.huge	
