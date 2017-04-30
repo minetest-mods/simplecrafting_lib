@@ -2,7 +2,7 @@ local CONFIG_FILE_PREFIX = minetest.get_current_modname().."_"
 
 crafting.config = {}
 
-local print_settingtypes = true
+local print_settingtypes = false
 
 local function setting(stype, name, default, description)
 	local value
