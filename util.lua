@@ -259,29 +259,6 @@ local function get_craft_count(input_list, recipe)
 	return math.floor(number), work_recipe
 end
 
-local function get_craftable_number(crafting_type, inv, stack)
-	local recipes_by_out = crafting.type[crafting_type].recipes_by_out
-	-- Re-calculate the no. items in the stack
-	-- This is used in both fixes		
-	local count = 0
-	local no_per_out = 1
-	local name = stack:get_name()
-	for i = 1, #recipes_by_out[name] do
-		local out, recipe = get_craft_count(itemlist_to_countlist(inv:get_list("store")), recipes_by_out[name][i])
-		if out > 0 and out * recipe.output[name] > count then
-			count = out * recipe.output[name]
-			no_per_out = recipe.output[name]
-		end
-	end
-	-- Stack limit correction
-	local max = stack:get_stack_max()
-	if max < count then
-		count = max - (max % no_per_out)
-	end
-
-	return count
-end
-
 -- Returns a list of all recipes whose ingredients can be satisfied by the item_list
 crafting.get_craftable_recipes = function(craft_type, item_list)
 	local count_list = itemlist_to_countlist(item_list)
