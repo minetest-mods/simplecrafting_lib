@@ -184,3 +184,12 @@ minetest.register_node("crafting:table", {
 		return inv:is_empty("store")
 	end,
 })
+
+-- Hopper compatibility
+if minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+	hopper:add_container({
+		{"top", "crafting:table", "store"},
+		{"bottom", "crafting:table", "store"},
+		{"side", "crafting:table", "store"},
+	})
+end

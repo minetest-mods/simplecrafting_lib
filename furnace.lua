@@ -440,3 +440,16 @@ minetest.register_node("crafting:furnace_active",{
 	end,
 	on_timer = furnace_timer,
 })
+
+-- Hopper compatibility
+if minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+	hopper:add_container({
+		{"top", "crafting:furnace", "output"},
+		{"bottom", "crafting:furnace", "input"},
+		{"side", "crafting:furnace", "input"},
+
+		{"top", "crafting:furnace_active", "output"},
+		{"bottom", "crafting:furnace_active", "input"},
+		{"side", "crafting:furnace_active", "input"},
+	})
+end
