@@ -324,6 +324,32 @@ crafting.get_craftable_items = function(craft_type, item_list, max_craftable, al
 	return craftable_stacks
 end
 
+-- Returns true if the item name is an input for at least one
+-- recipe belonging to the given craft type
+crafting.is_possible_input = function(craft_type, item_name)
+	local recipes = crafting.type[craft_type].recipes
+	local item_def = minetest.registered_items[item_name]
+	local groups = item_def.groups or {}
+	for i = 1, #recipes do
+		if recipes[i].input[item_name] then
+			return true
+		end
+		-- TODO: this group check doesn't handle the dual-group flower/dye thing
+		for group, _ in pairs(groups) do
+			if recipes[i].input[group] then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Returns true if the item is a possible output for at least
+-- one recipe belonging to the given craft type
+crafting.is_possible_output = function(craft_type, item_name)
+	return crafting.type[craft_type].recipes_by_out[item_name] ~= nil
+end
+
 -- adds two count lists together, returns a new count list with the sum of the parameters' contents
 crafting.count_list_add = function(list1, list2)
 	local out_list = {}
