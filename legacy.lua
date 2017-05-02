@@ -1,22 +1,22 @@
 local clear_default_crafting = crafting.config.clear_default_crafting
 
 local function create_recipe(legacy)
-	if not legacy.items[1] then
-		return
-	end
-	local recipe = {}
 	local items = legacy.items
+	local has_items = false
+	for _, item in pairs(items) do
+		has_items = true
+		break
+	end
+	if not has_items then return end
+	local recipe = {}
 	local stack = ItemStack(legacy.output)
 	local output = stack:get_name()
 	local nout = stack:get_count()
 	recipe.output = {[output] = nout}
 	recipe.input = {}
 	recipe.returns = legacy.returns
-	for i=1,9 do -- can't use pairs(), the items list can have nils in it
-		local item = items[i]
-		if item and item ~= "" then
-			recipe.input[item] = (recipe.input[item] or 0) + 1
-		end
+	for _, item in pairs(items) do
+		recipe.input[item] = (recipe.input[item] or 0) + 1
 	end
 	crafting.register("table",recipe)
 end
@@ -26,15 +26,15 @@ end
 for item,_ in pairs(minetest.registered_items) do
 	local crafts = minetest.get_all_craft_recipes(item)
 	if crafts and item ~= "" then
-		for i,recipe in ipairs(crafts) do
+		for _,recipe in pairs(crafts) do
 			if recipe.method == "normal" then
 				if recipe.replacements then
 					recipe.returns = {}
 					local count = {}
-					for _,item in ipairs(recipe.items) do
+					for _, item in pairs(recipe.items) do
 						count[item] = (count[item] or 0) + 1
 					end
-					for _,pair in ipairs(recipe.replacements) do
+					for _,pair in pairs(recipe.replacements) do
 						recipe.returns[pair[2]] = count[pair[1]]
 					end
 				end
@@ -77,15 +77,15 @@ minetest.register_craft = function(recipe)
 		local legacy = {items={},returns={},output=recipe.output}
 		local count = {}
 		if not recipe.type then
-			for _,row in ipairs(recipe.recipe) do
-				for _,item in ipairs(row) do
+			for _,row in pairs(recipe.recipe) do
+				for _, item in pairs(row) do
 					legacy.items[#legacy.items+1] = item
 					count[item] = (count[item] or 0) + 1
 				end
 			end
 			if recipe.replacements then
 				minetest.log("error", recipe.output)
-				for _,pair in ipairs(recipe.replacements) do
+				for _,pair in pairs(recipe.replacements) do
 					legacy.returns[pair[2]] = count[pair[1]]
 				end
 			end
