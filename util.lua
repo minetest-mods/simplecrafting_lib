@@ -385,6 +385,38 @@ crafting.add_items = function(inv, listname, count_list)
 	return leftover_list
 end
 
+-- Attempts to add the items in count_list to the inventory.
+-- If it succeeds, returns true.
+-- If it fails, the inventory is not modified and returns false.
+crafting.add_items_if_room = function(inv, listname, count_list)
+	local old_list = inv:get_list(listname) -- record current inventory
+	
+	for item, count in pairs(count_list) do
+		local leftover = inv:add_item(listname, ItemStack({name=item, count=count}))
+		if leftover:get_count() > 0 then
+			inv:set_list(listname, old_list) -- reset inventory
+			return false
+		end
+	end
+	return true
+end
+
+-- Returns true if there's room in the inventory for all of the items in the count list,
+-- false otherwise.
+crafting.room_for_items = function(inv, listname, count_list)
+	local old_list = inv:get_list(listname) -- record current inventory
+	
+	for item, count in pairs(count_list) do
+		local leftover = inv:add_item(listname, ItemStack({name=item, count=count}))
+		if leftover:get_count() > 0 then
+			inv:set_list(listname, old_list) -- reset inventory
+			return false
+		end
+	end
+	inv:set_list(listname, old_list) -- reset inventory
+	return true
+end
+
 -- removes the items in the count_list (formatted as per recipe standards)
 -- from the inventory. Returns true on success, false on failure. Does not
 -- affect the inventory on failure (removal is atomic)
