@@ -1,0 +1,89 @@
+Parameter types:
+
+* craft_type - a string identifying a group of crafting recipes
+* item_name - a string identifying a particular type of item, eg "default:stone"
+* item_list - the product of an InvRef:get_list(listname) call
+* count_list - a list of items and quantities in the form as used in this mod's recipe definitions
+* listname - a string identifying a list within an inventory
+
+
+
+crafting.register(craft_type, def)
+
+example parameters:
+
+"table", {
+	input = {
+		["group:stone"] = 1,
+		["default:lava_source"] = 1,
+	},
+	output = {
+		["default:obsidian"] = 2,
+	},
+	-- Items which the crafting recipe produces, but is not
+	-- formally used to make, e.g. returning an empty bucket
+	-- from a recipe using a water bucket
+	returns = {
+		["default:stone"] = 1,
+	},
+}
+* The recipe def can have any other properties the user wishes to add, these three are the ones used by the crafting methods in this mod.
+
+crafting.register(def)
+
+example parameter:
+{
+	name = "default:tree",
+	burntime = 25.4,
+}
+* Group names are allowed
+* If there is not an item specific recipe then it will take the definition of its longest burning group
+
+crafting.register_reversible(craft_type, forward_def)
+* Registers the provided crafting recipe, and also automatically creates and registers a "reverse" craft of the same type.
+* This should generally only be done with craft that turns one type of item into one other type of item (for example, metal ingots <-> metal blocks), but it will still work if there are multiple inputs.
+* If there's more than one input type it will use "returns" to give them to the player in the reverse craft.
+* Don't use a recipe that has a "group:" input with this, because obviously that can't be turned into an output. The mod will assert if you try to do this.
+
+crafting.is_fuel(item_name)
+* returns the fuel definition for the item if it is fuel, nil otherwise
+
+crafting.get_craftable_recipes(craft_type, item_list)
+* Returns a list of all recipes whose ingredients can be satisfied by the item_list (as returned by InvRef:get_list(list_name))
+
+crafting.get_craftable_items(craft_type, item_list, max_craftable, alphabetize)
+* Returns a list of all the possible item stacks that could be crafted from the provided item list
+* if max_craftable is true the returned stacks will have as many items in them as possible to craft, otherwise the returned stacks will have only the minimum output
+* if alphabetize is true then the items will be sorted alphabetically by description, otherwise the items will be left in default order
+
+crafting.is_possible_input(craft_type, item_name)
+* Returns true if the item name is an input for at least one recipe belonging to the given craft type
+
+crafting.is_possible_output(craft_type, item_name)
+* Returns true if the item is a possible output for at least one recipe belonging to the given craft type
+
+crafting.count_list_add(count_list1, count_list2)
+* adds two count lists together, returns a new count list with the sum of the parameters' contents
+* can be used for example to combine a recipe's "output" and "returns" to get a complete list of the recipe's products
+
+crafting.add_items(inv, listname, count_list)
+* Add the items in count_list to the inventory. Returns a count list containing the items that couldn't be added.
+
+crafting.add_items_if_room(inv, listname, count_list)
+* Attempts to add the items in count_list to the inventory. If it succeeds, returns true.
+* If it fails, the inventory is not modified and returns false. (addition is atomic)
+
+crafting.room_for_items(inv, listname, count_list)
+* Returns true if there's room in the inventory to add all of the items in count_list, false otherwise.
+
+crafting.remove_items(inv, listname, count_list)
+* removes the items in the count_list (formatted as per recipe standards) from the inventory. Returns true on success, false on failure.
+* Does not affect the inventory on failure (removal is atomic)
+
+crafting.drop_items(pos, count_list)
+* Drops the contents of a count_list at the given location in the world
+
+crafting.get_crafting_result(crafting_type, item_list, request_stack)
+* Returns a recipe with the inputs and outputs multiplied to match the requested quantity of ouput items in the crafted stack.
+* Note that the output could actually be larger than request_stack if an exactly matching recipe can't be found.
+* returns nil if crafting is impossible with the given source inventory
