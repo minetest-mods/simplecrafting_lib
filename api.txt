@@ -48,6 +48,10 @@ crafting.register_reversible(craft_type, forward_def)
 crafting.is_fuel(item_name)
 * returns the fuel definition for the item if it is fuel, nil otherwise
 
+crafting.get_fuels(item_list, grade_definition)
+* Returns a list of all fuel recipes whose ingredients can be satisfied by the item_list
+* optional grade definition parameter of the form {min = minimum grade, max = maximum grade} to filter by grade
+
 crafting.get_craftable_recipes(craft_type, item_list)
 * Returns a list of all recipes whose ingredients can be satisfied by the item_list (as returned by InvRef:get_list(list_name))
 

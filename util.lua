@@ -1,3 +1,7 @@
+--------------------------------------------------------------------------------------------------------------------
+-- Local functions
+
+-- Finds the greatest common divisor of the two input parameters
 local function greatest_common_divisor(a, b)
     local temp
     while(b > 0) do
@@ -8,6 +12,7 @@ local function greatest_common_divisor(a, b)
     return a
 end
 
+-- Finds the greatest common divisor of an arbitrarily long list of numbers
 local function gcd_list(list)
 	if #list == 1 then
 		return list[1]
@@ -44,105 +49,6 @@ local function reduce_recipe(def)
 			def.returns[item] = count/gcd
 		end
 	end
-end
-
-crafting.register = function(typeof, def)
-	def.returns = def.returns or {}
-	
-	reduce_recipe(def)
-	
-	-- Strip group: from group names to simplify comparison later
-	for item, count in pairs(def.input) do
-		local group = string.match(item, "^group:(%S+)$")
-		if group then
-			def.input[group] = count
-			def.input[item] = nil
-		end
-	end
-
-	-- ensure the destination tables exist
-	crafting.type[typeof] = crafting.type[typeof] or {}
-	crafting.type[typeof].recipes = crafting.type[typeof].recipes or {}
-	crafting.type[typeof].recipes_by_out = crafting.type[typeof].recipes_by_out or {}
-	
-	table.insert(crafting.type[typeof].recipes, def)
-	
-	local recipes_by_out = crafting.type[typeof].recipes_by_out
-	for item, _ in pairs(def.output) do
-		recipes_by_out[item] = recipes_by_out[item] or {} 
-		recipes_by_out[item][#recipes_by_out[item]+1] = def
-	end
-	return true
-end
-
--- Registers the provided crafting recipe, and also
--- automatically creates and registers a "reverse" craft of the same type.
--- This should generally only be done with craft that turns one type of item into
--- one other type of item (for example, metal ingots <-> metal blocks), but
--- it will still work if there are multiple inputs.
--- If there's more than one input type it will use "returns" to give them to the
--- player in the reverse craft.
--- Don't use a recipe that has a "group:" input with this, because obviously that
--- can't be turned into an output. The mod will assert if you try to do this.
-crafting.register_reversible = function(typeof, forward_def)
-	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
-	crafting.register(typeof, forward_def)
-
-	local forward_in = reverse_def.input
-	reverse_def.input = crafting.count_list_add(reverse_def.output, reverse_def.returns)
-	
-	local most_common_in_name = ""
-	local most_common_in_count = 0
-	for item, count in pairs(forward_in) do
-		assert(string.sub(item, 1, 6) ~= "group:")
-		if count > most_common_in_count then
-			most_common_in_name = item
-			most_common_in_count = count
-		end
-	end
-	reverse_def.output = {[most_common_in_name]=most_common_in_count}
-	forward_in[most_common_in_name] = nil
-	reverse_def.returns = forward_in
-	
-	crafting.register(typeof, reverse_def)
-end
-
-crafting.register_fuel = function(def)
-	-- Strip group: from group names to simplify comparison later
-	local group = string.match(def.name, "^group:(%S+)$")
-	def.name = group or def.name
-
-	crafting.fuel[def.name] = def
-	return true
-end
-
--- returns the fuel definition for the item if it is fuel, nil otherwise
-crafting.is_fuel = function(item)
-	local fuels = crafting.fuel
-	
-	-- First check if the item has been explicitly registered as fuel
-	if fuels[item] then
-		return fuels[item]
-	end
-
-	-- Failing that, check its groups.
-	local def = minetest.registered_items[item]
-	if def and def.groups then
-		local max = -1
-		local fuel_group
-		for group, _ in pairs(def.groups) do
-			if fuels[group] then
-				if fuels[group].burntime > max then
-					fuel_group = fuels[group] -- track whichever is the longest-burning group
-					max = fuel_group.burntime
-				end
-			end
-		end
-		if fuel_group then
-			return fuel_group
-		end
-	end
-	return nil
 end
 
 -- Turns an item list (as returned by inv:get_list) into a form more easily used by crafting functions
@@ -259,6 +165,135 @@ local function get_craft_count(input_list, recipe)
 	return math.floor(number), work_recipe
 end
 
+-- Used for alphabetizing an array of itemstacks by description
+local function compare_stacks_by_desc(stack1, stack2)
+	local item1 = stack1:get_name()
+	local item2 = stack2:get_name()
+	local def1 = minetest.registered_items[item1]
+	local def2 = minetest.registered_items[item2]
+	return def1.description < def2.description
+end
+
+--------------------------------------------------------------------------------------------------------------------
+-- Public API
+
+crafting.register = function(typeof, def)
+	def.returns = def.returns or {}
+	
+	reduce_recipe(def)
+	
+	-- Strip group: from group names to simplify comparison later
+	for item, count in pairs(def.input) do
+		local group = string.match(item, "^group:(%S+)$")
+		if group then
+			def.input[group] = count
+			def.input[item] = nil
+		end
+	end
+
+	-- ensure the destination tables exist
+	crafting.type[typeof] = crafting.type[typeof] or {}
+	crafting.type[typeof].recipes = crafting.type[typeof].recipes or {}
+	crafting.type[typeof].recipes_by_out = crafting.type[typeof].recipes_by_out or {}
+	
+	table.insert(crafting.type[typeof].recipes, def)
+	
+	local recipes_by_out = crafting.type[typeof].recipes_by_out
+	for item, _ in pairs(def.output) do
+		recipes_by_out[item] = recipes_by_out[item] or {} 
+		recipes_by_out[item][#recipes_by_out[item]+1] = def
+	end
+	return true
+end
+
+-- Registers the provided crafting recipe, and also
+-- automatically creates and registers a "reverse" craft of the same type.
+-- This should generally only be done with craft that turns one type of item into
+-- one other type of item (for example, metal ingots <-> metal blocks), but
+-- it will still work if there are multiple inputs.
+-- If there's more than one input type it will use "returns" to give them to the
+-- player in the reverse craft.
+-- Don't use a recipe that has a "group:" input with this, because obviously that
+-- can't be turned into an output. The mod will assert if you try to do this.
+crafting.register_reversible = function(typeof, forward_def)
+	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
+	crafting.register(typeof, forward_def)
+
+	local forward_in = reverse_def.input
+	reverse_def.input = crafting.count_list_add(reverse_def.output, reverse_def.returns)
+	
+	local most_common_in_name = ""
+	local most_common_in_count = 0
+	for item, count in pairs(forward_in) do
+		assert(string.sub(item, 1, 6) ~= "group:")
+		if count > most_common_in_count then
+			most_common_in_name = item
+			most_common_in_count = count
+		end
+	end
+	reverse_def.output = {[most_common_in_name]=most_common_in_count}
+	forward_in[most_common_in_name] = nil
+	reverse_def.returns = forward_in
+	
+	crafting.register(typeof, reverse_def)
+end
+
+crafting.register_fuel = function(def)
+	-- Strip group: from group names to simplify comparison later
+	local group = string.match(def.name, "^group:(%S+)$")
+	def.name = group or def.name
+
+	crafting.fuel[def.name] = def
+	return true
+end
+
+-- returns the fuel definition for the item if it is fuel, nil otherwise
+crafting.is_fuel = function(item)
+	local fuels = crafting.fuel
+	
+	-- First check if the item has been explicitly registered as fuel
+	if fuels[item] then
+		return fuels[item]
+	end
+
+	-- Failing that, check its groups.
+	local def = minetest.registered_items[item]
+	if def and def.groups then
+		local max = -1
+		local fuel_group
+		for group, _ in pairs(def.groups) do
+			if fuels[group] then
+				if fuels[group].burntime > max then
+					fuel_group = fuels[group] -- track whichever is the longest-burning group
+					max = fuel_group.burntime
+				end
+			end
+		end
+		if fuel_group then
+			return fuel_group
+		end
+	end
+	return nil
+end
+
+-- Returns a list of all fuel recipes whose ingredients can be satisfied by the item_list
+-- optional grade definition parameter of the form {min = minimum grade, max = maximum grade} to filter by grade
+crafting.get_fuels = function(item_list, grade_definition)
+	local count_list = itemlist_to_countlist(item_list)
+	local burnable = {}
+	for item, count in pairs(count_list) do
+		local recipe = crafting.is_fuel(item)
+		if grade_definition and recipe.grade then
+			if recipe.grade.min >= grade_definition.min and recipe.grade.max <= grade_definition.max then
+				table.insert(burnable, recipe)
+			end
+		else
+			table.insert(burnable, recipe)
+		end
+	end
+	return burnable
+end
+
 -- Returns a list of all recipes whose ingredients can be satisfied by the item_list
 crafting.get_craftable_recipes = function(craft_type, item_list)
 	local count_list = itemlist_to_countlist(item_list)
@@ -271,15 +306,6 @@ crafting.get_craftable_recipes = function(craft_type, item_list)
 		end
 	end
 	return craftable
-end
-
--- Used for alphabetizing an array of itemstacks by description
-local function compare_stacks_by_desc(stack1, stack2)
-	local item1 = stack1:get_name()
-	local item2 = stack2:get_name()
-	local def1 = minetest.registered_items[item1]
-	local def2 = minetest.registered_items[item2]
-	return def1.description < def2.description
 end
 
 -- Returns a list of all the possible item stacks that could be crafted from the provided item list

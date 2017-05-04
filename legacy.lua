@@ -16,7 +16,9 @@ local function create_recipe(legacy)
 	recipe.input = {}
 	recipe.returns = legacy.returns
 	for _, item in pairs(items) do
-		recipe.input[item] = (recipe.input[item] or 0) + 1
+		if item ~= "" then
+			recipe.input[item] = (recipe.input[item] or 0) + 1
+		end
 	end
 	crafting.register("table",recipe)
 end
