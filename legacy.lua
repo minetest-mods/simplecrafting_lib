@@ -75,25 +75,33 @@ end
 -- registered after this one will be added to the new system.
 crafting.minetest_register_craft = minetest.register_craft
 minetest.register_craft = function(recipe)
-	if not recipe.type or recipe.type == "shapeless" then
+	if not recipe.type then
 		local legacy = {items={},returns={},output=recipe.output}
-		local count = {}
-		if not recipe.type then
+		if recipe.replacements then
+			local count = {}
 			for _,row in pairs(recipe.recipe) do
 				for _, item in pairs(row) do
 					legacy.items[#legacy.items+1] = item
 					count[item] = (count[item] or 0) + 1
 				end
 			end
-			if recipe.replacements then
-				minetest.log("error", recipe.output)
-				for _,pair in pairs(recipe.replacements) do
-					legacy.returns[pair[2]] = count[pair[1]]
-				end
+			for _,pair in pairs(recipe.replacements) do
+				legacy.returns[pair[2]] = count[pair[1]]
 			end
-		elseif recipe.type == "shapeless" then
-			legacy.items = recipe.recipe
 		end
+		create_recipe(legacy)
+	elseif recipe.type == "shapeless" then
+		local legacy = {items={},returns={},output=recipe.output}
+		if recipe.replacements then
+			local count = {}
+			for _, item in pairs(recipe.recipe) do
+				count[item] = (count[item] or 0) + 1
+			end
+			for _,pair in pairs(recipe.replacements) do
+				legacy.returns[pair[2]] = count[pair[1]]
+			end
+		end
+		legacy.items = recipe.recipe
 		create_recipe(legacy)
 	elseif recipe.type == "cooking" then
 		local legacy = {input={},output={}}
@@ -108,6 +116,7 @@ minetest.register_craft = function(recipe)
 		
 		crafting.register("furnace",legacy)
 	elseif recipe.type == "fuel" then
+		-- TODO: fuel recipes need to support replacements (eg, lava bucket => bucket)
 		local legacy = {}
 		legacy.name = recipe.recipe
 		legacy.burntime = recipe.burntime
