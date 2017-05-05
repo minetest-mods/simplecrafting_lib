@@ -1,20 +1,32 @@
 crafting.guide = {}
 crafting.guide.outputs = {}
 crafting.guide.playerdata = {}
+crafting.guide.groups = {}
 
+-- Explicitly set examples for some common input item groups
+-- Other mods can also add explicit items like this if they wish
+if minetest.get_modpath("default") then
+	crafting.guide.groups["wood"] = "default:wood"
+	crafting.guide.groups["stick"] = "default:stick"
+	crafting.guide.groups["tree"] = "default:tree"
+	crafting.guide.groups["stone"] = "default:stone"
+end
 
 -- internationalization boilerplate
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
 local function get_group_examples()
-	if crafting.guide.groups then return crafting.guide.groups end
-	crafting.guide.groups = {}
+	if crafting.guide.groups_initialized then return crafting.guide.groups end
+	-- finds an example item for every group that does not already have one defined
 	for item, def in pairs(minetest.registered_items) do
 		for group, _ in pairs(def.groups) do
-			crafting.guide.groups[group] = item
+			if not crafting.guide.groups[group] then
+				crafting.guide.groups[group] = item
+			end
 		end
 	end
+	crafting.guide.groups_initialized = true
 	return crafting.guide.groups
 end
 
@@ -144,6 +156,10 @@ local function make_formspec(craft_type, player_name)
 		return table.concat(formspec)
 	end
 	
+	-- Note: there may be invalid recipes that won't be displayed if inputs are not defined.
+	-- In that case there might be a blank page or two available for the player to view.
+	-- This is a rare edge case that's a bit complicated to fix properly, and not really harmful
+	-- in the meantime, so fix this later.
 	if #recipes > 4 then
 		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";Recipe\npage]")
 		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 .. ";1,1;previous_input;Prev]")
