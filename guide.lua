@@ -88,7 +88,7 @@ local function get_playerdata(craft_type, player_name)
 	if crafting.guide.playerdata[craft_type][player_name] then
 		return crafting.guide.playerdata[craft_type][player_name]
 	end
-	crafting.guide.playerdata[craft_type][player_name] = {["page"] = 0, ["selection"] = 0}
+	crafting.guide.playerdata[craft_type][player_name] = {["input_page"] = 0, ["output_page"] = 0, ["selection"] = 0}
 	return crafting.guide.playerdata[craft_type][player_name]
 end
 
@@ -108,7 +108,7 @@ local function make_formspec(craft_type, player_name)
 	local y = 0
 
 	for i = 1, 8*4 do
-		local current_item_index = i + playerdata.page * 8 * 4
+		local current_item_index = i + playerdata.output_page * 8 * 4
 		local current_item = outputs[current_item_index]
 		if current_item then
 			table.insert(formspec, "item_image_button[" ..
@@ -129,8 +129,11 @@ local function make_formspec(craft_type, player_name)
 			outputs[playerdata.selection] .. "]")
 	end
 
-	table.insert(formspec, "button[" .. x .. "," .. y + 4 .. ";1,1;previous_page;Prev]")
-	table.insert(formspec, "button[" .. x + 7 .. "," .. y + 4 .. ";1,1;next_page;Next]")
+	if #outputs > 8*4 then
+		table.insert(formspec, "button[" .. x .. "," .. y + 4 .. ";1,1;previous_output;Prev]")
+		table.insert(formspec, "button[" .. x + 1 .. "," .. y + 4 .. ";1,1;next_output;Next]")
+		table.insert(formspec, "label[" .. x + 2 .. "," .. y + 4 .. ";Product\npage]")
+	end
 
 	local recipes
 	if playerdata.selection > 0 then
@@ -140,10 +143,22 @@ local function make_formspec(craft_type, player_name)
 	if recipes == nil then
 		return table.concat(formspec)
 	end
+	
+	if #recipes > 4 then
+		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";Recipe\npage]")
+		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 .. ";1,1;previous_input;Prev]")
+		table.insert(formspec, "button[" .. x + 7 .. "," .. y + 4 .. ";1,1;next_input;Next]")
+	end
 
+	if playerdata.input_page > #recipes/4 then
+		playerdata.input_page = math.floor(#recipes/4)
+	end
+	
 	local x_out = x
 	local y_out = y + 5
-	for _, recipe in pairs(recipes) do
+	for i=1,4 do
+		local recipe = recipes[i + playerdata.input_page * 4]
+		if not recipe then break end
 		local recipe_formspec = {}
 		local valid_recipe = true
 		for input, count in pairs(recipe.input) do
@@ -200,14 +215,17 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	local outputs = get_output_list(craft_type)
 	
 	for field, _ in pairs(fields) do
-		if field == "previous_page" and playerdata.page > 0 then
-			playerdata.page = playerdata.page - 1
-		elseif field == "next_page" and playerdata.page < #outputs/(8*4)-1 then
-			playerdata.page = playerdata.page + 1
+		if field == "previous_output" and playerdata.output_page > 0 then
+			playerdata.output_page = playerdata.output_page - 1
+		elseif field == "next_output" and playerdata.output_page < #outputs/(8*4)-1 then
+			playerdata.output_page = playerdata.output_page + 1
+		elseif field == "previous_input" and playerdata.input_page > 0 then
+			playerdata.input_page = playerdata.input_page - 1
+		elseif field == "next_input" then -- we don't know how many recipes there are, let make_formspec sanitize this
+			playerdata.input_page = playerdata.input_page + 1
 		elseif string.sub(field, 1, 8) == "product_" then
 			playerdata.selection = tonumber(string.sub(field, 9))
 		elseif field == "exit" then
-			-- TODO: reset player data? May want to record last craft_type viewed and not reset in that case
 			return true
 		end
 	end
