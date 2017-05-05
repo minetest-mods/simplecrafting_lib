@@ -11,6 +11,9 @@ if minetest.get_modpath("default") then
 	crafting.guide.groups["tree"] = "default:tree"
 	crafting.guide.groups["stone"] = "default:stone"
 end
+if minetest.get_modpath("wool") then
+	crafting.guide.groups["wool"] = "wool:white"
+end
 
 -- internationalization boilerplate
 local MP = minetest.get_modpath(minetest.get_current_modname())
@@ -251,7 +254,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 end)
 
-crafting.crafting_guide_on_use = function(user, craft_type)
+crafting.show_crafting_guide = function(user, craft_type)
 	minetest.show_formspec(user:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
 end
 
@@ -262,7 +265,7 @@ minetest.register_craftitem("crafting:table_guide", {
 	stack_max = 1,
 	groups = {book = 1},
 	on_use = function(itemstack, user)
-		crafting.crafting_guide_on_use(user, "table")
+		crafting.show_crafting_guide(user, "table")
 	end,
 })
 
@@ -273,7 +276,7 @@ minetest.register_craftitem("crafting:furnace_guide", {
 	stack_max = 1,
 	groups = {book = 1},
 	on_use = function(itemstack, user)
-		crafting.crafting_guide_on_use(user, "furnace")
+		crafting.show_crafting_guide(user, "furnace")
 	end,
 })
 

@@ -77,14 +77,14 @@ crafting.minetest_register_craft = minetest.register_craft
 minetest.register_craft = function(recipe)
 	if not recipe.type then
 		local legacy = {items={},returns={},output=recipe.output}
-		if recipe.replacements then
-			local count = {}
-			for _,row in pairs(recipe.recipe) do
-				for _, item in pairs(row) do
-					legacy.items[#legacy.items+1] = item
-					count[item] = (count[item] or 0) + 1
-				end
+		local count = {}
+		for _,row in pairs(recipe.recipe) do
+			for _, item in pairs(row) do
+				legacy.items[#legacy.items+1] = item
+				count[item] = (count[item] or 0) + 1
 			end
+		end
+		if recipe.replacements then
 			for _,pair in pairs(recipe.replacements) do
 				legacy.returns[pair[2]] = count[pair[1]]
 			end
