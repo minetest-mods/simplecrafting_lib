@@ -233,25 +233,33 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	local playerdata = get_playerdata(craft_type, player:get_player_name())
 	local outputs = get_output_list(craft_type)
 	
+	local stay_in_formspec = false
+	
 	for field, _ in pairs(fields) do
 		if field == "previous_output" and playerdata.output_page > 0 then
 			playerdata.output_page = playerdata.output_page - 1
+			stay_in_formspec = true
 		elseif field == "next_output" and playerdata.output_page < #outputs/(8*4)-1 then
 			playerdata.output_page = playerdata.output_page + 1
+			stay_in_formspec = true
 		elseif field == "previous_input" and playerdata.input_page > 0 then
 			playerdata.input_page = playerdata.input_page - 1
+			stay_in_formspec = true
 		elseif field == "next_input" then -- we don't know how many recipes there are, let make_formspec sanitize this
 			playerdata.input_page = playerdata.input_page + 1
+			stay_in_formspec = true
 		elseif string.sub(field, 1, 8) == "product_" then
 			playerdata.selection = tonumber(string.sub(field, 9))
+			stay_in_formspec = true
 		elseif field == "exit" then
 			return true
 		end
 	end
-
-	minetest.show_formspec(player:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type,player:get_player_name()))
-	return true
-
+	
+	if stay_in_formspec then
+		minetest.show_formspec(player:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type,player:get_player_name()))
+		return true
+	end	
 end)
 
 crafting.show_crafting_guide = function(user, craft_type)
