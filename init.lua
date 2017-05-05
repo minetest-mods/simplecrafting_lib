@@ -9,4 +9,4 @@ dofile(modpath .. "/util.lua")
 dofile(modpath .. "/legacy.lua")
 dofile(modpath .. "/table.lua")
 dofile(modpath .. "/furnace.lua")
-
+dofile(modpath .. "/guide.lua")

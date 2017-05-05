@@ -174,6 +174,29 @@ local function compare_stacks_by_desc(stack1, stack2)
 	return def1.description < def2.description
 end
 
+-- Deep Equals, used to check for duplicate recipes during registration
+local function deep_equals(test1, test2)
+	if test1 == test2 then
+		return true
+	end
+	if type(test1) ~= "table" or type(test2) ~= "table" then
+		return false
+	end
+	local value2
+	for key, value1 in pairs(test1) do
+		value2 = test2[k]
+		if value1 ~= value2 and not deep_equals(value1, test2[key]) then
+			return false
+		end
+	end
+	for key, _ in pairs(test2) do
+		if test1[key] == nil then
+			return false
+		end
+	end
+	return true
+end
+
 --------------------------------------------------------------------------------------------------------------------
 -- Public API
 
@@ -196,6 +219,15 @@ crafting.register = function(typeof, def)
 	crafting.type[typeof].recipes = crafting.type[typeof].recipes or {}
 	crafting.type[typeof].recipes_by_out = crafting.type[typeof].recipes_by_out or {}
 	
+	-- Check if this recipe has already been registered. Many different old-style recipes
+	-- can reduce down to equivalent recipes in this system, so this is a useful step
+	-- to keep things tidy and efficient.
+	for _, existing_recipe in pairs(crafting.type[typeof].recipes) do
+		if deep_equals(def, existing_recipe) then
+			return true
+		end
+	end
+
 	table.insert(crafting.type[typeof].recipes, def)
 	
 	local recipes_by_out = crafting.type[typeof].recipes_by_out
