@@ -91,3 +91,6 @@ crafting.get_crafting_result(crafting_type, item_list, request_stack)
 * Returns a recipe with the inputs and outputs multiplied to match the requested quantity of ouput items in the crafted stack.
 * Note that the output could actually be larger than request_stack if an exactly matching recipe can't be found.
 * returns nil if crafting is impossible with the given source inventory
+
+crafting.crafting_guide_on_use(player, craft_type)
+* Displays a crafting guide to the player for the given craft_type

@@ -217,7 +217,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 end)
 
-local function crafting_guide_on_use(itemstack, user, craft_type)
+crafting.crafting_guide_on_use = function(user, craft_type)
 	minetest.show_formspec(user:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
 end
 
@@ -228,7 +228,7 @@ minetest.register_craftitem("crafting:table_guide", {
 	stack_max = 1,
 	groups = {book = 1},
 	on_use = function(itemstack, user)
-		crafting_guide_on_use(itemstack, user, "table")
+		crafting.crafting_guide_on_use(itemstack, user, "table")
 	end,
 })
 
@@ -239,6 +239,6 @@ minetest.register_craftitem("crafting:furnace_guide", {
 	stack_max = 1,
 	groups = {book = 1},
 	on_use = function(itemstack, user)
-		crafting_guide_on_use(itemstack, user, "furnace")
+		crafting.crafting_guide_on_use(user, "furnace")
 	end,
 })
