@@ -228,7 +228,7 @@ minetest.register_craftitem("crafting:table_guide", {
 	stack_max = 1,
 	groups = {book = 1},
 	on_use = function(itemstack, user)
-		crafting.crafting_guide_on_use(itemstack, user, "table")
+		crafting.crafting_guide_on_use(user, "table")
 	end,
 })
 
