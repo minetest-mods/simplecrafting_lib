@@ -174,7 +174,7 @@ local function compare_stacks_by_desc(stack1, stack2)
 	return def1.description < def2.description
 end
 
--- Deep Equals, used to check for duplicate recipes during registration
+-- Deep equals, used to check for duplicate recipes during registration
 local function deep_equals(test1, test2)
 	if test1 == test2 then
 		return true
@@ -184,7 +184,7 @@ local function deep_equals(test1, test2)
 	end
 	local value2
 	for key, value1 in pairs(test1) do
-		value2 = test2[k]
+		value2 = test2[key]
 		if value1 ~= value2 and not deep_equals(value1, test2[key]) then
 			return false
 		end
