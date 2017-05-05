@@ -276,3 +276,21 @@ minetest.register_craftitem("crafting:furnace_guide", {
 		crafting.crafting_guide_on_use(user, "furnace")
 	end,
 })
+
+if minetest.get_modpath("default") then
+
+	minetest.register_craft({
+		output = "crafting:table_guide",
+		type = "shapeless",
+		recipe = {"crafting:table", "default:book"},
+		replacements = {{"crafting:table", "crafting:table"}}
+	})
+
+	minetest.register_craft({
+		output = "crafting:furnace_guide",
+		type = "shapeless",
+		recipe = {"crafting:furnace", "default:book"},
+		replacements = {{"crafting:furnace", "crafting:furnace"}}
+	})
+
+end
