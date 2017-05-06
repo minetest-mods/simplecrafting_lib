@@ -2,6 +2,7 @@ local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
 local alphabetize_items = crafting.config.sort_alphabetically
+local show_guides = crafting.config.show_guides
 
 local function refresh_output(inv, max_mode)
 	local craftable = crafting.get_craftable_items("table", inv:get_list("store"), max_mode, alphabetize_items)
@@ -52,6 +53,10 @@ local function make_formspec(row, item_count, max_mode)
 		inventory[#inventory+1] = "button[9.3,8.7;1,0.75;max_mode;Max\nOutput]"
 	else
 		inventory[#inventory+1] = "button[9.3,8.7;1,0.75;max_mode;Min\nOutput]"
+	end
+	
+	if show_guides then
+		inventory[#inventory+1] = "button[9.3,9.7;1,0.75;show_guide;Show\nGuide]"
 	end
 
 	return table.concat(inventory), row
@@ -166,6 +171,8 @@ minetest.register_node("crafting:table", {
 				max_mode = ""
 			end
 			refresh = true
+		elseif fields.show_guide and show_guides then
+			crafting.show_crafting_guide(sender, "table")
 		else
 			return
 		end

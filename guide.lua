@@ -10,6 +10,7 @@ if minetest.get_modpath("default") then
 	crafting.guide.groups["stick"] = "default:stick"
 	crafting.guide.groups["tree"] = "default:tree"
 	crafting.guide.groups["stone"] = "default:stone"
+	crafting.guide.groups["sand"] = "default:sand"
 end
 if minetest.get_modpath("wool") then
 	crafting.guide.groups["wool"] = "wool:white"
@@ -189,12 +190,12 @@ local function make_formspec(craft_type, player_name)
 					itemdesc = itemdef.description
 				end				
 				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..input..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			elseif not string.match(input, ",") then
 				if groups[input] then
 					local itemdesc = "Group: "..input
 					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
-					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 				else
 					valid_recipe = false
 				end
@@ -204,7 +205,7 @@ local function make_formspec(craft_type, player_name)
 				if multimatch then
 					local itemdesc = "Groups: "..input
 					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
-					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 				else
 					valid_recipe = false
 				end
@@ -217,7 +218,7 @@ local function make_formspec(craft_type, player_name)
 		for output, count in pairs(recipe.output) do
 			local itemdesc = minetest.registered_items[output].description -- we know this item exists otherwise a recipe wouldn't have been found
 			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			recipe_button_count = recipe_button_count + 1
 			x_out = x_out - 1
 		end
@@ -228,7 +229,7 @@ local function make_formspec(craft_type, player_name)
 				itemdesc = itemdef.description
 			end	
 			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..returns..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			recipe_button_count = recipe_button_count + 1
 			x_out = x_out - 1
 		end
@@ -286,6 +287,10 @@ end)
 
 crafting.show_crafting_guide = function(user, craft_type)
 	minetest.show_formspec(user:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
+end
+
+if not crafting.config.show_guides then
+	return
 end
 
 minetest.register_craftitem("crafting:table_guide", {

@@ -2,6 +2,7 @@ local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
 local recipes = crafting.type.furnace.recipes
+local show_guides = crafting.config.show_guides
 
 local function is_ingredient(item)
 	local outputs = crafting.get_craftable_recipes("furnace", {ItemStack(item)})
@@ -198,6 +199,29 @@ local function try_start(pos)
 	set_furnace_state(pos,state)
 end
 
+local function get_formspec()
+	local formspec = {
+			"size[8,9]",
+			default.gui_bg,
+			default.gui_bg_img,
+			default.gui_slots,
+			"list[context;input;2,1;1,1;]",
+			"list[context;input;2,3;1,1;1]",
+			"list[context;output;4,1.5;2,2;]",
+			"list[current_player;main;0,5;8,1;0]",
+			"list[current_player;main;0,6.2;8,3;8]",
+			"listring[context;output]",
+			"listring[current_player;main]",
+			"listring[context;input]",
+			"listring[current_player;main]",
+		}
+	if show_guides then
+		table.insert(formspec, "button[7,4;1,0.75;show_guide;Show\nGuide]")
+	end
+
+	return table.concat(formspec)
+end
+
 minetest.register_node("crafting:furnace",{
 	description = S("Furnace"),
 	drawtype = "normal",
@@ -215,21 +239,7 @@ minetest.register_node("crafting:furnace",{
 		local inv = meta:get_inventory()
 		inv:set_size("input", 2)
 		inv:set_size("output", 2*2)
-		meta:set_string("formspec",table.concat({
-			"size[12,9]",
-			default.gui_bg,
-			default.gui_bg_img,
-			default.gui_slots,
-			"list[context;input;4,1;1,1;]",
-			"list[context;input;4,3;1,1;1]",
-			"list[context;output;6,1.5;2,2;]",
-			"list[current_player;main;2,5;8,1;0]",
-			"list[current_player;main;2,6;8,3;8]",
-			"listring[context;output]",
-			"listring[current_player;main]",
-			"listring[context;input]",
-			"listring[current_player;main]",
-		}))
+		meta:set_string("formspec", get_formspec())
 	end,
 	on_metadata_inventory_move = function(pos,flist,fi,tlist,ti,no,player)
 		local meta = minetest.get_meta(pos)
@@ -246,12 +256,18 @@ minetest.register_node("crafting:furnace",{
 		if lname == "input" then
 			sort_input(meta)
 		end
+		meta:set_string("formspec", get_formspec()) -- since the formspec can theoretically change, refresh it every once in a while
 		try_start(pos)
 	end,
 	can_dig = function(pos,player)
 		local meta = minetest.get_meta(pos)
 		local inv = meta:get_inventory()
 		return inv:is_empty("output") and inv:is_empty("input")
+	end,
+	on_receive_fields = function(pos, formname, fields, sender)
+		if fields.show_guide and show_guides then
+			crafting.show_crafting_guide(sender, "furnace")
+		end
 	end,
 })
 

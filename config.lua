@@ -25,4 +25,4 @@ end
 
 setting("bool", "clear_default_crafting", false, "Clear default crafting system recipes")
 setting("bool", "sort_alphabetically", false, "Sort crafting output list alphabetically")
-
+setting("bool", "show_guides", true, "Show crafting guides")
