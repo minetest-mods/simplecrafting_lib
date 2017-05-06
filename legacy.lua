@@ -26,13 +26,7 @@ end
 -- by this method, they all go into the fuel registry.
 -- If this method returns nil the recipe will not be imported.
 crafting.get_legacy_type = function(legacy_method, legacy_recipe)
-	if legacy_method == "normal" then
-		return "table"
-	elseif legacy_method == "cooking" then
-		return "furnace"
-	end
-	minetest.log("error", "get_legacy_type encountered unknown legacy method "..legacy_method)
-	return nil
+	return legacy_method
 end
 
 -- import_legacy_recipes overrides minetest.register_craft so that subsequently registered

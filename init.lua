@@ -2,12 +2,13 @@ crafting = {}
 crafting.type = {}
 crafting.fuel = {}
 
-local modpath = minetest.get_modpath("crafting") 
+local modpath = minetest.get_modpath(minetest.get_current_modname()) 
 
 dofile(modpath .. "/config.lua")
 dofile(modpath .. "/util.lua")
 dofile(modpath .. "/guide.lua")
 dofile(modpath .. "/legacy.lua")
+
 dofile(modpath .. "/table.lua")
 dofile(modpath .. "/furnace.lua")
 
