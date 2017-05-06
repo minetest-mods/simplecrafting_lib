@@ -147,7 +147,7 @@ local function make_formspec(craft_type, player_name)
 	if #outputs > 8*4 then
 		table.insert(formspec, "button[" .. x .. "," .. y + 4 .. ";1,1;previous_output;Prev]")
 		table.insert(formspec, "button[" .. x + 1 .. "," .. y + 4 .. ";1,1;next_output;Next]")
-		table.insert(formspec, "label[" .. x + 2 .. "," .. y + 4 .. ";Product\npage]")
+		table.insert(formspec, "label[" .. x + 2 .. "," .. y + 4 .. ";Product\npage ".. playerdata.output_page + 1 .."]")
 	end
 
 	local recipes
@@ -158,34 +158,43 @@ local function make_formspec(craft_type, player_name)
 	if recipes == nil then
 		return table.concat(formspec)
 	end
+
+	if playerdata.input_page > #recipes/4 then
+		playerdata.input_page = math.floor(#recipes/4)
+	end
 	
 	-- Note: there may be invalid recipes that won't be displayed if inputs are not defined.
 	-- In that case there might be a blank page or two available for the player to view.
 	-- This is a rare edge case that's a bit complicated to fix properly, and not really harmful
 	-- in the meantime, so fix this later.
 	if #recipes > 4 then
-		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";Recipe\npage]")
+		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";Recipe\npage ".. playerdata.input_page + 1 .."]")
 		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 .. ";1,1;previous_input;Prev]")
 		table.insert(formspec, "button[" .. x + 7 .. "," .. y + 4 .. ";1,1;next_input;Next]")
-	end
-
-	if playerdata.input_page > #recipes/4 then
-		playerdata.input_page = math.floor(#recipes/4)
 	end
 	
 	local x_out = x
 	local y_out = y + 5
-	for i=1,4 do
+	local recipe_button_count = 1
+	for i = 1,4 do
 		local recipe = recipes[i + playerdata.input_page * 4]
 		if not recipe then break end
 		local recipe_formspec = {}
 		local valid_recipe = true
 		for input, count in pairs(recipe.input) do
 			if string.match(input, ":") then
-				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..input..";;\n\n    "..count.."]")
+				local itemdef = minetest.registered_items[input]
+				local itemdesc = input
+				if itemdef then
+					itemdesc = itemdef.description
+				end				
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..input..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
+				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
 			elseif not string.match(input, ",") then
 				if groups[input] then
-					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";;\n  G\n      "..count.."]")
+					local itemdesc = "Group: "..input
+					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
+					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
 				else
 					valid_recipe = false
 				end
@@ -193,21 +202,34 @@ local function make_formspec(craft_type, player_name)
 				-- it's one of those weird multi-group items, like dyes.
 				local multimatch = find_multi_group(input)
 				if multimatch then
-					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";;\n  G\n      "..count.."]")
+					local itemdesc = "Groups: "..input
+					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
+					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
 				else
 					valid_recipe = false
 				end
 			end
+			recipe_button_count = recipe_button_count + 1
 			x_out = x_out + 1
 		end
 
 		x_out = 7
 		for output, count in pairs(recipe.output) do
-			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output..";;\n\n    "..count.."]")
+			local itemdesc = minetest.registered_items[output].description -- we know this item exists otherwise a recipe wouldn't have been found
+			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
+			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+			recipe_button_count = recipe_button_count + 1
 			x_out = x_out - 1
 		end
 		for returns, count in pairs(recipe.returns) do
-			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..returns..";;\n\n    "..count.."]")
+			local itemdef = minetest.registered_items[returns]
+			local itemdesc = returns
+			if itemdef then
+				itemdesc = itemdef.description
+			end	
+			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..returns..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
+			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..itemdesc.."]")
+			recipe_button_count = recipe_button_count + 1
 			x_out = x_out - 1
 		end
 
