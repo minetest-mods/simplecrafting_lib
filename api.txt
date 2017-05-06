@@ -29,12 +29,15 @@ example parameters:
 }
 * The recipe def can have any other properties the user wishes to add, these three are the ones used by the crafting methods in this mod.
 
-crafting.register(def)
+crafting.register_fuel(def)
 
 example parameter:
 {
-	name = "default:tree",
-	burntime = 25.4,
+	name = "bucket:lava_bucket",
+	burntime = 60.0,
+	returns = {
+		["bucket:bucket"] = 1,
+	}
 }
 * Group names are allowed
 * If there is not an item specific recipe then it will take the definition of its longest burning group
@@ -44,6 +47,20 @@ crafting.register_reversible(craft_type, forward_def)
 * This should generally only be done with craft that turns one type of item into one other type of item (for example, metal ingots <-> metal blocks), but it will still work if there are multiple inputs.
 * If there's more than one input type it will use "returns" to give them to the player in the reverse craft.
 * Don't use a recipe that has a "group:" input with this, because obviously that can't be turned into an output. The mod will assert if you try to do this.
+
+crafting.import_legacy_recipes(clear_default_crafting)
+* When run, this will cause recipes added via minetest.register_craft to be added to this crafting system.
+* if clear_default_crafting is true, these recipes will be removed from the default crafting system. Otherwise they'll be registered in both.
+
+crafting.get_legacy_type(legacy_method, recipe)
+* This method is used internally by import_legacy_recipes to determine what craft_type to register default recipes as. Mods should override this method if they want to distribute default recipes to their own recipe types.
+* legacy_method parameter will be either "normal" or "cooking" - fuels are handled specially
+* recipe will be in the format described above for crafting.register
+* returns craft_type or nil. If nil, recipe will not be imported.
+
+crafting.get_crafting_info(craft_type)
+* returns a table with the members "recipe" and "recipe_by_out" that contains all registered recipes for the craft type.
+* Using this method will ensure that the craft_type's recipe tables will exist even if nothing's been registered for them yet.
 
 crafting.is_fuel(item_name)
 * returns the fuel definition for the item if it is fuel, nil otherwise

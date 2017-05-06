@@ -1,6 +1,9 @@
-#When set to true, this mod will eliminate all recipes from the default
-#crafting system except for the recipe for this mod's crafting table.
+#When enabled, all recipes registered via the original minetest.register_craft
+#method will be automatically added to this mod's new crafting system as well
+import_default_recipes (Import default crafting system recipes) bool true
 
+#When set to true, this mod will eliminate all imported recipes from the default
+#crafting system except for the recipe for this mod's crafting table.
 crafting_clear_default_crafting (Clear default crafting system recipes) bool false
 
 #When set to true, the crafting output list in the crafting table is

@@ -1,8 +1,9 @@
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
-local recipes = crafting.type.furnace.recipes
+local recipes = crafting.get_crafting_info("furnace").recipes
 local show_guides = crafting.config.show_guides
+local clear_default_crafting = crafting.config.clear_default_crafting
 
 local function is_ingredient(item)
 	local outputs = crafting.get_craftable_recipes("furnace", {ItemStack(item)})
@@ -474,10 +475,64 @@ minetest.register_node("crafting:furnace_active",{
 		local inv = meta:get_inventory()
 		return inv:is_empty("output") and inv:is_empty("input")
 	end,
+	on_receive_fields = function(pos, formname, fields, sender)
+		if fields.show_guide and show_guides then
+			crafting.show_crafting_guide(sender, "furnace")
+		end
+	end,
 	on_timer = furnace_timer,
 })
 
+-------------------------------------------------------------------------
+-- Crafting
+
+local furnace_recipe = {
+	output = "crafting:furnace",
+	recipe = {
+		{"default:stone","default:stone","default:stone"},
+		{"default:stone","default:coal_lump","default:stone"},
+		{"default:stone","default:stone","default:stone"},
+	},
+}
+
+if clear_default_crafting then
+	-- If we've cleared native crafting, there's no point to the default furnace.
+	-- replace it with the crafting: mod furnace.
+	minetest.register_alias_force("default:furnace", "crafting:furnace")
+	minetest.register_alias_force("default:furnace_active", "crafting:furnace_active")
+else
+	-- If we haven't cleared native crafting, leave the existing furnace alone and add the crafting: mod one separately
+	minetest.register_craft(furnace_recipe)
+end
+
+-------------------------------------------------------------------------
+-- Guide
+
+if show_guides then
+	minetest.register_craftitem("crafting:furnace_guide", {
+		description = S("Crafting Guide (Furnace)"),
+		inventory_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#88000088)",
+		wield_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#88000088)",
+		stack_max = 1,
+		groups = {book = 1},
+		on_use = function(itemstack, user)
+			crafting.show_crafting_guide(user, "furnace")
+		end,
+	})
+	
+	if minetest.get_modpath("default") then
+		minetest.register_craft({
+			output = "crafting:furnace_guide",
+			type = "shapeless",
+			recipe = {"crafting:furnace", "default:book"},
+			replacements = {{"crafting:furnace", "crafting:furnace"}}
+		})
+	end
+end
+
+----------------------------------------------------------------------------
 -- Hopper compatibility
+
 if minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
 	hopper:add_container({
 		{"top", "crafting:furnace", "output"},

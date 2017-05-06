@@ -192,7 +192,48 @@ minetest.register_node("crafting:table", {
 	end,
 })
 
+----------------------------------------------------------
+-- Crafting
+
+local table_recipe = {
+	output = "crafting:table",
+	recipe = {
+		{"group:tree","group:tree",""},
+		{"group:tree","group:tree",""},
+		{"","",""},
+	},
+}
+
+minetest.register_craft(table_recipe)
+
+----------------------------------------------------------
+-- Guide
+
+if crafting.config.show_guides then
+	minetest.register_craftitem("crafting:table_guide", {
+		description = S("Crafting Guide (Table)"),
+		inventory_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#0088ff88)",
+		wield_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#0088ff88)",
+		stack_max = 1,
+		groups = {book = 1},
+		on_use = function(itemstack, user)
+			crafting.show_crafting_guide(user, "table")
+		end,
+	})
+	
+	if minetest.get_modpath("default") then
+		minetest.register_craft({
+			output = "crafting:table_guide",
+			type = "shapeless",
+			recipe = {"crafting:table", "default:book"},
+			replacements = {{"crafting:table", "crafting:table"}}
+		})
+	end
+end
+	
+----------------------------------------------------------------
 -- Hopper compatibility
+
 if minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
 	hopper:add_container({
 		{"top", "crafting:table", "store"},

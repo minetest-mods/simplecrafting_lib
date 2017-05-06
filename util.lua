@@ -200,7 +200,16 @@ end
 --------------------------------------------------------------------------------------------------------------------
 -- Public API
 
-crafting.register = function(typeof, def)
+crafting.get_crafting_info = function(craft_type)
+	-- ensure the destination tables exist
+	crafting.type[craft_type] = crafting.type[craft_type] or {}
+	crafting.type[craft_type].recipes = crafting.type[craft_type].recipes or {}
+	crafting.type[craft_type].recipes_by_out = crafting.type[craft_type].recipes_by_out or {}
+
+	return crafting.type[craft_type]
+end
+
+crafting.register = function(craft_type, def)
 	def.returns = def.returns or {}
 	
 	reduce_recipe(def)
@@ -214,23 +223,20 @@ crafting.register = function(typeof, def)
 		end
 	end
 
-	-- ensure the destination tables exist
-	crafting.type[typeof] = crafting.type[typeof] or {}
-	crafting.type[typeof].recipes = crafting.type[typeof].recipes or {}
-	crafting.type[typeof].recipes_by_out = crafting.type[typeof].recipes_by_out or {}
+	local crafting_info = crafting.get_crafting_info(craft_type)
 	
 	-- Check if this recipe has already been registered. Many different old-style recipes
 	-- can reduce down to equivalent recipes in this system, so this is a useful step
 	-- to keep things tidy and efficient.
-	for _, existing_recipe in pairs(crafting.type[typeof].recipes) do
+	for _, existing_recipe in pairs(crafting_info.recipes) do
 		if deep_equals(def, existing_recipe) then
 			return true
 		end
 	end
 
-	table.insert(crafting.type[typeof].recipes, def)
+	table.insert(crafting_info.recipes, def)
 	
-	local recipes_by_out = crafting.type[typeof].recipes_by_out
+	local recipes_by_out = crafting_info.recipes_by_out
 	for item, _ in pairs(def.output) do
 		recipes_by_out[item] = recipes_by_out[item] or {} 
 		recipes_by_out[item][#recipes_by_out[item]+1] = def
