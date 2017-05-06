@@ -58,12 +58,18 @@ for item,_ in pairs(minetest.registered_items) do
 			minetest.clear_craft({output=item})
 		end
 	end
-	local fuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
+	local fuel, afterfuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
 	if fuel.time ~= 0 then
 		local legacy = {}
 		legacy.name = item
 		legacy.burntime = fuel.time
 		legacy.grade = 1
+		for _, afteritem in pairs(afterfuel.items) do
+			if afteritem:get_count() > 0 then
+				legacy.returns = legacy.returns or {}
+				legacy.returns[afteritem:get_name()] = (legacy.returns[afteritem:get_name()] or 0) + afteritem:get_count()
+			end
+		end
 		crafting.register_fuel(legacy)
 		if clear_default_crafting then
 			minetest.clear_craft({type="fuel", recipe=item})
@@ -116,11 +122,16 @@ minetest.register_craft = function(recipe)
 		
 		crafting.register("furnace",legacy)
 	elseif recipe.type == "fuel" then
-		-- TODO: fuel recipes need to support replacements (eg, lava bucket => bucket)
 		local legacy = {}
 		legacy.name = recipe.recipe
 		legacy.burntime = recipe.burntime
 		legacy.grade = 1
+		if recipe.replacements then
+			legacy.returns = {}
+			for _,pair in pairs(recipe.replacements) do
+				legacy.returns[pair[2]] = 1
+			end
+		end	
 		crafting.register_fuel(legacy)
 	end
 	if not clear_default_crafting then

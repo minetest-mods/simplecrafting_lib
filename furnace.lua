@@ -143,9 +143,24 @@ end
 
 local function burn_fuel(state)
 	local fuel_def = crafting.is_fuel(state.fuel:get_name())
+	
+	-- check if all the returns can fit into output
+	if fuel_def.returns then
+		local old_out = state.inv:get_list("output")
+		for item, count in pairs(fuel_def.returns) do
+			local leftovers = state.inv:add_item("output",ItemStack({name=item, count=count}))
+			if leftovers:get_count() > 0 then
+				-- can't fit, roll back output inventory and exit
+				state.inv:set_list("output", old_out)
+				return false
+			end
+		end
+	end
+	
 	state.old_fuel = state.fuel:get_name()
 	state.burntime = fuel_def.burntime
 	state.fuel:set_count(state.fuel:get_count() - 1)
+	return true
 end
 
 local function set_ingredient(state,item,recipe)
@@ -191,7 +206,9 @@ local function try_start(pos)
 	end
 
 	set_ingredient(state,state.item,recipe)
-	burn_fuel(state)
+	if not burn_fuel(state) then
+		return
+	end
 
 	set_timer(pos,recipe.time,fuel_def.burntime)
 	swap_furnace(pos)
@@ -327,8 +344,7 @@ local function on_burnout(state)
 		return false
 	end
 
-	burn_fuel(state)
-	return true
+	return burn_fuel(state)
 end
 	
 local function try_change(pos)
@@ -347,7 +363,9 @@ local function try_change(pos)
 			set_furnace_state(pos,state)
 			return
 		else
-			burn_fuel(state)
+			if not burn_fuel(state) then
+				return
+			end
 			set_ingredient(state,state.item,recipe)
 			timer:start(math.min(recipe.time,fuel_def.burntime))
 			set_infotext(state)
@@ -359,7 +377,9 @@ local function try_change(pos)
 	if state.fuel:get_name() ~= state.old_fuel then
 		local old_recipe = is_recipe(state.item:get_name(),state.old_fuel)
 		if recipe and recipe ~= old_recipe then
-			burn_fuel(state)
+			if not burn_fuel(state) then
+				return
+			end
 			set_ingredient(state,state.item,recipe)
 			timer:start(math.min(recipe.time,fuel_def.burntime))
 			set_infotext(state)
