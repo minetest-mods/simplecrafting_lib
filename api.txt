@@ -64,7 +64,7 @@ crafting.get_legacy_type(legacy_method, recipe)
 * returns craft_type or nil. If nil, recipe will not be imported.
 
 crafting.get_crafting_info(craft_type)
-* returns a table with the members "recipe" and "recipe_by_out" that contains all registered recipes for the craft type.
+* returns a table with the members "recipe", "recipe_by_out" and "recipe_by_in" that contains all registered recipes for the craft type.
 * Using this method will ensure that the craft_type's recipe tables will exist even if nothing's been registered for them yet.
 
 crafting.is_fuel(craft_type, item_name)

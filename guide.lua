@@ -13,7 +13,7 @@ crafting.guide.groups = {}
 -- Explicitly set examples for some common input item groups
 -- Other mods can also add explicit items like this if they wish
 -- Groups list isn't populated with "guessed" examples until
--- after initialization, when a player first tries opening a crafting guide
+-- after initialization, when all other mods are already loaded
 if minetest.get_modpath("default") then
 	crafting.guide.groups["wood"] = "default:wood"
 	crafting.guide.groups["stick"] = "default:stick"
@@ -24,13 +24,11 @@ end
 if minetest.get_modpath("wool") then
 	crafting.guide.groups["wool"] = "wool:white"
 end
-
 -- internationalization boilerplate
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
-local function get_group_examples()
-	if crafting.guide.groups_initialized then return crafting.guide.groups end
+local function initialize_group_examples()
 	-- finds an example item for every group that does not already have one defined
 	for item, def in pairs(minetest.registered_items) do
 		for group, _ in pairs(def.groups) do
@@ -39,9 +37,8 @@ local function get_group_examples()
 			end
 		end
 	end
-	crafting.guide.groups_initialized = true
-	return crafting.guide.groups
 end
+minetest.after(0, initialize_group_examples) -- run once after server has loaded all other mods
 
 -- splits a string into an array of substrings based on a delimiter
 local function split(str, delimiter)
@@ -118,7 +115,7 @@ local function get_playerdata(craft_type, player_name)
 end
 
 local function make_formspec(craft_type, player_name)
-	local groups = get_group_examples()
+	local groups = crafting.guide.groups
 	local outputs = get_output_list(craft_type)
 	local playerdata = get_playerdata(craft_type, player_name)
 	
@@ -173,10 +170,6 @@ local function make_formspec(craft_type, player_name)
 		playerdata.input_page = math.floor(#recipes/4)
 	end
 	
-	-- Note: there may be invalid recipes that won't be displayed if inputs are not defined.
-	-- In that case there might be a blank page or two available for the player to view.
-	-- This is a rare edge case that's a bit complicated to fix properly, and not really harmful
-	-- in the meantime, so fix this later.
 	if #recipes > 4 then
 		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";Recipe\npage ".. playerdata.input_page + 1 .."]")
 		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 .. ";1,1;previous_input;Prev]")
@@ -190,7 +183,9 @@ local function make_formspec(craft_type, player_name)
 		local recipe = recipes[i + playerdata.input_page * 4]
 		if not recipe then break end
 		local recipe_formspec = {}
-		local valid_recipe = true
+		
+		-------------------------------- Inputs
+		
 		for input, count in pairs(recipe.input) do
 			if string.match(input, ":") then
 				local itemdef = minetest.registered_items[input]
@@ -201,28 +196,21 @@ local function make_formspec(craft_type, player_name)
 				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..input..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
 				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			elseif not string.match(input, ",") then
-				if groups[input] then
-					local itemdesc = "Group: "..input
-					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
-					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
-				else
-					valid_recipe = false
-				end
+				local itemdesc = "Group: "..input
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
+				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			else
 				-- it's one of those weird multi-group items, like dyes.
 				local multimatch = find_multi_group(input)
-				if multimatch then
-					local itemdesc = "Groups: "..input
-					table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
-					table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
-				else
-					valid_recipe = false
-				end
+				local itemdesc = "Groups: "..input
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
+				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			end
 			recipe_button_count = recipe_button_count + 1
 			x_out = x_out + 1
 		end
 
+		-------------------------------- Outputs
 		x_out = 7
 		for output, count in pairs(recipe.output) do
 			local itemdesc = minetest.registered_items[output].description -- we know this item exists otherwise a recipe wouldn't have been found
@@ -246,11 +234,9 @@ local function make_formspec(craft_type, player_name)
 		table.insert(recipe_formspec, "label["..x_out..","..y_out..";=>]")
 
 		x_out = x
-		if valid_recipe then
-			y_out = y_out + 1
-			for _, button in pairs(recipe_formspec) do
-				table.insert(formspec, button)
-			end
+		y_out = y_out + 1
+		for _, button in pairs(recipe_formspec) do
+			table.insert(formspec, button)
 		end
 	end
 	

@@ -224,12 +224,18 @@ crafting.register = function(craft_type, def)
 	reduce_recipe(def)
 	
 	-- Strip group: from group names to simplify comparison later
+	local groups = {}
 	for item, count in pairs(def.input) do
 		local group = string.match(item, "^group:(%S+)$")
 		if group then
-			def.input[group] = count
-			def.input[item] = nil
+			groups[group] = count
 		end
+	end
+	-- must be done in two steps like this in case the recipe has more than one group item
+	-- doing it in the first loop could invalidate the pairs iterator and miss one
+	for group, count in pairs(groups) do
+		def.input[group] = count
+		def.input["group:"..group] = nil
 	end
 
 	local crafting_info = crafting.get_crafting_info(craft_type)
@@ -555,3 +561,117 @@ crafting.get_crafting_result = function(crafting_type, input_list, request_stack
 	end
 	return nil
 end
+
+----------------------------------------------------------------------------------------
+-- Run-once code, post server initialization, that purges all uncraftable recipes from the
+-- crafting system data.
+
+local group_examples = {}
+
+local function input_exists(input_item)
+	if minetest.registered_items[input_item] then
+		return true
+	end
+
+	if group_examples[input_item] then
+		return true
+	end
+
+	if not string.match(input_item, ",") then
+		return false
+	end
+	
+	local target_groups = split(input_item, ",")
+
+	for item, def in pairs(minetest.registered_items) do
+		local overall_found = true
+		for _, target_group in pairs(target_groups) do
+			local one_group_found = false
+			for group, _ in pairs(def.groups) do
+				if group == target_group then
+					one_group_found = true
+					break
+				end
+			end
+			if not one_group_found then
+				overall_found = false
+				break
+			end
+		end
+		if overall_found then
+			group_examples[input_item] = item
+			return true
+		end
+	end
+	return false
+end
+
+local function validate_inputs_and_outputs(recipe)
+	for item, count in pairs(recipe.input) do
+		if not input_exists(item) then
+			return false
+		end
+	end
+	if recipe.output then
+		for item, count in pairs(recipe.output) do
+			if not minetest.registered_items[item] then
+				return false
+			end
+		end
+	end
+	if recipe.returns then
+		for item, count in pairs(recipe.returns) do
+			if not minetest.registered_items[item] then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+local purge_uncraftable_recipes = function()
+	for item, def in pairs(minetest.registered_items) do
+		for group, _ in pairs(def.groups) do
+			group_examples[group] = item
+		end
+	end
+	
+	for craft_type, _  in pairs(crafting.type) do
+		local i = 1
+		local recs = crafting.type[craft_type].recipes
+		while i <= #crafting.type[craft_type].recipes do
+			if validate_inputs_and_outputs(recs[i]) then
+				i = i + 1
+			else
+				minetest.log("info", "Uncraftable recipe purged from [crafting] mod:\n"..dump(recs[i]))
+				table.remove(recs, i)
+			end
+		end
+		for output, _ in pairs(crafting.type[craft_type].recipes_by_out) do
+			i = 1
+			local outs = crafting.type[craft_type].recipes_by_out[output]
+			while i <= #outs do
+				if validate_inputs_and_outputs(outs[i]) then
+					i = i + 1
+				else
+					table.remove(outs, i)
+				end
+			end		
+		end
+		for input, _ in pairs(crafting.type[craft_type].recipes_by_in) do
+			i = 1
+			local ins = crafting.type[craft_type].recipes_by_in[input]
+			while i <= #ins do
+				if validate_inputs_and_outputs(ins[i]) then
+					i = i + 1
+				else
+					table.remove(ins, i)
+				end
+			end		
+		end
+	end
+	
+	group_examples = nil -- don't need this any more.
+end
+
+minetest.after(0, purge_uncraftable_recipes)

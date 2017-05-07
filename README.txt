@@ -55,7 +55,7 @@ crafting.register("furnace",{
 		-- Must only have one input type, or will be ignored by furnace
 		["default:obsidian"] = 2,
 	},
-	time = 5.6,
+	cooktime = 5.6,
 	-- This is the quality of the fuel allowed
 	-- Grades are as follows:
 	-- 0 - How does this even burn? 
@@ -84,7 +84,7 @@ crafting.register("fuel",{
 	-- Group names are allowed
 	-- If there is not an item specific recipe then it will take the
 	-- definition of it's longest burning group
-	name = "default:tree",
+	input = {"default:tree"},
 	burntime = 25.4,
 	grade = 3,
 })
