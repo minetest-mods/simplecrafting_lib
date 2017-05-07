@@ -172,7 +172,7 @@ minetest.register_node("crafting:table", {
 			end
 			refresh = true
 		elseif fields.show_guide and show_guides then
-			crafting.show_crafting_guide(sender, "table")
+			crafting.show_crafting_guide("table", sender)
 		else
 			return
 		end
@@ -217,7 +217,7 @@ if crafting.config.show_guides then
 		stack_max = 1,
 		groups = {book = 1},
 		on_use = function(itemstack, user)
-			crafting.show_crafting_guide(user, "table")
+			crafting.show_crafting_guide("table", user)
 		end,
 	})
 	

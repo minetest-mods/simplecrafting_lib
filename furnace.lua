@@ -26,7 +26,7 @@ local function get_recipe_name(item_stack)
 end
 
 local function get_fueled_recipe(item_recipes,fuel)
-	for _,recipe in ipairs(item_recipes) do
+	for _,recipe in pairs(item_recipes) do
 		if  fuel.grade >= recipe.fuel_grade.min
 		and fuel.grade <= recipe.fuel_grade.max then
 			return recipe
@@ -49,14 +49,14 @@ local function sort_input(meta)
 	local item_fuel
 	if not item:is_empty() then
 		item_recipes = is_ingredient(item:get_name())
-		item_fuel = crafting.is_fuel(item:get_name())
+		item_fuel = crafting.is_fuel("fuel", item:get_name())
 	end
 
 	local fuel_recipes
 	local fuel_fuel
 	if not fuel:is_empty() then
 		fuel_recipes = is_ingredient(fuel:get_name())
-		fuel_fuel = crafting.is_fuel(fuel:get_name())
+		fuel_fuel = crafting.is_fuel("fuel", fuel:get_name())
 	end
 
 	-- Assume correct combinations first
@@ -93,7 +93,7 @@ end
 
 local function is_recipe(item,fuel)
 	local item_recipes = is_ingredient(item)
-	local fuel_def = crafting.is_fuel(fuel)
+	local fuel_def = crafting.is_fuel("fuel", fuel)
 	if not item_recipes or not fuel_def then
 		return nil, nil
 	end
@@ -143,7 +143,7 @@ local function set_furnace_state(pos,state)
 end
 
 local function burn_fuel(state)
-	local fuel_def = crafting.is_fuel(state.fuel:get_name())
+	local fuel_def = crafting.is_fuel("fuel", state.fuel:get_name())
 	
 	-- check if all the returns can fit into output
 	if fuel_def.returns then
@@ -166,7 +166,7 @@ end
 
 local function set_ingredient(state,item,recipe)
 	state.old_item = item:get_name()
-	state.itemtime = recipe.time
+	state.itemtime = recipe.cooktime
 end
 
 local function clear_item(state)
@@ -211,7 +211,7 @@ local function try_start(pos)
 		return
 	end
 
-	set_timer(pos,recipe.time,fuel_def.burntime)
+	set_timer(pos,recipe.cooktime,fuel_def.burntime)
 	swap_furnace(pos)
 	set_infotext(state)
 	set_furnace_state(pos,state)
@@ -284,7 +284,7 @@ minetest.register_node("crafting:furnace",{
 	end,
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.show_guide and show_guides then
-			crafting.show_crafting_guide(sender, "furnace")
+			crafting.show_crafting_guide("furnace", sender)
 		end
 	end,
 })
@@ -359,7 +359,7 @@ local function try_change(pos)
 		if old_recipe == recipe then
 			set_ingredient(state,state.item,recipe)
 			state.burntime = state.burntime - timer:get_elapsed()
-			timer:start(math.min(state.burntime,recipe.time))
+			timer:start(math.min(state.burntime,recipe.cooktime))
 			set_infotext(state)
 			set_furnace_state(pos,state)
 			return
@@ -368,7 +368,7 @@ local function try_change(pos)
 				return
 			end
 			set_ingredient(state,state.item,recipe)
-			timer:start(math.min(recipe.time,fuel_def.burntime))
+			timer:start(math.min(recipe.cooktime,fuel_def.burntime))
 			set_infotext(state)
 			set_furnace_state(pos,state)
 			return
@@ -382,7 +382,7 @@ local function try_change(pos)
 				return
 			end
 			set_ingredient(state,state.item,recipe)
-			timer:start(math.min(recipe.time,fuel_def.burntime))
+			timer:start(math.min(recipe.cooktime,fuel_def.burntime))
 			set_infotext(state)
 			set_furnace_state(pos,state)
 			return
@@ -477,7 +477,7 @@ minetest.register_node("crafting:furnace_active",{
 	end,
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.show_guide and show_guides then
-			crafting.show_crafting_guide(sender, "furnace")
+			crafting.show_crafting_guide("furnace", sender)
 		end
 	end,
 	on_timer = furnace_timer,
@@ -516,7 +516,7 @@ if show_guides then
 		stack_max = 1,
 		groups = {book = 1},
 		on_use = function(itemstack, user)
-			crafting.show_crafting_guide(user, "furnace")
+			crafting.show_crafting_guide("furnace", user)
 		end,
 	})
 	

@@ -18,9 +18,15 @@ if crafting.config.import_default_recipes then
 		if legacy_method == "normal" then
 			return "table"
 		elseif legacy_method == "cooking" then
+			legacy_recipe.fuel_grade = {}
+			legacy_recipe.fuel_grade.min = 0
+			legacy_recipe.fuel_grade.max = math.huge
 			return "furnace"
+		elseif legacy_method == "fuel" then
+			legacy_recipe.grade = 1
+			return "fuel"
 		end
-		minetest.log("error", "get_legacy_type encountered unknown legacy method "..legacy_method)
+		minetest.log("error", "get_legacy_type encountered unknown legacy method: "..legacy_method)
 		return nil
 	end
 

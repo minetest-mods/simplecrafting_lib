@@ -64,12 +64,8 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 					legacy.output[recipe.output] = 1
 					legacy.input[recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
-					legacy.time = cooked.time
-					
-					legacy.fuel_grade = {}
-					legacy.fuel_grade.min = 0
-					legacy.fuel_grade.max = math.huge
-					local new_type = crafting.get_legacy_type("cooking",legacy)
+					legacy.cooktime = cooked.time
+					local new_type = crafting.get_legacy_type("cooking", legacy)
 					if new_type then
 						crafting.register(new_type, legacy)
 						added = true
@@ -83,16 +79,19 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 		local fuel, afterfuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
 		if fuel.time ~= 0 then
 			local legacy = {}
-			legacy.name = item
+			legacy.input = {}
+			legacy.input[item] = 1
 			legacy.burntime = fuel.time
-			legacy.grade = 1
 			for _, afteritem in pairs(afterfuel.items) do
 				if afteritem:get_count() > 0 then
 					legacy.returns = legacy.returns or {}
 					legacy.returns[afteritem:get_name()] = (legacy.returns[afteritem:get_name()] or 0) + afteritem:get_count()
 				end
 			end
-			crafting.register_fuel(legacy)
+			local new_type = crafting.get_legacy_type("fuel", legacy)
+			if new_type then
+				crafting.register(new_type, legacy)
+			end
 			if clear_default_crafting then
 				minetest.clear_craft({type="fuel", recipe=item})
 			end
@@ -145,31 +144,27 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 			local legacy = {input={},output={}}
 			legacy.output[recipe.output] = 1
 			legacy.input[recipe.recipe] = 1
-			legacy.time = recipe.cooktime or 3
-			
-			-- TODO: may make more sense to leave this nil and have these defaults on the util side
-			legacy.fuel_grade = {}
-			legacy.fuel_grade.min = 0
-			legacy.fuel_grade.max = math.huge
-			
-			local new_type = crafting.get_legacy_type("cooking",legacy)
+			legacy.cooktime = recipe.cooktime or 3			
+			local new_type = crafting.get_legacy_type("cooking", legacy)
 			if new_type then
 				crafting.register(new_type, legacy)
 				added = true
 			end
 		elseif recipe.type == "fuel" then
-			local legacy = {}
-			legacy.name = recipe.recipe
+			local legacy = {input={}}
+			legacy.input[recipe.recipe] = 1
 			legacy.burntime = recipe.burntime
-			legacy.grade = 1
 			if recipe.replacements then
 				legacy.returns = {}
 				for _,pair in pairs(recipe.replacements) do
 					legacy.returns[pair[2]] = 1
 				end
 			end	
-			crafting.register_fuel(legacy)
-			added = true
+			local new_type = crafting.get_legacy_type("fuel", legacy)
+			if new_type then
+				crafting.register(new_type, legacy)
+				added = true
+			end
 		end
 		if (not clear_default_crafting) or (not added) then
 			return crafting.minetest_register_craft(recipe)

@@ -31,22 +31,30 @@ local function reduce_recipe(def)
 	for _, count in pairs(def.input) do
 		table.insert(list, count)
 	end
-	for _, count in pairs(def.output) do
-		table.insert(list, count)
+	if def.output then
+		for _, count in pairs(def.output) do
+			table.insert(list, count)
+		end
 	end
-	for _, count in pairs(def.returns) do
-		table.insert(list, count)
+	if def.returns then
+		for _, count in pairs(def.returns) do
+			table.insert(list, count)
+		end
 	end
 	local gcd = gcd_list(list)
 	if gcd ~= 1 then	
 		for item, count in pairs(def.input) do
 			def.input[item] = count/gcd
 		end
-		for item, count in pairs(def.output) do
-			def.output[item] = count/gcd
+		if def.output then
+			for item, count in pairs(def.output) do
+				def.output[item] = count/gcd
+			end
 		end
-		for item, count in pairs(def.returns) do
-			def.returns[item] = count/gcd
+		if def.returns then
+			for item, count in pairs(def.returns) do
+				def.returns[item] = count/gcd
+			end
 		end
 	end
 end
@@ -205,6 +213,7 @@ crafting.get_crafting_info = function(craft_type)
 	crafting.type[craft_type] = crafting.type[craft_type] or {}
 	crafting.type[craft_type].recipes = crafting.type[craft_type].recipes or {}
 	crafting.type[craft_type].recipes_by_out = crafting.type[craft_type].recipes_by_out or {}
+	crafting.type[craft_type].recipes_by_in = crafting.type[craft_type].recipes_by_in or {}
 
 	return crafting.type[craft_type]
 end
@@ -236,11 +245,20 @@ crafting.register = function(craft_type, def)
 
 	table.insert(crafting_info.recipes, def)
 	
-	local recipes_by_out = crafting_info.recipes_by_out
-	for item, _ in pairs(def.output) do
-		recipes_by_out[item] = recipes_by_out[item] or {} 
-		recipes_by_out[item][#recipes_by_out[item]+1] = def
+	if def.output then
+		local recipes_by_out = crafting_info.recipes_by_out
+		for item, _ in pairs(def.output) do
+			recipes_by_out[item] = recipes_by_out[item] or {} 
+			recipes_by_out[item][#recipes_by_out[item]+1] = def
+		end
 	end
+
+	local recipes_by_in = crafting_info.recipes_by_in
+	for item, _ in pairs(def.input) do
+		recipes_by_in[item] = recipes_by_in[item] or {} 
+		recipes_by_in[item][#recipes_by_in[item]+1] = def
+	end
+	
 	return true
 end
 
@@ -276,22 +294,15 @@ crafting.register_reversible = function(typeof, forward_def)
 	crafting.register(typeof, reverse_def)
 end
 
-crafting.register_fuel = function(def)
-	-- Strip group: from group names to simplify comparison later
-	local group = string.match(def.name, "^group:(%S+)$")
-	def.name = group or def.name
-
-	crafting.fuel[def.name] = def
-	return true
-end
-
--- returns the fuel definition for the item if it is fuel, nil otherwise
-crafting.is_fuel = function(item)
-	local fuels = crafting.fuel
+-- returns a fuel definition for the item if it is fuel, nil otherwise
+-- note: will always return the last-registered definition for a particular item
+-- or group.
+crafting.is_fuel = function(craft_type, item)
+	local fuels = crafting.get_crafting_info(craft_type).recipes_by_in
 	
 	-- First check if the item has been explicitly registered as fuel
 	if fuels[item] then
-		return fuels[item]
+		return fuels[item][#fuels[item]]
 	end
 
 	-- Failing that, check its groups.
@@ -301,8 +312,9 @@ crafting.is_fuel = function(item)
 		local fuel_group
 		for group, _ in pairs(def.groups) do
 			if fuels[group] then
-				if fuels[group].burntime > max then
-					fuel_group = fuels[group] -- track whichever is the longest-burning group
+				local last_fuel_def = fuels[group][#fuels[group]]
+				if last_fuel_def.burntime > max then
+					fuel_group = last_fuel_def -- track whichever is the longest-burning group
 					max = fuel_group.burntime
 				end
 			end
@@ -315,17 +327,12 @@ crafting.is_fuel = function(item)
 end
 
 -- Returns a list of all fuel recipes whose ingredients can be satisfied by the item_list
--- optional grade definition parameter of the form {min = minimum grade, max = maximum grade} to filter by grade
-crafting.get_fuels = function(item_list, grade_definition)
+crafting.get_fuels = function(craft_type, item_list)
 	local count_list = itemlist_to_countlist(item_list)
 	local burnable = {}
 	for item, count in pairs(count_list) do
-		local recipe = crafting.is_fuel(item)
-		if grade_definition and recipe.grade then
-			if recipe.grade.min >= grade_definition.min and recipe.grade.max <= grade_definition.max then
-				table.insert(burnable, recipe)
-			end
-		else
+		local recipe = crafting.is_fuel(craft_type, item)
+		if recipe then
 			table.insert(burnable, recipe)
 		end
 	end

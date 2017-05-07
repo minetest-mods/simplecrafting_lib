@@ -1,3 +1,10 @@
+-- If crafting guides are not enabled, make show_crafting_guide a no-op and skip
+-- everything else. There's no need for any of it.
+if not crafting.config.show_guides then
+	crafting.show_crafting_guide = function(craft_type, user) end
+	return
+end
+
 crafting.guide = {}
 crafting.guide.outputs = {}
 crafting.guide.playerdata = {}
@@ -5,6 +12,8 @@ crafting.guide.groups = {}
 
 -- Explicitly set examples for some common input item groups
 -- Other mods can also add explicit items like this if they wish
+-- Groups list isn't populated with "guessed" examples until
+-- after initialization, when a player first tries opening a crafting guide
 if minetest.get_modpath("default") then
 	crafting.guide.groups["wood"] = "default:wood"
 	crafting.guide.groups["stick"] = "default:stick"
@@ -285,7 +294,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	end	
 end)
 
-crafting.show_crafting_guide = function(user, craft_type)
+crafting.show_crafting_guide = function(craft_type, user)
 	minetest.show_formspec(user:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
 end
 

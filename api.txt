@@ -6,8 +6,6 @@ Parameter types:
 * count_list - a list of items and quantities in the form as used in this mod's recipe definitions
 * listname - a string identifying a list within an inventory
 
-
-
 crafting.register(craft_type, def)
 
 example parameters:
@@ -15,37 +13,44 @@ example parameters:
 "table", {
 	input = {
 		["group:stone"] = 1,
-		["default:lava_source"] = 1,
+		["bucket:lava_bucket"] = 1,
 	},
 	output = {
 		["default:obsidian"] = 2,
 	},
+
 	-- Items which the crafting recipe produces, but is not
-	-- formally used to make, e.g. returning an empty bucket
-	-- from a recipe using a water bucket
-	returns = {
-		["default:stone"] = 1,
-	},
-}
-* The recipe def can have any other properties the user wishes to add, these three are the ones used by the crafting methods in this mod.
-
-crafting.register_fuel(def)
-
-example parameter:
-{
-	name = "bucket:lava_bucket",
-	burntime = 60.0,
+	-- formally used to make.
 	returns = {
 		["bucket:bucket"] = 1,
-	}
+	},
 }
-* Group names are allowed
-* If there is not an item specific recipe then it will take the definition of its longest burning group
+
+"furnace", {
+	input = {
+		["farming:flour"] = 1,
+	},
+	output = {
+		["farming:bread"] = 1,
+	},
+	cooktime = 5.0,
+}
+
+"fuel", {
+	input = {
+		["group:tree"] = 1,
+	},
+	output = {
+	},
+	burntime = 40.0,
+}
+
+* The recipe def can have any other properties the user wishes to add, these examples only show the ones used by the crafting methods in this mod.
 
 crafting.register_reversible(craft_type, forward_def)
-* Registers the provided crafting recipe, and also automatically creates and registers a "reverse" craft of the same type.
+* A convenience method that registers the provided crafting recipe and also automatically creates and registers a "reverse" craft of the same type.
 * This should generally only be done with craft that turns one type of item into one other type of item (for example, metal ingots <-> metal blocks), but it will still work if there are multiple inputs.
-* If there's more than one input type it will use "returns" to give them to the player in the reverse craft.
+* If there's more than one input type it will use "returns" to give them to the player in the reverse craft, using the input with the highest count as the primary output.
 * Don't use a recipe that has a "group:" input with this, because obviously that can't be turned into an output. The mod will assert if you try to do this.
 
 crafting.import_legacy_recipes(clear_default_crafting)
@@ -54,18 +59,19 @@ crafting.import_legacy_recipes(clear_default_crafting)
 
 crafting.get_legacy_type(legacy_method, recipe)
 * This method is used internally by import_legacy_recipes to determine what craft_type to register default recipes as. Mods should override this method if they want to distribute default recipes to their own recipe types.
-* legacy_method parameter will be either "normal" or "cooking" - fuels are handled specially
-* recipe will be in the format described above for crafting.register
+* legacy_method parameter will be either "normal", "cooking", or "fuel"
+* recipe will be in the format described above for crafting.register. This method can modify the recipe parameter and those modifications will be reflected in the final registered version.
 * returns craft_type or nil. If nil, recipe will not be imported.
 
 crafting.get_crafting_info(craft_type)
 * returns a table with the members "recipe" and "recipe_by_out" that contains all registered recipes for the craft type.
 * Using this method will ensure that the craft_type's recipe tables will exist even if nothing's been registered for them yet.
 
-crafting.is_fuel(item_name)
+crafting.is_fuel(craft_type, item_name)
 * returns the fuel definition for the item if it is fuel, nil otherwise
+* Group names are allowed in fuel definitions. If there is not an item specific recipe for the item_name provided here then it will take the definition of the longest burning group it belongs to.
 
-crafting.get_fuels(item_list, grade_definition)
+crafting.get_fuels(craft_type, item_list, grade_definition)
 * Returns a list of all fuel recipes whose ingredients can be satisfied by the item_list
 * optional grade definition parameter of the form {min = minimum grade, max = maximum grade} to filter by grade
 
@@ -109,5 +115,5 @@ crafting.get_crafting_result(crafting_type, item_list, request_stack)
 * Note that the output could actually be larger than request_stack if an exactly matching recipe can't be found.
 * returns nil if crafting is impossible with the given source inventory
 
-crafting.show_crafting_guide(player, craft_type)
+crafting.show_crafting_guide(craft_type, player)
 * Displays a crafting guide to the player for the given craft_type
