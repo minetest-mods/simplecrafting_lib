@@ -22,8 +22,7 @@ local function create_recipe(legacy)
 end
 
 -- This is a default implementation, other mods should override this if they wish to distribute
--- recipes to other crafting types. Note that fuel recipes are special and won't be filtered
--- by this method, they all go into the fuel registry.
+-- recipes to other crafting types.
 -- If this method returns nil the recipe will not be imported.
 crafting.get_legacy_type = function(legacy_method, legacy_recipe)
 	return legacy_method
