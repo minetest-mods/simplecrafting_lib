@@ -231,7 +231,11 @@ local function make_formspec(craft_type, player_name)
 			x_out = x_out - 1
 		end
 
-		table.insert(recipe_formspec, "label["..x_out..","..y_out..";=>]")
+		if minetest.get_modpath("default") then
+			table.insert(recipe_formspec, "image["..x_out..","..y_out..";1,1;gui_furnace_arrow_bg.png^[transformR270]")
+		else
+			table.insert(recipe_formspec, "label["..x_out..","..y_out..";=>]")
+		end
 
 		x_out = x
 		y_out = y_out + 1
