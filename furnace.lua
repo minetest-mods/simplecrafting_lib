@@ -511,8 +511,8 @@ end
 if show_guides then
 	minetest.register_craftitem("crafting:furnace_guide", {
 		description = S("Crafting Guide (Furnace)"),
-		inventory_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#88000088)",
-		wield_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#88000088)",
+		inventory_image = "crafting_guide_cover.png^[colorize:#88000088^crafting_guide_contents.png",
+		wield_image = "crafting_guide_cover.png^[colorize:#88000088^crafting_guide_contents.png",
 		stack_max = 1,
 		groups = {book = 1},
 		on_use = function(itemstack, user)

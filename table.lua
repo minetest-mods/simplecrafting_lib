@@ -212,8 +212,8 @@ minetest.register_craft(table_recipe)
 if crafting.config.show_guides then
 	minetest.register_craftitem("crafting:table_guide", {
 		description = S("Crafting Guide (Table)"),
-		inventory_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#0088ff88)",
-		wield_image = "crafting_guide_contents.png^(crafting_guide_cover.png^[colorize:#0088ff88)",
+		inventory_image = "crafting_guide_cover.png^[colorize:#0088ff88^crafting_guide_contents.png",
+		wield_image = "crafting_guide_cover.png^[colorize:#0088ff88^crafting_guide_contents.png",
 		stack_max = 1,
 		groups = {book = 1},
 		on_use = function(itemstack, user)
