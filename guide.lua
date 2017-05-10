@@ -88,11 +88,8 @@ local function get_output_list(craft_type)
 			table.insert(outputs, item)
 		end
 	end
-	if crafting_lib.config.sort_alphabetically then
-		table.sort(outputs, compare_items_by_desc)
-	else
-		table.sort(outputs)
-	end
+	-- TODO: sorting option
+	table.sort(outputs)
 	return outputs
 end
 
