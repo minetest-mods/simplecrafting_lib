@@ -93,7 +93,9 @@ local function take_craft(inv, target_inv, target_list, stack, player)
 			crafting.drop_items(player:getpos(), leftover)
 				
 			-- Put returns into the store first, or player's inventory if it doesn't fit, or drop it at player's location as final fallback
-			leftover = crafting.add_items(inv, "store", craft_result.returns)
+			if craft_result.returns then
+				leftover = crafting.add_items(inv, "store", craft_result.returns)
+			end
 			leftover = crafting.add_items(player:get_inventory(), "main", leftover)
 			crafting.drop_items(player:getpos(), leftover)
 		end

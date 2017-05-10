@@ -557,8 +557,10 @@ crafting.get_crafting_result = function(crafting_type, input_list, request_stack
 		for output_item, quantity in pairs(smallest_remainder_recipe.output) do
 			smallest_remainder_recipe.output[output_item] = multiple * quantity
 		end
-		for returned_item, quantity in pairs(smallest_remainder_recipe.returns) do
-			smallest_remainder_recipe.returns[returned_item] = multiple * quantity
+		if smallest_remainder_recipe.returns then
+			for returned_item, quantity in pairs(smallest_remainder_recipe.returns) do
+				smallest_remainder_recipe.returns[returned_item] = multiple * quantity
+			end
 		end
 		return smallest_remainder_recipe
 	end
