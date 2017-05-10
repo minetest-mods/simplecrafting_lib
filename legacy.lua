@@ -77,16 +77,16 @@ end
 -- This is a simple default implementation, other mods should override this
 -- if they wish to distribute recipes to other crafting types.
 -- If this method returns nil the recipe will not be imported.
-crafting.get_legacy_type = function(legacy_method, legacy_recipe)
+crafting_lib.get_legacy_type = function(legacy_method, legacy_recipe)
 	return legacy_method
 end
 
 -- import_legacy_recipes overrides minetest.register_craft so that subsequently registered
 -- crafting recipes will be put into this system. If you wish to register a craft
 -- the old way without it being put into this system, use this method.
-crafting.minetest_register_craft = minetest.register_craft
+crafting_lib.minetest_register_craft = minetest.register_craft
 
-crafting.import_legacy_recipes = function(clear_default_crafting)
+crafting_lib.import_legacy_recipes = function(clear_default_crafting)
 	-- This loop goes through all recipes that have already been registered and
 	-- converts them
 	for item,_ in pairs(minetest.registered_items) do
@@ -106,9 +106,9 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 						end
 					end
 					local new_recipe = create_recipe(recipe)
-					local new_type = crafting.get_legacy_type("normal", new_recipe)
+					local new_type = crafting_lib.get_legacy_type("normal", new_recipe)
 					if new_type then
-						crafting.register(new_type, new_recipe)
+						crafting_lib.register(new_type, new_recipe)
 						added = true
 					end
 				elseif recipe.method == "cooking" then
@@ -117,9 +117,9 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 					legacy.input[recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
 					legacy.cooktime = cooked.time
-					local new_type = crafting.get_legacy_type("cooking", legacy)
+					local new_type = crafting_lib.get_legacy_type("cooking", legacy)
 					if new_type then
-						crafting.register(new_type, legacy)
+						crafting_lib.register(new_type, legacy)
 						added = true
 					end
 				end
@@ -140,9 +140,9 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 					legacy.returns[afteritem:get_name()] = (legacy.returns[afteritem:get_name()] or 0) + afteritem:get_count()
 				end
 			end
-			local new_type = crafting.get_legacy_type("fuel", legacy)
+			local new_type = crafting_lib.get_legacy_type("fuel", legacy)
 			if new_type then
-				crafting.register(new_type, legacy)
+				crafting_lib.register(new_type, legacy)
 			end
 			if clear_default_crafting then
 				minetest.clear_craft({type="fuel", recipe=item})
@@ -156,35 +156,35 @@ crafting.import_legacy_recipes = function(clear_default_crafting)
 		local added = false
 		if not recipe.type then
 			local new_recipe = process_shaped_recipe(recipe)
-			local new_type = crafting.get_legacy_type("normal", new_recipe)
+			local new_type = crafting_lib.get_legacy_type("normal", new_recipe)
 			if new_type then
-				crafting.register(new_type, new_recipe)
+				crafting_lib.register(new_type, new_recipe)
 				added = true
 			end
 		elseif recipe.type == "shapeless" then
 			local new_recipe = process_shapeless_recipe(recipe)
-			local new_type = crafting.get_legacy_type("normal", new_recipe)
+			local new_type = crafting_lib.get_legacy_type("normal", new_recipe)
 			if new_type then
-				crafting.register(new_type, new_recipe)
+				crafting_lib.register(new_type, new_recipe)
 				added = true
 			end
 		elseif recipe.type == "cooking" then
 			local new_recipe = process_cooking_recipe(recipe)
-			local new_type = crafting.get_legacy_type("cooking", new_recipe)
+			local new_type = crafting_lib.get_legacy_type("cooking", new_recipe)
 			if new_type then
-				crafting.register(new_type, new_recipe)
+				crafting_lib.register(new_type, new_recipe)
 				added = true
 			end
 		elseif recipe.type == "fuel" then
 			local legacy = process_fuel_recipe(recipe)
-			local new_type = crafting.get_legacy_type("fuel", legacy)
+			local new_type = crafting_lib.get_legacy_type("fuel", legacy)
 			if new_type then
-				crafting.register(new_type, legacy)
+				crafting_lib.register(new_type, legacy)
 				added = true
 			end
 		end
 		if (not clear_default_crafting) or (not added) then
-			return crafting.minetest_register_craft(recipe)
+			return crafting_lib.minetest_register_craft(recipe)
 		end
 	end
 end

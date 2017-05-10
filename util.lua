@@ -227,17 +227,17 @@ end
 --------------------------------------------------------------------------------------------------------------------
 -- Public API
 
-crafting.get_crafting_info = function(craft_type)
+crafting_lib.get_crafting_info = function(craft_type)
 	-- ensure the destination tables exist
-	crafting.type[craft_type] = crafting.type[craft_type] or {}
-	crafting.type[craft_type].recipes = crafting.type[craft_type].recipes or {}
-	crafting.type[craft_type].recipes_by_out = crafting.type[craft_type].recipes_by_out or {}
-	crafting.type[craft_type].recipes_by_in = crafting.type[craft_type].recipes_by_in or {}
+	crafting_lib.type[craft_type] = crafting_lib.type[craft_type] or {}
+	crafting_lib.type[craft_type].recipes = crafting_lib.type[craft_type].recipes or {}
+	crafting_lib.type[craft_type].recipes_by_out = crafting_lib.type[craft_type].recipes_by_out or {}
+	crafting_lib.type[craft_type].recipes_by_in = crafting_lib.type[craft_type].recipes_by_in or {}
 
-	return crafting.type[craft_type]
+	return crafting_lib.type[craft_type]
 end
 
-crafting.register = function(craft_type, def)
+crafting_lib.register = function(craft_type, def)
 	def.input = def.input or {}
 	def.output = def.output or {}
 	def.returns = def.returns or {}
@@ -245,7 +245,7 @@ crafting.register = function(craft_type, def)
 	reduce_recipe(def)
 	strip_groups(def)
 
-	local crafting_info = crafting.get_crafting_info(craft_type)
+	local crafting_info = crafting_lib.get_crafting_info(craft_type)
 	
 	-- Check if this recipe has already been registered. Many different old-style recipes
 	-- can reduce down to equivalent recipes in this system, so this is a useful step
@@ -284,12 +284,12 @@ end
 -- player in the reverse craft.
 -- Don't use a recipe that has a "group:" input with this, because obviously that
 -- can't be turned into an output. The mod will assert if you try to do this.
-crafting.register_reversible = function(typeof, forward_def)
+crafting_lib.register_reversible = function(typeof, forward_def)
 	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
-	crafting.register(typeof, forward_def)
+	crafting_lib.register(typeof, forward_def)
 
 	local forward_in = reverse_def.input
-	reverse_def.input = crafting.count_list_add(reverse_def.output, reverse_def.returns)
+	reverse_def.input = crafting_lib.count_list_add(reverse_def.output, reverse_def.returns)
 	
 	local most_common_in_name = ""
 	local most_common_in_count = 0
@@ -304,14 +304,14 @@ crafting.register_reversible = function(typeof, forward_def)
 	forward_in[most_common_in_name] = nil
 	reverse_def.returns = forward_in
 	
-	crafting.register(typeof, reverse_def)
+	crafting_lib.register(typeof, reverse_def)
 end
 
 -- returns a fuel definition for the item if it is fuel, nil otherwise
 -- note: will always return the last-registered definition for a particular item
 -- or group.
-crafting.is_fuel = function(craft_type, item)
-	local fuels = crafting.get_crafting_info(craft_type).recipes_by_in
+crafting_lib.is_fuel = function(craft_type, item)
+	local fuels = crafting_lib.get_crafting_info(craft_type).recipes_by_in
 	
 	-- First check if the item has been explicitly registered as fuel
 	if fuels[item] then
@@ -340,11 +340,11 @@ crafting.is_fuel = function(craft_type, item)
 end
 
 -- Returns a list of all fuel recipes whose ingredients can be satisfied by the item_list
-crafting.get_fuels = function(craft_type, item_list)
+crafting_lib.get_fuels = function(craft_type, item_list)
 	local count_list = itemlist_to_countlist(item_list)
 	local burnable = {}
 	for item, count in pairs(count_list) do
-		local recipe = crafting.is_fuel(craft_type, item)
+		local recipe = crafting_lib.is_fuel(craft_type, item)
 		if recipe then
 			table.insert(burnable, recipe)
 		end
@@ -353,10 +353,10 @@ crafting.get_fuels = function(craft_type, item_list)
 end
 
 -- Returns a list of all recipes whose ingredients can be satisfied by the item_list
-crafting.get_craftable_recipes = function(craft_type, item_list)
+crafting_lib.get_craftable_recipes = function(craft_type, item_list)
 	local count_list = itemlist_to_countlist(item_list)
 	local craftable = {}
-	local recipes = crafting.type[craft_type].recipes	
+	local recipes = crafting_lib.type[craft_type].recipes	
 	for i = 1, #recipes do
 		local number, recipe = get_craft_count(count_list, recipes[i])
 		if number > 0 then
@@ -371,12 +371,12 @@ end
 -- if max_craftable is false or nil the returned stacks will have only the minimum output
 -- if alphabetize is true then the items will be sorted alphabetically by description
 -- if alphabetize is false or nil the items will be left in default order
-crafting.get_craftable_items = function(craft_type, item_list, max_craftable, alphabetize)
+crafting_lib.get_craftable_items = function(craft_type, item_list, max_craftable, alphabetize)
 	local count_list = itemlist_to_countlist(item_list)
 	local craftable_count_list = {}
 	local craftable_stacks = {}
 	local chosen_recipe = {}
-	local recipes = crafting.type[craft_type].recipes	
+	local recipes = crafting_lib.type[craft_type].recipes	
 	for i = 1, #recipes do
 		local number, recipe = get_craft_count(count_list, recipes[i])
 		if number > 0 then
@@ -410,8 +410,8 @@ end
 
 -- Returns true if the item name is an input for at least one
 -- recipe belonging to the given craft type
-crafting.is_possible_input = function(craft_type, item_name)
-	local recipes = crafting.type[craft_type].recipes
+crafting_lib.is_possible_input = function(craft_type, item_name)
+	local recipes = crafting_lib.type[craft_type].recipes
 	local item_def = minetest.registered_items[item_name]
 	local groups = item_def.groups or {}
 	for i = 1, #recipes do
@@ -430,12 +430,12 @@ end
 
 -- Returns true if the item is a possible output for at least
 -- one recipe belonging to the given craft type
-crafting.is_possible_output = function(craft_type, item_name)
-	return crafting.type[craft_type].recipes_by_out[item_name] ~= nil
+crafting_lib.is_possible_output = function(craft_type, item_name)
+	return crafting_lib.type[craft_type].recipes_by_out[item_name] ~= nil
 end
 
 -- adds two count lists together, returns a new count list with the sum of the parameters' contents
-crafting.count_list_add = function(list1, list2)
+crafting_lib.count_list_add = function(list1, list2)
 	local out_list = {}
 	for item, count in pairs(list1) do
 		out_list[item] = count
@@ -457,7 +457,7 @@ end
 
 -- Attempts to add the items in count_list to the inventory.
 -- Returns a count list containing the items that couldn't be added.
-crafting.add_items = function(inv, listname, count_list)
+crafting_lib.add_items = function(inv, listname, count_list)
 	local leftover_list = {}
 	
 	for item, count in pairs(count_list) do
@@ -472,7 +472,7 @@ end
 -- Attempts to add the items in count_list to the inventory.
 -- If it succeeds, returns true.
 -- If it fails, the inventory is not modified and returns false.
-crafting.add_items_if_room = function(inv, listname, count_list)
+crafting_lib.add_items_if_room = function(inv, listname, count_list)
 	local old_list = inv:get_list(listname) -- record current inventory
 	
 	for item, count in pairs(count_list) do
@@ -487,7 +487,7 @@ end
 
 -- Returns true if there's room in the inventory for all of the items in the count list,
 -- false otherwise.
-crafting.room_for_items = function(inv, listname, count_list)
+crafting_lib.room_for_items = function(inv, listname, count_list)
 	local old_list = inv:get_list(listname) -- record current inventory
 	
 	for item, count in pairs(count_list) do
@@ -504,7 +504,7 @@ end
 -- removes the items in the count_list (formatted as per recipe standards)
 -- from the inventory. Returns true on success, false on failure. Does not
 -- affect the inventory on failure (removal is atomic)
-crafting.remove_items = function(inv, listname, count_list)
+crafting_lib.remove_items = function(inv, listname, count_list)
 	local can_remove = true
 	for item, count in pairs(count_list) do
 		if not inv:contains_item(listname, ItemStack({name=item, count=count})) then
@@ -522,7 +522,7 @@ crafting.remove_items = function(inv, listname, count_list)
 end
 
 -- Drops the contents of a count_list at the given location in the world
-crafting.drop_items = function(pos, count_list)
+crafting_lib.drop_items = function(pos, count_list)
 	for item, count in pairs(count_list) do
 		minetest.add_item(pos, ItemStack({name=item, count=count}))
 	end
@@ -532,12 +532,12 @@ end
 -- quantity of ouput items in the crafted stack. Note that the output could
 -- actually be larger than crafted_stack if an exactly matching recipe can't be found.
 -- returns nil if crafting is impossible with the given source inventory
-crafting.get_crafting_result = function(crafting_type, input_list, request_stack)
+crafting_lib.get_crafting_result = function(crafting_type, input_list, request_stack)
 	local input_count = itemlist_to_countlist(input_list)
 	local request_name = request_stack:get_name()
 	local request_count = request_stack:get_count()
 		
-	local recipes = crafting.type[crafting_type].recipes_by_out[request_name]
+	local recipes = crafting_lib.type[crafting_type].recipes_by_out[request_name]
 	local smallest_remainder = math.huge
 	local smallest_remainder_output_count = 0
 	local smallest_remainder_recipe = nil
@@ -645,10 +645,10 @@ local purge_uncraftable_recipes = function()
 		end
 	end
 	
-	for craft_type, _  in pairs(crafting.type) do
+	for craft_type, _  in pairs(crafting_lib.type) do
 		local i = 1
-		local recs = crafting.type[craft_type].recipes
-		while i <= #crafting.type[craft_type].recipes do
+		local recs = crafting_lib.type[craft_type].recipes
+		while i <= #crafting_lib.type[craft_type].recipes do
 			if validate_inputs_and_outputs(recs[i]) then
 				i = i + 1
 			else
@@ -656,9 +656,9 @@ local purge_uncraftable_recipes = function()
 				table.remove(recs, i)
 			end
 		end
-		for output, _ in pairs(crafting.type[craft_type].recipes_by_out) do
+		for output, _ in pairs(crafting_lib.type[craft_type].recipes_by_out) do
 			i = 1
-			local outs = crafting.type[craft_type].recipes_by_out[output]
+			local outs = crafting_lib.type[craft_type].recipes_by_out[output]
 			while i <= #outs do
 				if validate_inputs_and_outputs(outs[i]) then
 					i = i + 1
@@ -667,9 +667,9 @@ local purge_uncraftable_recipes = function()
 				end
 			end		
 		end
-		for input, _ in pairs(crafting.type[craft_type].recipes_by_in) do
+		for input, _ in pairs(crafting_lib.type[craft_type].recipes_by_in) do
 			i = 1
-			local ins = crafting.type[craft_type].recipes_by_in[input]
+			local ins = crafting_lib.type[craft_type].recipes_by_in[input]
 			while i <= #ins do
 				if validate_inputs_and_outputs(ins[i]) then
 					i = i + 1

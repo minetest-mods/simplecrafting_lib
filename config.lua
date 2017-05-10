@@ -1,6 +1,6 @@
 local CONFIG_FILE_PREFIX = minetest.get_current_modname().."_"
 
-crafting.config = {}
+crafting_lib.config = {}
 
 local print_settingtypes = false
 
@@ -16,7 +16,7 @@ local function setting(stype, name, default, description)
 	if value == nil then
 		value = default
 	end
-	crafting.config[name] = value
+	crafting_lib.config[name] = value
 	
 	if print_settingtypes then
 		minetest.debug(CONFIG_FILE_PREFIX..name.." ("..description..") "..stype.." "..tostring(default))
