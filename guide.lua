@@ -1,10 +1,3 @@
--- If crafting guides are not enabled, make show_crafting_guide a no-op and skip
--- everything else. There's no need for any of it.
-if not crafting_lib.config.show_guides then
-	crafting_lib.show_crafting_guide = function(craft_type, user) end
-	return
-end
-
 crafting_lib.guide = {}
 crafting_lib.guide.outputs = {}
 crafting_lib.guide.playerdata = {}
