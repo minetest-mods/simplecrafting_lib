@@ -238,6 +238,10 @@ crafting.get_crafting_info = function(craft_type)
 end
 
 crafting.register = function(craft_type, def)
+	def.input = def.input or {}
+	def.output = def.output or {}
+	def.returns = def.returns or {}
+
 	reduce_recipe(def)
 	strip_groups(def)
 
