@@ -179,6 +179,7 @@ crafting_lib.import_legacy_recipes = function()
 			for _,recipe in pairs(crafts) do
 				if recipe.method == "normal" then
 					-- get_all_craft_recipes output recipes omit replacements, need to find those experimentally
+					-- https://github.com/minetest/minetest/issues/4901
 					recipe.returns = {}
 					local output, decremented_input = minetest.get_craft_result(recipe)
 					-- some recipes are broken (eg, until https://github.com/minetest/minetest_game/commit/ae7206c0064cbb5c0e5434c19893d4bf3fa2b388
@@ -212,6 +213,7 @@ crafting_lib.import_legacy_recipes = function()
 			end
 		end
 		-- Fuel recipes aren't returned by get_all_craft_recipes, need to find those experimentally
+		-- https://github.com/minetest/minetest/issues/5745
 		local fuel, afterfuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
 		if fuel.time ~= 0 then
 			local legacy = {}
