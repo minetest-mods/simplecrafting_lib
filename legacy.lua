@@ -22,7 +22,7 @@ local function create_recipe(legacy)
 end
 
 local function process_shaped_recipe(recipe)
-	legacy = {items={},returns={},output=recipe.output}
+	local legacy = {items={},returns={},output=recipe.output}
 	local count = {}
 	for _,row in pairs(recipe.recipe) do
 		for _, item in pairs(row) do
@@ -74,11 +74,95 @@ local function process_fuel_recipe(recipe)
 	return legacy
 end
 
--- This is a simple default implementation, other mods should override this
--- if they wish to distribute recipes to other crafting types.
--- If this method returns nil the recipe will not be imported.
-crafting_lib.get_legacy_type = function(legacy_method, legacy_recipe)
-	return legacy_method
+local already_cleared = {}
+-- once we're done initializing, throw this table away. It's not needed after that.
+minetest.after(0, function()
+	already_cleared = nil
+end)
+
+local function compare_recipe_to_clear(recipe1, recipe2)
+	if recipe1.method ~= recipe2.method then
+		return false
+	end	
+	if recipe1.width ~= recipe2.width then
+		return false
+	end
+	for i = 1,9 do
+		if recipe1.items[i] ~= recipe2.items[i] then
+			return false
+		end			
+	end
+	return true
+end
+
+-- This is necessary because it's possible to register multiple crafts
+-- with the same input, but if you clear one then all of them are cleared
+-- and if you try clearing the second Minetest will crash (because you're
+-- clearing a "nonexistent" recipe). Also, the format of recipes returned by
+-- get_all_crafts is completely different from the format required by clear_craft.
+-- Minetest is... quirky sometimes, let's put it diplomatically.
+local function safe_clear_craft(recipe_to_clear)
+	for _, recipe in pairs(already_cleared) do
+		if compare_recipe_to_clear(recipe, recipe_to_clear) then
+			return
+		end
+	end
+	table.insert(already_cleared, recipe_to_clear)
+	
+	local parameter_recipe = {}
+	if recipe_to_clear.method == "normal" then
+		if recipe_to_clear.width == 0 then
+			parameter_recipe.type="shapeless"
+			parameter_recipe.recipe = recipe_to_clear.items
+		elseif recipe_to_clear.width == 1 then
+			parameter_recipe.width = 1
+			parameter_recipe.recipe = {
+				{recipe_to_clear.items[1] or ""},
+				{recipe_to_clear.items[2] or ""},
+				{recipe_to_clear.items[3] or ""},
+			}
+		elseif recipe_to_clear.width == 2 then
+			parameter_recipe.width = 2
+			parameter_recipe.recipe = {
+				{recipe_to_clear.items[1] or "", recipe_to_clear.items[2] or ""},
+				{recipe_to_clear.items[3] or "", recipe_to_clear.items[4] or ""},
+				{recipe_to_clear.items[5] or "", recipe_to_clear.items[6] or ""},
+			}
+		elseif recipe_to_clear.width == 3 then
+			parameter_recipe.width = 3
+			parameter_recipe.recipe = {
+				{recipe_to_clear.items[1] or "", recipe_to_clear.items[2] or "", recipe_to_clear.items[3] or ""},
+				{recipe_to_clear.items[4] or "", recipe_to_clear.items[5] or "", recipe_to_clear.items[6] or ""},
+				{recipe_to_clear.items[7] or "", recipe_to_clear.items[8] or "", recipe_to_clear.items[9] or ""},
+			}
+		end
+	elseif recipe_to_clear.method == "cooking" then
+		parameter_recipe.type = "cooking"
+		parameter_recipe.recipe = recipe_to_clear.items[1]
+	else
+		minetest.log("error", "safe_clear_craft was unable to parse recipe "..dump(recipe_to_clear))
+		return
+	end
+	minetest.clear_craft(parameter_recipe)
+end
+
+crafting_lib.import_filters = {}
+
+crafting_lib.register_recipe_import_filter = function(filter_function)
+	table.insert(crafting_lib.import_filters, filter_function)
+end
+
+local function register_legacy_recipe(legacy_method, legacy_recipe)
+	local clear_recipe = false
+	for _, filter in ipairs(crafting_lib.import_filters) do
+		local working_recipe = table.copy(legacy_recipe)
+		local craft_type, clear_this = filter(legacy_method, working_recipe)
+		if craft_type then
+			crafting_lib.register(craft_type, working_recipe)
+		end	
+		clear_recipe = clear_this or clear_recipe		
+	end
+	return clear_recipe
 end
 
 -- import_legacy_recipes overrides minetest.register_craft so that subsequently registered
@@ -86,30 +170,33 @@ end
 -- the old way without it being put into this system, use this method.
 crafting_lib.minetest_register_craft = minetest.register_craft
 
-crafting_lib.import_legacy_recipes = function(clear_default_crafting)
+crafting_lib.import_legacy_recipes = function()
 	-- This loop goes through all recipes that have already been registered and
 	-- converts them
 	for item,_ in pairs(minetest.registered_items) do
 		local crafts = minetest.get_all_craft_recipes(item)
 		if crafts and item ~= "" then
-			local added = false
 			for _,recipe in pairs(crafts) do
 				if recipe.method == "normal" then
-					if recipe.replacements then
-						recipe.returns = {}
-						local count = {}
-						for _, item in pairs(recipe.items) do
-							count[item] = (count[item] or 0) + 1
-						end
-						for _,pair in pairs(recipe.replacements) do
-							recipe.returns[pair[2]] = count[pair[1]]
+					-- get_all_craft_recipes output recipes omit replacements, need to find those experimentally
+					recipe.returns = {}
+					local output, decremented_input = minetest.get_craft_result(recipe)
+					-- some recipes are broken (eg, the dye:red + dye:green -> dye:brown recipe - there's two
+					-- red+green recipes, one producing dark grey and one producing brown dye, and when one gets
+					-- cleared from the crafting system by safe_clear_craft the other goes too and this craft attempt
+					-- fails).
+					-- This brokenness manifests by returning their input items and no output, so check if an output
+					-- was actually made before counting the returns as actual returns.
+					if output.item:get_count() > 0 then 
+						for _, returned_item in pairs(decremented_input.items) do
+							if returned_item:get_count() > 0 then
+								recipe.returns[returned_item:get_name()] = (recipe.returns[returned_item:get_name()] or 0) + returned_item:get_count()
+							end
 						end
 					end
 					local new_recipe = create_recipe(recipe)
-					local new_type = crafting_lib.get_legacy_type("normal", new_recipe)
-					if new_type then
-						crafting_lib.register(new_type, new_recipe)
-						added = true
+					if register_legacy_recipe("normal", new_recipe) then
+						safe_clear_craft(recipe)
 					end
 				elseif recipe.method == "cooking" then
 					local legacy = {input={},output={}}
@@ -117,17 +204,13 @@ crafting_lib.import_legacy_recipes = function(clear_default_crafting)
 					legacy.input[recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
 					legacy.cooktime = cooked.time
-					local new_type = crafting_lib.get_legacy_type("cooking", legacy)
-					if new_type then
-						crafting_lib.register(new_type, legacy)
-						added = true
+					if register_legacy_recipe("cooking", legacy) then
+						safe_clear_craft(recipe)
 					end
 				end
 			end
-			if clear_default_crafting and added then
-				minetest.clear_craft({output=item})
-			end
 		end
+		-- Fuel recipes aren't returned by get_all_craft_recipes, need to find those experimentally
 		local fuel, afterfuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
 		if fuel.time ~= 0 then
 			local legacy = {}
@@ -140,11 +223,7 @@ crafting_lib.import_legacy_recipes = function(clear_default_crafting)
 					legacy.returns[afteritem:get_name()] = (legacy.returns[afteritem:get_name()] or 0) + afteritem:get_count()
 				end
 			end
-			local new_type = crafting_lib.get_legacy_type("fuel", legacy)
-			if new_type then
-				crafting_lib.register(new_type, legacy)
-			end
-			if clear_default_crafting then
+			if register_legacy_recipe("fuel", legacy) then
 				minetest.clear_craft({type="fuel", recipe=item})
 			end
 		end
@@ -153,37 +232,21 @@ crafting_lib.import_legacy_recipes = function(clear_default_crafting)
 	-- This replaces the core register_craft method so that any crafts
 	-- registered after this one will be added to the new system.
 	minetest.register_craft = function(recipe)
-		local added = false
+		local clear = false
 		if not recipe.type then
 			local new_recipe = process_shaped_recipe(recipe)
-			local new_type = crafting_lib.get_legacy_type("normal", new_recipe)
-			if new_type then
-				crafting_lib.register(new_type, new_recipe)
-				added = true
-			end
+			clear = register_legacy_recipe("normal", new_recipe)
 		elseif recipe.type == "shapeless" then
 			local new_recipe = process_shapeless_recipe(recipe)
-			local new_type = crafting_lib.get_legacy_type("normal", new_recipe)
-			if new_type then
-				crafting_lib.register(new_type, new_recipe)
-				added = true
-			end
+			clear = register_legacy_recipe("normal", new_recipe)
 		elseif recipe.type == "cooking" then
 			local new_recipe = process_cooking_recipe(recipe)
-			local new_type = crafting_lib.get_legacy_type("cooking", new_recipe)
-			if new_type then
-				crafting_lib.register(new_type, new_recipe)
-				added = true
-			end
+			clear = register_legacy_recipe("cooking", new_recipe)
 		elseif recipe.type == "fuel" then
-			local legacy = process_fuel_recipe(recipe)
-			local new_type = crafting_lib.get_legacy_type("fuel", legacy)
-			if new_type then
-				crafting_lib.register(new_type, legacy)
-				added = true
-			end
+			local new_recipe = process_fuel_recipe(recipe)
+			clear = register_legacy_recipe("fuel", new_recipe)
 		end
-		if (not clear_default_crafting) or (not added) then
+		if not clear then
 			return crafting_lib.minetest_register_craft(recipe)
 		end
 	end

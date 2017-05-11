@@ -53,15 +53,16 @@ crafting_lib.register_reversible(craft_type, forward_def)
 * If there's more than one input type it will use "returns" to give them to the player in the reverse craft, using the input with the highest count as the primary output.
 * Don't use a recipe that has a "group:" input with this, because obviously that can't be turned into an output. The mod will assert if you try to do this.
 
-crafting_lib.import_legacy_recipes(clear_default_crafting)
+crafting_lib.import_legacy_recipes()
 * When run, this will cause recipes added via minetest.register_craft to be added to this crafting system.
-* if clear_default_crafting is true, these recipes will be removed from the default crafting system. Otherwise they'll be registered in both.
+* See crafting_lib.register_recipe_import_filter(filter_function) for details on how to register a filter that will cause recipes to be imported
 
-crafting_lib.get_legacy_type(legacy_method, recipe)
-* This method is used internally by import_legacy_recipes to determine what craft_type to register default recipes as. Mods should override this method if they want to distribute default recipes to their own recipe types.
+crafting_lib.register_recipe_import_filter(filter_function)
+* registers a filter function used by import_legacy_recipes. The filter function's signature must be of the form:
+	function(legacy_method, recipe)
 * legacy_method parameter will be either "normal", "cooking", or "fuel"
 * recipe will be in the format described above for crafting_lib.register. This method can modify the recipe parameter and those modifications will be reflected in the final registered version.
-* returns craft_type or nil. If nil, recipe will not be imported.
+* returns two values: craft_type (string) and clear_recipe (bool). If craft_type is nil then the recipe won't be imported. If clear_recipe is true then the recipe will be removed from the native crafting system.
 
 crafting_lib.get_crafting_info(craft_type)
 * returns a table with the members "recipe", "recipe_by_out" and "recipe_by_in" that contains all registered recipes for the craft type.
