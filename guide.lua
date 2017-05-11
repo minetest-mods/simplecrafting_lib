@@ -17,6 +17,7 @@ end
 if minetest.get_modpath("wool") then
 	crafting_lib.guide.groups["wool"] = "wool:white"
 end
+
 -- internationalization boilerplate
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
@@ -108,13 +109,15 @@ local function make_formspec(craft_type, player_name)
 	local groups = crafting_lib.guide.groups
 	local outputs = get_output_list(craft_type)
 	local playerdata = get_playerdata(craft_type, player_name)
-	
+
 	local formspec = {
 		"size[8,9.2]",
-		default.gui_bg,
-		default.gui_bg_img,
-		default.gui_slots,
 	}
+	if minetest.get_modpath("default") then
+		table.insert(formspec, default.gui_bg)
+		table.insert(formspec, default.gui_bg_img)
+		table.insert(formspec, default.gui_slots)
+	end
 
 	local x = 0
 	local y = 0
@@ -142,9 +145,9 @@ local function make_formspec(craft_type, player_name)
 	end
 
 	if #outputs > 8*4 then
-		table.insert(formspec, "button[" .. x .. "," .. y + 4 .. ";1,1;previous_output;Prev]")
-		table.insert(formspec, "button[" .. x + 1 .. "," .. y + 4 .. ";1,1;next_output;Next]")
-		table.insert(formspec, "label[" .. x + 2 .. "," .. y + 4 .. ";Product\npage ".. playerdata.output_page + 1 .."]")
+		table.insert(formspec, "button[" .. x .. "," .. y + 4 .. ";1,1;previous_output;"..S("Prev").."]")
+		table.insert(formspec, "button[" .. x + 1 .. "," .. y + 4 .. ";1,1;next_output;"..S("Next").."]")
+		table.insert(formspec, "label[" .. x + 2 .. "," .. y + 4 .. ";".. S("Product\npage @1", playerdata.output_page + 1) .."]")
 	end
 
 	local recipes
@@ -161,9 +164,9 @@ local function make_formspec(craft_type, player_name)
 	end
 	
 	if #recipes > 4 then
-		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";Recipe\npage ".. playerdata.input_page + 1 .."]")
-		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 .. ";1,1;previous_input;Prev]")
-		table.insert(formspec, "button[" .. x + 7 .. "," .. y + 4 .. ";1,1;next_input;Next]")
+		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 .. ";".. S("Recipe\npage @1", playerdata.input_page + 1) .."]")
+		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 .. ";1,1;previous_input;"..S("Prev").."]")
+		table.insert(formspec, "button[" .. x + 7 .. "," .. y + 4 .. ";1,1;next_input;"..S("Next").."]")
 	end
 	
 	local x_out = x

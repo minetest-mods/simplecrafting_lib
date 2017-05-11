@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-05-06 15:13-0600\n"
+"POT-Creation-Date: 2017-05-10 10:25-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,39 +17,24 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: furnace.lua:114
-msgid "Fuel time: @1 | Item time: @2"
+#: guide.lua:148
+#: guide.lua:168
+msgid "Prev"
 msgstr ""
 
-#: furnace.lua:244
-#: furnace.lua:434
-msgid "Furnace"
+#: guide.lua:149
+#: guide.lua:169
+msgid "Next"
 msgstr ""
 
-#: furnace.lua:513
-msgid "Crafting Guide (Furnace)"
+#: guide.lua:150
+msgid ""
+"Product\n"
+"page @1"
 msgstr ""
 
-#: table.lua:39
-msgid "Next page of crafting products"
-msgstr ""
-
-#: table.lua:45
-msgid "Previous page of crafting products"
-msgstr ""
-
-#: table.lua:49
-msgid "Page @1"
-msgstr ""
-
-#: table.lua:85
-msgid "@1 crafts @2"
-msgstr ""
-
-#: table.lua:104
-msgid "Crafting Table"
-msgstr ""
-
-#: table.lua:214
-msgid "Crafting Guide (Table)"
+#: guide.lua:167
+msgid ""
+"Recipe\n"
+"page @1"
 msgstr ""
