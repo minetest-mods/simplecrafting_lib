@@ -189,6 +189,8 @@ crafting_lib.import_legacy_recipes = function()
 					-- fails).
 					-- This brokenness manifests by returning their input items and no output, so check if an output
 					-- was actually made before counting the returns as actual returns.
+					-- This is not an ideal solution since it may result in recipes losing their replacements,
+					-- but at this point I'm solving edge cases for edge cases and I need to sleep.
 					if output.item:get_count() > 0 then 
 						for _, returned_item in pairs(decremented_input.items) do
 							if returned_item:get_count() > 0 then
