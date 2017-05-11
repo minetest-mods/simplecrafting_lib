@@ -181,7 +181,8 @@ crafting_lib.import_legacy_recipes = function()
 					-- get_all_craft_recipes output recipes omit replacements, need to find those experimentally
 					recipe.returns = {}
 					local output, decremented_input = minetest.get_craft_result(recipe)
-					-- some recipes are broken (eg, the dye:red + dye:green -> dye:brown recipe - there's two
+					-- some recipes are broken (eg, until https://github.com/minetest/minetest_game/commit/ae7206c0064cbb5c0e5434c19893d4bf3fa2b388
+					-- the dye:red + dye:green -> dye:brown recipe was broken here - there were two
 					-- red+green recipes, one producing dark grey and one producing brown dye, and when one gets
 					-- cleared from the crafting system by safe_clear_craft the other goes too and this craft attempt
 					-- fails).
