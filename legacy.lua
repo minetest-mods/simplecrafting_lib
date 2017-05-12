@@ -6,7 +6,7 @@ local function create_recipe(legacy)
 		break
 	end
 	if not has_items then return end
-	local recipe = {}
+	local recipe = {method="normal"}
 	local stack = ItemStack(legacy.output)
 	local output = stack:get_name()
 	local nout = stack:get_count()
@@ -54,7 +54,7 @@ local function process_shapeless_recipe(recipe)
 end
 
 local function process_cooking_recipe(recipe)
-	local legacy = {input={},output={}}
+	local legacy = {input={},output={}, method="cooking"}
 	legacy.output[recipe.output] = 1
 	legacy.input[recipe.recipe] = 1
 	legacy.cooktime = recipe.cooktime or 3			
@@ -62,7 +62,7 @@ local function process_cooking_recipe(recipe)
 end
 
 local function process_fuel_recipe(recipe)
-	local legacy = {input={}}
+	local legacy = {input={}, method="fuel"}
 	legacy.input[recipe.recipe] = 1
 	legacy.burntime = recipe.burntime
 	if recipe.replacements then
@@ -74,10 +74,12 @@ local function process_fuel_recipe(recipe)
 	return legacy
 end
 
-local already_cleared = {}
--- once we're done initializing, throw this table away. It's not needed after that.
+local already_cleared = {} -- contains "raw" recipes straight from get_all_craft_recipes
+local already_cleared_processed = {} -- contains recipes suitable for registering
+-- once we're done initializing, throw these tables away. They're not needed after that.
 minetest.after(0, function()
 	already_cleared = nil
+	already_cleared_processed = nil
 end)
 
 local function compare_recipe_to_clear(recipe1, recipe2)
@@ -101,13 +103,14 @@ end
 -- clearing a "nonexistent" recipe). Also, the format of recipes returned by
 -- get_all_crafts is completely different from the format required by clear_craft.
 -- Minetest is... quirky sometimes, let's put it diplomatically.
-local function safe_clear_craft(recipe_to_clear)
+local function safe_clear_craft(recipe_to_clear, processed_recipe)
 	for _, recipe in pairs(already_cleared) do
 		if compare_recipe_to_clear(recipe, recipe_to_clear) then
 			return
 		end
 	end
 	table.insert(already_cleared, recipe_to_clear)
+	table.insert(already_cleared_processed, processed_recipe)
 	
 	local parameter_recipe = {}
 	if recipe_to_clear.method == "normal" then
@@ -171,6 +174,11 @@ end
 crafting_lib.minetest_register_craft = minetest.register_craft
 
 crafting_lib.import_legacy_recipes = function()
+	-- if any recipes have been cleared by previous runs of import_legacy_recipes, let this run have the opportunity to look at them.
+	for _, recipe in pairs(already_cleared_processed) do
+		register_legacy_recipe(recipe.method, recipe)
+	end
+
 	-- This loop goes through all recipes that have already been registered and
 	-- converts them
 	for item,_ in pairs(minetest.registered_items) do
@@ -200,16 +208,16 @@ crafting_lib.import_legacy_recipes = function()
 					end
 					local new_recipe = create_recipe(recipe)
 					if register_legacy_recipe("normal", new_recipe) then
-						safe_clear_craft(recipe)
+						safe_clear_craft(recipe, new_recipe)
 					end
 				elseif recipe.method == "cooking" then
-					local legacy = {input={},output={}}
-					legacy.output[recipe.output] = 1
-					legacy.input[recipe.items[1]] = 1 
+					local new_recipe = {input={},output={},method="cooking"}
+					new_recipe.output[recipe.output] = 1
+					new_recipe.input[recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
-					legacy.cooktime = cooked.time
-					if register_legacy_recipe("cooking", legacy) then
-						safe_clear_craft(recipe)
+					new_recipe.cooktime = cooked.time
+					if register_legacy_recipe("cooking", new_recipe) then
+						safe_clear_craft(recipe, new_recipe)
 					end
 				end
 			end
@@ -218,18 +226,20 @@ crafting_lib.import_legacy_recipes = function()
 		-- https://github.com/minetest/minetest/issues/5745
 		local fuel, afterfuel = minetest.get_craft_result({method="fuel",width=1,items={item}})
 		if fuel.time ~= 0 then
-			local legacy = {}
-			legacy.input = {}
-			legacy.input[item] = 1
-			legacy.burntime = fuel.time
+			local new_recipe = {}
+			new_recipe.method = "fuel"
+			new_recipe.input = {}
+			new_recipe.input[item] = 1
+			new_recipe.burntime = fuel.time
 			for _, afteritem in pairs(afterfuel.items) do
 				if afteritem:get_count() > 0 then
-					legacy.returns = legacy.returns or {}
-					legacy.returns[afteritem:get_name()] = (legacy.returns[afteritem:get_name()] or 0) + afteritem:get_count()
+					new_recipe.returns = new_recipe.returns or {}
+					new_recipe.returns[afteritem:get_name()] = (new_recipe.returns[afteritem:get_name()] or 0) + afteritem:get_count()
 				end
 			end
-			if register_legacy_recipe("fuel", legacy) then
+			if register_legacy_recipe("fuel", new_recipe) then
 				minetest.clear_craft({type="fuel", recipe=item})
+				table.insert(already_cleared_processed, new_recipe)
 			end
 		end
 	end
@@ -238,21 +248,24 @@ crafting_lib.import_legacy_recipes = function()
 	-- registered after this one will be added to the new system.
 	minetest.register_craft = function(recipe)
 		local clear = false
+		local new_recipe
 		if not recipe.type then
-			local new_recipe = process_shaped_recipe(recipe)
+			new_recipe = process_shaped_recipe(recipe)
 			clear = register_legacy_recipe("normal", new_recipe)
 		elseif recipe.type == "shapeless" then
-			local new_recipe = process_shapeless_recipe(recipe)
+			new_recipe = process_shapeless_recipe(recipe)
 			clear = register_legacy_recipe("normal", new_recipe)
 		elseif recipe.type == "cooking" then
-			local new_recipe = process_cooking_recipe(recipe)
+			new_recipe = process_cooking_recipe(recipe)
 			clear = register_legacy_recipe("cooking", new_recipe)
 		elseif recipe.type == "fuel" then
-			local new_recipe = process_fuel_recipe(recipe)
+			new_recipe = process_fuel_recipe(recipe)
 			clear = register_legacy_recipe("fuel", new_recipe)
 		end
 		if not clear then
 			return crafting_lib.minetest_register_craft(recipe)
+		else
+			table.insert(already_cleared_processed, new_recipe)
 		end
 	end
 end
