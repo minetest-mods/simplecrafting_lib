@@ -64,6 +64,13 @@ simplecrafting_lib.register_recipe_import_filter(filter_function)
 * recipe will be in the format described above for simplecrafting_lib.register. This method can modify the recipe parameter and those modifications will be reflected in the final registered version.
 * returns two values: craft_type (string) and clear_recipe (bool). If craft_type is nil then the recipe won't be imported. If clear_recipe is true then the recipe will be removed from the native crafting system.
 
+simplecrafting_lib.craft_stack(crafting_type, request_stack, source_inv, source_listname, destination_inv, destination_listname, player_or_pos)
+* A convenienence function that attempts to do a generic crafting operation as part of an on_metadata_inventory_take or on_metadata_inventory_move call. You don't need to use this method if you want to do something more sophisticated.
+* "request_stack" is an item stack that it is assumed the player has removed from a set of possible outputs, it is assumed that the contents of request_stack will be added to the destination inventory as a result of an existing inventory transfer and it will be deducted from the craft result. Note that the actual output of this crafting operation could be larger than request_stack if a recipe that produces an even multiple of request_stack cannot be found.
+* source_inv, source_listname are where the raw materials will be taken from
+* destination_inv, destination_listname are where the crafting outputs will be placed. This can be the same as the source inventory.
+* player_or_pos is either a player object or a pos table. This is used for logging purposes and as a place to put output in the event that destination_inv can't hold it all.
+
 simplecrafting_lib.get_crafting_info(craft_type)
 * returns a table with the members "recipe", "recipe_by_out" and "recipe_by_in" that contains all registered recipes for the craft type.
 * Using this method will ensure that the craft_type's recipe tables will exist even if nothing's been registered for them yet.

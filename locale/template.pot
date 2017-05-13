@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-05-10 10:25-0600\n"
+"POT-Creation-Date: 2017-05-12 23:37-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,24 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: craft.lua:27
+msgid "@1 crafts @2"
+msgstr ""
+
+#: craft.lua:29
+msgid "@1 was crafted at @2"
+msgstr ""
+
+#: craft.lua:31
+msgid "@1 was crafted somewhere by someone"
+msgstr ""
+
+#: craft.lua:53
+msgid ""
+"After crafting @1 some output items could not be placed into an inventory or "
+"dropped in world, and were lost."
+msgstr ""
 
 #: guide.lua:148
 #: guide.lua:168
