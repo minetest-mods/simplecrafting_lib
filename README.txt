@@ -1,7 +1,6 @@
 Note: this is a utility mod that is intended for use by other mods,
 it does not do anything if installed by itself.
 
-
 This mod adds a new crafting system, either in parallel to the default grid-based
 crafting system or as complete replacement to it.
 
@@ -17,7 +16,7 @@ system exclusively. Examples are given below:
 
 -- Crafting Table
 
-crafting.register("table",{
+simplecrafting_lib.register("table",{
 	input = {
 		["group:stone"] = 1,
 		["default:lava_source"] = 1,
@@ -35,18 +34,11 @@ crafting.register("table",{
 
 -- Furnace
 
-crafting.register("furnace",{
+simplecrafting_lib.register("furnace",{
 	input = {
-		-- Must only have one input type, or will be ignored by furnace
-		-- Recipes cannot be distinguished by the no of input, only
-		-- Fuel grades and name of input
 		["default:stone"] = 1,
-
-		-- If an item is in multiple groups with valid recipes, output
-		-- will be first valid recipe found (essentially random)
 	},
 	output = {
-		-- Must only have one input type, or will be ignored by furnace
 		["default:obsidian"] = 2,
 	},
 	cooktime = 5.6,
@@ -54,11 +46,13 @@ crafting.register("furnace",{
 
 -- Fuel
 
-crafting.register("fuel",{
+simplecrafting_lib.register("fuel",{
 	-- Group names are allowed
 	-- If there is not an item specific recipe then it will take the
-	-- definition of it's longest burning group
-	input = {"default:tree"},
+	-- definition of its longest burning group
+	input = {
+		["default:tree"] = 1
+	},
 	burntime = 25.4,
 })
 

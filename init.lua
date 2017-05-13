@@ -1,5 +1,5 @@
-crafting_lib = {}
-crafting_lib.type = {}
+simplecrafting_lib = {}
+simplecrafting_lib.type = {}
 
 local modpath = minetest.get_modpath(minetest.get_current_modname()) 
 

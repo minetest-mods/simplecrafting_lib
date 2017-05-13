@@ -1,21 +1,21 @@
-crafting_lib.guide = {}
-crafting_lib.guide.outputs = {}
-crafting_lib.guide.playerdata = {}
-crafting_lib.guide.groups = {}
+simplecrafting_lib.guide = {}
+simplecrafting_lib.guide.outputs = {}
+simplecrafting_lib.guide.playerdata = {}
+simplecrafting_lib.guide.groups = {}
 
 -- Explicitly set examples for some common input item groups
 -- Other mods can also add explicit items like this if they wish
 -- Groups list isn't populated with "guessed" examples until
 -- after initialization, when all other mods are already loaded
 if minetest.get_modpath("default") then
-	crafting_lib.guide.groups["wood"] = "default:wood"
-	crafting_lib.guide.groups["stick"] = "default:stick"
-	crafting_lib.guide.groups["tree"] = "default:tree"
-	crafting_lib.guide.groups["stone"] = "default:stone"
-	crafting_lib.guide.groups["sand"] = "default:sand"
+	simplecrafting_lib.guide.groups["wood"] = "default:wood"
+	simplecrafting_lib.guide.groups["stick"] = "default:stick"
+	simplecrafting_lib.guide.groups["tree"] = "default:tree"
+	simplecrafting_lib.guide.groups["stone"] = "default:stone"
+	simplecrafting_lib.guide.groups["sand"] = "default:sand"
 end
 if minetest.get_modpath("wool") then
-	crafting_lib.guide.groups["wool"] = "wool:white"
+	simplecrafting_lib.guide.groups["wool"] = "wool:white"
 end
 
 -- internationalization boilerplate
@@ -26,8 +26,8 @@ local function initialize_group_examples()
 	-- finds an example item for every group that does not already have one defined
 	for item, def in pairs(minetest.registered_items) do
 		for group, _ in pairs(def.groups) do
-			if not crafting_lib.guide.groups[group] then
-				crafting_lib.guide.groups[group] = item
+			if not simplecrafting_lib.guide.groups[group] then
+				simplecrafting_lib.guide.groups[group] = item
 			end
 		end
 	end
@@ -44,8 +44,8 @@ local function split(str, delimiter)
 end
 
 local function find_multi_group(multigroup)
-	if crafting_lib.guide.groups[multigroup] then
-		return crafting_lib.guide.groups[multigroup]
+	if simplecrafting_lib.guide.groups[multigroup] then
+		return simplecrafting_lib.guide.groups[multigroup]
 	end
 
 	local target_groups = split(multigroup, ",")
@@ -66,7 +66,7 @@ local function find_multi_group(multigroup)
 			end
 		end
 		if overall_found then
-			crafting_lib.guide.groups[multigroup] = item
+			simplecrafting_lib.guide.groups[multigroup] = item
 			return item
 		end
 	end
@@ -81,10 +81,10 @@ local function compare_items_by_desc(item1, item2)
 end
 
 local function get_output_list(craft_type)
-	if crafting_lib.guide.outputs[craft_type] then return crafting_lib.guide.outputs[craft_type] end
-	crafting_lib.guide.outputs[craft_type] = {}
-	local outputs = crafting_lib.guide.outputs[craft_type]
-	for item, _ in pairs(crafting_lib.type[craft_type].recipes_by_out) do
+	if simplecrafting_lib.guide.outputs[craft_type] then return simplecrafting_lib.guide.outputs[craft_type] end
+	simplecrafting_lib.guide.outputs[craft_type] = {}
+	local outputs = simplecrafting_lib.guide.outputs[craft_type]
+	for item, _ in pairs(simplecrafting_lib.type[craft_type].recipes_by_out) do
 		if minetest.get_item_group(item, "not_in_craft_guide") == 0 then
 			table.insert(outputs, item)
 		end
@@ -95,18 +95,18 @@ local function get_output_list(craft_type)
 end
 
 local function get_playerdata(craft_type, player_name)
-	if not crafting_lib.guide.playerdata[craft_type] then
-		crafting_lib.guide.playerdata[craft_type] = {}
+	if not simplecrafting_lib.guide.playerdata[craft_type] then
+		simplecrafting_lib.guide.playerdata[craft_type] = {}
 	end
-	if crafting_lib.guide.playerdata[craft_type][player_name] then
-		return crafting_lib.guide.playerdata[craft_type][player_name]
+	if simplecrafting_lib.guide.playerdata[craft_type][player_name] then
+		return simplecrafting_lib.guide.playerdata[craft_type][player_name]
 	end
-	crafting_lib.guide.playerdata[craft_type][player_name] = {["input_page"] = 0, ["output_page"] = 0, ["selection"] = 0}
-	return crafting_lib.guide.playerdata[craft_type][player_name]
+	simplecrafting_lib.guide.playerdata[craft_type][player_name] = {["input_page"] = 0, ["output_page"] = 0, ["selection"] = 0}
+	return simplecrafting_lib.guide.playerdata[craft_type][player_name]
 end
 
 local function make_formspec(craft_type, player_name)
-	local groups = crafting_lib.guide.groups
+	local groups = simplecrafting_lib.guide.groups
 	local outputs = get_output_list(craft_type)
 	local playerdata = get_playerdata(craft_type, player_name)
 
@@ -152,7 +152,7 @@ local function make_formspec(craft_type, player_name)
 
 	local recipes
 	if playerdata.selection > 0 then
-		recipes = crafting_lib.type[craft_type].recipes_by_out[outputs[playerdata.selection]]
+		recipes = simplecrafting_lib.type[craft_type].recipes_by_out[outputs[playerdata.selection]]
 	end
 
 	if recipes == nil then
@@ -279,7 +279,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	end	
 end)
 
-crafting_lib.show_crafting_guide = function(craft_type, user)
+simplecrafting_lib.show_crafting_guide = function(craft_type, user)
 	minetest.show_formspec(user:get_player_name(), "crafting:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
 end
 

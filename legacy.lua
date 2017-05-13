@@ -75,7 +75,7 @@ local function process_fuel_recipe(recipe)
 end
 
 local already_cleared = {} -- contains "raw" recipes straight from get_all_craft_recipes
-local already_cleared_processed = {} -- contains recipes suitable for registering
+local already_cleared_processed = {} -- contains recipes suitable for re-registering
 -- once we're done initializing, throw these tables away. They're not needed after that.
 minetest.after(0, function()
 	already_cleared = nil
@@ -149,19 +149,19 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 	minetest.clear_craft(parameter_recipe)
 end
 
-crafting_lib.import_filters = {}
+simplecrafting_lib.import_filters = {}
 
-crafting_lib.register_recipe_import_filter = function(filter_function)
-	table.insert(crafting_lib.import_filters, filter_function)
+simplecrafting_lib.register_recipe_import_filter = function(filter_function)
+	table.insert(simplecrafting_lib.import_filters, filter_function)
 end
 
 local function register_legacy_recipe(legacy_method, legacy_recipe)
 	local clear_recipe = false
-	for _, filter in ipairs(crafting_lib.import_filters) do
+	for _, filter in ipairs(simplecrafting_lib.import_filters) do
 		local working_recipe = table.copy(legacy_recipe)
 		local craft_type, clear_this = filter(legacy_method, working_recipe)
 		if craft_type then
-			crafting_lib.register(craft_type, working_recipe)
+			simplecrafting_lib.register(craft_type, working_recipe)
 		end	
 		clear_recipe = clear_this or clear_recipe		
 	end
@@ -171,9 +171,9 @@ end
 -- import_legacy_recipes overrides minetest.register_craft so that subsequently registered
 -- crafting recipes will be put into this system. If you wish to register a craft
 -- the old way without it being put into this system, use this method.
-crafting_lib.minetest_register_craft = minetest.register_craft
+simplecrafting_lib.minetest_register_craft = minetest.register_craft
 
-crafting_lib.import_legacy_recipes = function()
+simplecrafting_lib.import_legacy_recipes = function()
 	-- if any recipes have been cleared by previous runs of import_legacy_recipes, let this run have the opportunity to look at them.
 	for _, recipe in pairs(already_cleared_processed) do
 		register_legacy_recipe(recipe.method, recipe)
@@ -190,11 +190,11 @@ crafting_lib.import_legacy_recipes = function()
 					-- https://github.com/minetest/minetest/issues/4901
 					recipe.returns = {}
 					local output, decremented_input = minetest.get_craft_result(recipe)
-					-- some recipes are broken (eg, until https://github.com/minetest/minetest_game/commit/ae7206c0064cbb5c0e5434c19893d4bf3fa2b388
+					-- until https://github.com/minetest/minetest_game/commit/ae7206c0064cbb5c0e5434c19893d4bf3fa2b388
 					-- the dye:red + dye:green -> dye:brown recipe was broken here - there were two
 					-- red+green recipes, one producing dark grey and one producing brown dye, and when one gets
 					-- cleared from the crafting system by safe_clear_craft the other goes too and this craft attempt
-					-- fails).
+					-- fails.
 					-- This brokenness manifests by returning their input items and no output, so check if an output
 					-- was actually made before counting the returns as actual returns.
 					-- This is not an ideal solution since it may result in recipes losing their replacements,
@@ -263,7 +263,7 @@ crafting_lib.import_legacy_recipes = function()
 			clear = register_legacy_recipe("fuel", new_recipe)
 		end
 		if not clear then
-			return crafting_lib.minetest_register_craft(recipe)
+			return simplecrafting_lib.minetest_register_craft(recipe)
 		else
 			table.insert(already_cleared_processed, new_recipe)
 		end
