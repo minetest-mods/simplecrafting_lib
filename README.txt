@@ -57,3 +57,5 @@ simplecrafting_lib.register("fuel",{
 })
 
 See api.txt for more information.
+
+This library is released under the MIT license.
