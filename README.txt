@@ -8,7 +8,7 @@ The new crafting system doesn't care about the arrangement of raw materials, onl
 the relative proportions of them. Effectively, every recipe is now "shapeless".
 
 You can continue to use minetest.register_craft to register crafts as normal,
-this mod hooks into it and will reinterpret recipes registered via it to use
+this mod hooks into it and can reinterpret recipes registered via it to use
 with the new crafting system as well.
 
 Alternately, use the "crafting.register" method to register recipes for the new
@@ -55,6 +55,33 @@ simplecrafting_lib.register("fuel",{
 	},
 	burntime = 25.4,
 })
+
+The following example code used in a mod that depends on simplecrafting_lib to
+import existing recipes from Minetest's native crafting system. In this
+particular case the mod it is from adds the concept of "fuel grade," which
+the mod's furnace node can take into account when determining whether a given
+fuel is hot enough to catalyze a given reaction. This shows how import filters
+can modify imported recipes however it likes and how simplecrafting recipes can
+include arbitrary metadata beyond the standard parameters shown above. It could
+also choose to place the recipes into categories based on other properties of
+the recipe - for example, it could place "cooking" recipes involving ore into a
+different crafting type than "cooking" recipes involving food items.
+
+simplecrafting_lib.register_recipe_import_filter(function(legacy_method, legacy_recipe)
+	if legacy_method == "normal" then
+		return "table", true
+	elseif legacy_method == "cooking" then
+		legacy_recipe.fuel_grade = {}
+		legacy_recipe.fuel_grade.min = 0
+		legacy_recipe.fuel_grade.max = math.huge
+		return "furnace", true
+	elseif legacy_method == "fuel" then
+		legacy_recipe.grade = 1
+		return "fuel", true
+	end
+	minetest.log("error", "get_legacy_type encountered unknown legacy method: "..legacy_method)
+end)
+simplecrafting_lib.import_legacy_recipes()
 
 See api.txt for more information.
 
