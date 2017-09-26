@@ -83,6 +83,32 @@ simplecrafting_lib.register_recipe_import_filter(function(legacy_method, legacy_
 end)
 simplecrafting_lib.import_legacy_recipes()
 
+
+To create a standard crafting table that would be able to make use of the "table"
+craft_type populated by the above recipe import filter, there's a convenience function
+that provides pre-generated functions for use with a crafting table node definition.
+The following code shows an example:
+
+local table_functions = simplecrafting_lib.generate_table_functions("table", show_guides, alphabetize_items)
+
+local table_def = {
+	description = S("Crafting Table"),
+	drawtype = "normal",
+	tiles = {"crafting.table_top.png", "default_chest_top.png",
+		"crafting.table_front.png", "crafting.table_front.png",
+		"crafting.table_side.png", "crafting.table_side.png"},
+	sounds = default.node_sound_wood_defaults(),
+	paramtype2 = "facedir",
+	is_ground_content = false,
+	groups = {oddly_breakable_by_hand = 1, choppy=3},
+}
+for k, v in pairs(table_functions) do
+	table_def[k] = v
+end
+
+minetest.register_node("crafting:table", table_def)
+
+
 See api.txt for more information.
 
 This library is released under the MIT license.
