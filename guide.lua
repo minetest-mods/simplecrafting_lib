@@ -255,15 +255,19 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	for field, _ in pairs(fields) do
 		if field == "previous_output" and playerdata.output_page > 0 then
 			playerdata.output_page = playerdata.output_page - 1
+			minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
 		elseif field == "next_output" and playerdata.output_page < #outputs/(8*4)-1 then
 			playerdata.output_page = playerdata.output_page + 1
+			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
 		elseif field == "previous_input" and playerdata.input_page > 0 then
 			playerdata.input_page = playerdata.input_page - 1
+			minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
 		elseif field == "next_input" then -- we don't know how many recipes there are, let make_formspec sanitize this
 			playerdata.input_page = playerdata.input_page + 1
+			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
 		elseif string.sub(field, 1, 8) == "product_" then
 			playerdata.selection = tonumber(string.sub(field, 9))
