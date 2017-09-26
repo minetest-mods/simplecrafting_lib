@@ -9,7 +9,7 @@ local function refresh_output(inv, craft_type, max_mode, alphabetize_items)
 	inv:set_list("output", craftable)
 end
 
-local function make_formspec(row, item_count, max_mode)
+local function make_formspec(row, item_count, max_mode, show_guides)
 	if item_count < (8*6) then
 		row = 0
 	elseif (row*8)+(8*6) > item_count then
@@ -64,13 +64,13 @@ local function make_formspec(row, item_count, max_mode)
 	return table.concat(inventory), row
 end
 
-local function refresh_inv(meta, craft_type, alphabetize_items)
+local function refresh_inv(meta, craft_type, show_guides, alphabetize_items)
 	local inv = meta:get_inventory()
 	local max_mode = meta:get_string("max_mode")
 	refresh_output(inv, craft_type, max_mode == "True", alphabetize_items)
 
 	local page = meta:get_int("page")
-	local form, page = make_formspec(page, inv:get_size("output"), max_mode == "True")
+	local form, page = make_formspec(page, inv:get_size("output"), max_mode == "True", show_guides)
 	meta:set_int("page", page)
 	meta:set_string("formspec", form)
 end
@@ -84,7 +84,7 @@ simplecrafting_lib.generate_table_functions = function(craft_type, show_guides, 
 		inv:set_size("store", 2*5)
 		inv:set_size("output", 8*6)
 		meta:set_int("row", 0)
-		meta:set_string("formspec", make_formspec(0, 0, true))
+		meta:set_string("formspec", make_formspec(0, 0, true, show_guides))
 	end,
 	
 	allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, number, player)
@@ -122,7 +122,7 @@ simplecrafting_lib.generate_table_functions = function(craft_type, show_guides, 
 			local stack = inv:get_stack(to_list, to_index)
 			simplecrafting_lib.craft_stack(craft_type, stack, inv, "store", inv, to_list, player)
 		end
-		refresh_inv(meta, craft_type, alphabetize_items)
+		refresh_inv(meta, craft_type, show_guides, alphabetize_items)
 	end,
 	
 	on_metadata_inventory_take = function(pos, list_name, index, stack, player)
@@ -131,12 +131,12 @@ simplecrafting_lib.generate_table_functions = function(craft_type, show_guides, 
 			local inv = meta:get_inventory()
 			simplecrafting_lib.craft_stack(craft_type, stack, inv, "store", player:get_inventory(), "main", player)
 		end
-		refresh_inv(meta, craft_type, alphabetize_items)
+		refresh_inv(meta, craft_type, show_guides, alphabetize_items)
 	end,
 	
 	on_metadata_inventory_put = function(pos, list_name, index, stack, player)
 		local meta = minetest.get_meta(pos)
-		refresh_inv(meta, craft_type, alphabetize_items)
+		refresh_inv(meta, craft_type, show_guides, alphabetize_items)
 	end,
 	
 	on_receive_fields = function(pos, formname, fields, sender)
@@ -169,7 +169,7 @@ simplecrafting_lib.generate_table_functions = function(craft_type, show_guides, 
 		end
 		
 		meta:set_string("max_mode", max_mode)
-		local form, row = make_formspec(row, size, max_mode == "True")
+		local form, row = make_formspec(row, size, max_mode == "True", show_guides)
 		meta:set_int("row", row)
 		meta:set_string("formspec", form)
 	end,
