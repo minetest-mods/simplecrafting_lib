@@ -10,3 +10,5 @@ dofile(modpath .. "/inventory.lua")
 dofile(modpath .. "/guide.lua")
 dofile(modpath .. "/table.lua")
 dofile(modpath .. "/legacy.lua")
+
+dofile(modpath .. "/validate.lua")
