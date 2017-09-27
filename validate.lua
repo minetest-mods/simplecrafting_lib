@@ -2,7 +2,7 @@ local get_invalid_items = function(recipe)
 	local invalid_items = {}
 			
 	for item, _ in pairs(recipe.input) do
-		if minetest.registered_items[item] == nil then
+		if minetest.registered_items[item] == nil and string.find(item, ":") ~= nil then
 			table.insert(invalid_items, item)
 		end
 	end
