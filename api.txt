@@ -1,10 +1,13 @@
-Parameter types:
+Parameter types common to various simplecrafting_lib functions:
 
 * craft_type - a string identifying a group of crafting recipes
 * item_name - a string identifying a particular type of item, eg "default:stone"
 * item_list - the product of an InvRef:get_list(listname) call
 * count_list - a list of items and quantities in the form as used in this mod's recipe definitions
 * listname - a string identifying a list within an inventory
+
+Recipe Registration
+-------------------
 
 simplecrafting_lib.register(craft_type, def)
 
@@ -53,9 +56,9 @@ simplecrafting_lib.register_reversible(craft_type, forward_def)
 * If there's more than one input type it will use "returns" to give them to the player in the reverse craft, using the input with the highest count as the primary output.
 * Don't use a recipe that has a "group:" input with this, because obviously that can't be turned into an output. The mod will assert if you try to do this.
 
-simplecrafting_lib.import_legacy_recipes()
-* When run, this will cause recipes added via minetest.register_craft to be added to this crafting system.
-* See simplecrafting_lib.register_recipe_import_filter(filter_function) for details on how to register a filter that will cause recipes to be imported
+Legacy Recipe Import
+-------------------
+These two methods will allow recipes to be imported from mods using the old built-in crafting system.
 
 simplecrafting_lib.register_recipe_import_filter(filter_function)
 * registers a filter function used by import_legacy_recipes. The filter function's signature must be of the form:
@@ -64,12 +67,40 @@ simplecrafting_lib.register_recipe_import_filter(filter_function)
 * recipe will be in the format described above for simplecrafting_lib.register. This method can modify the recipe parameter and those modifications will be reflected in the final registered version.
 * returns two values: craft_type (string) and clear_recipe (bool). If craft_type is nil then the recipe won't be imported. If clear_recipe is true then the recipe will be removed from the native crafting system.
 
+simplecrafting_lib.import_legacy_recipes()
+* When run, this will cause recipes added via minetest.register_craft to be added to this crafting system.
+* See simplecrafting_lib.register_recipe_import_filter(filter_function) for details on how to register a filter that will cause recipes to be imported
+
+Simple Simplecrafting
+---------------------
+The following methods are convenience functions that can be used by a mod to quickly implement a crafting system using simplecrafting_lib.
+
 simplecrafting_lib.craft_stack(craft_type, request_stack, source_inv, source_listname, destination_inv, destination_listname, player_or_pos)
 * A convenienence function that attempts to do a generic crafting operation as part of an on_metadata_inventory_take or on_metadata_inventory_move call. You don't need to use this method if you want to do something more sophisticated.
 * "request_stack" is an item stack that it is assumed the player has removed from a set of possible outputs, it is assumed that the contents of request_stack will be added to the destination inventory as a result of an existing inventory transfer and it will be deducted from the craft result. Note that the actual output of this crafting operation could be larger than request_stack if a recipe that produces an even multiple of request_stack cannot be found.
 * source_inv, source_listname are where the raw materials will be taken from
 * destination_inv, destination_listname are where the crafting outputs will be placed. This can be the same as the source inventory.
 * player_or_pos is either a player object or a pos table. This is used for logging purposes and as a place to put output in the event that destination_inv can't hold it all.
+
+simplecrafting_lib.show_crafting_guide(craft_type, player)
+* Displays a crafting guide to the player for the given craft_type
+
+simplecrafting_lib.generate_table_functions(craft_type, show_guides, alphabetize_items)
+* A convenience function that generates a table of functions that can be used directly with register node to create a basic crafting table.
+* The returned table of functions contains:
+	on_construct	
+	allow_metadata_inventory_move
+	allow_metadata_inventory_put
+	on_metadata_inventory_move
+	on_metadata_inventory_take
+	on_metadata_inventory_put
+	on_receive_fields
+	can_dig
+* Add these functions to a node definition and it will produce a node that allows crafting of the specified type to be done via a standardized formspec.
+
+Lower-level functions
+---------------------
+These functions can be used for more sophisticated and special-purpose crafting mechanics.
 
 simplecrafting_lib.get_crafting_info(craft_type)
 * returns a table with the members "recipe", "recipe_by_out" and "recipe_by_in" that contains all registered recipes for the craft type.
@@ -122,19 +153,3 @@ simplecrafting_lib.get_crafting_result(crafting_type, item_list, request_stack)
 * Returns a recipe with the inputs and outputs multiplied to match the requested quantity of ouput items in the crafted stack.
 * Note that the output could actually be larger than request_stack if an exactly matching recipe can't be found.
 * returns nil if crafting is impossible with the given source inventory
-
-simplecrafting_lib.show_crafting_guide(craft_type, player)
-* Displays a crafting guide to the player for the given craft_type
-
-simplecrafting_lib.generate_table_functions(craft_type, show_guides, alphabetize_items)
-* A convenience function that generates a table of functions that can be used directly with register node to create a basic crafting table.
-* The returned table of functions contains:
-	on_construct	
-	allow_metadata_inventory_move
-	allow_metadata_inventory_put
-	on_metadata_inventory_move
-	on_metadata_inventory_take
-	on_metadata_inventory_put
-	on_receive_fields
-	can_dig
-* Add these functions to a node definition and it will produce a node that allows crafting of the specified type to be done via a standardized formspec.
