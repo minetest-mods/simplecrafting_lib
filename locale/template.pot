@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-05-12 23:37-0600\n"
+"POT-Creation-Date: 2017-09-29 23:26-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,42 +17,73 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: craft.lua:27
+#: simplecrafting_lib\craft.lua:27
 msgid "@1 crafts @2"
 msgstr ""
 
-#: craft.lua:29
+#: simplecrafting_lib\craft.lua:29
 msgid "@1 was crafted at @2"
 msgstr ""
 
-#: craft.lua:31
+#: simplecrafting_lib\craft.lua:31
 msgid "@1 was crafted somewhere by someone"
 msgstr ""
 
-#: craft.lua:53
+#: simplecrafting_lib\craft.lua:53
 msgid ""
 "After crafting @1 some output items could not be placed into an inventory or "
 "dropped in world, and were lost."
 msgstr ""
 
-#: guide.lua:148
-#: guide.lua:168
+#: simplecrafting_lib\templates\guide.lua:148
+#: simplecrafting_lib\templates\guide.lua:168
 msgid "Prev"
 msgstr ""
 
-#: guide.lua:149
-#: guide.lua:169
+#: simplecrafting_lib\templates\guide.lua:149
+#: simplecrafting_lib\templates\guide.lua:169
 msgid "Next"
 msgstr ""
 
-#: guide.lua:150
+#: simplecrafting_lib\templates\guide.lua:150
 msgid ""
 "Product\n"
 "page @1"
 msgstr ""
 
-#: guide.lua:167
+#: simplecrafting_lib\templates\guide.lua:167
 msgid ""
 "Recipe\n"
 "page @1"
+msgstr ""
+
+#: simplecrafting_lib\templates\multifurnace.lua:68
+#: simplecrafting_lib\templates\table.lua:63
+msgid ""
+"Show\n"
+"Guide"
+msgstr ""
+
+#: simplecrafting_lib\templates\table.lua:43
+msgid "Next page of crafting products"
+msgstr ""
+
+#: simplecrafting_lib\templates\table.lua:49
+msgid "Previous page of crafting products"
+msgstr ""
+
+#: simplecrafting_lib\templates\table.lua:53
+msgid "Page @1"
+msgstr ""
+
+#: simplecrafting_lib\templates\table.lua:57
+msgid ""
+"Max\n"
+"Output"
+msgstr ""
+
+#: simplecrafting_lib\templates\table.lua:59
+msgid ""
+"Min\n"
+"Output"
 msgstr ""

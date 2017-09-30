@@ -11,7 +11,7 @@ You can continue to use minetest.register_craft to register crafts as normal,
 this mod hooks into it and can reinterpret recipes registered via it to use
 with the new crafting system as well.
 
-Alternately, use the "crafting.register" method to register recipes for the new
+Alternately, use the "simplecrafting_lib.register" method to register recipes for the new
 system exclusively. Examples are given below:
 
 -- Crafting Table
