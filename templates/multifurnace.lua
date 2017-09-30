@@ -3,6 +3,8 @@ local S, NS = dofile(MP.."/intllib.lua")
 
 simplecrafting_lib.generate_multifurnace_functions = function(craft_type, fuel_type, show_guides, alphabetize_items)
 
+local modpath_default = minetest.get_modpath("default")
+
 local function refresh_formspec(meta)
 	local cook_time = meta:get_float("cook_time") or 0.0
 	local total_cook_time = meta:get_float("total_cook_time") or 0.0
@@ -18,11 +20,8 @@ local function refresh_formspec(meta)
 
 	local product_page = meta:get_int("product_page") or 0
 	
-	local formspec = table.concat({
+	local inventory = {
 		"size[10,9.2]",
-		default.gui_bg,
-		default.gui_bg_img,
-		default.gui_slots,
 
 		"list[context;input;0,0.25;4,2;]",
 		"list[context;fuel;0,2.75;4,2]",
@@ -41,34 +40,40 @@ local function refresh_formspec(meta)
 		"listring[current_player;main]",
 		"listring[context;fuel]",
 		"listring[current_player;main]",		
-	})
+	}
+	
+	if modpath_default then
+		inventory[#inventory+1] = default.gui_bg
+		inventory[#inventory+1] = default.gui_bg_img
+		inventory[#inventory+1] = default.gui_slots
+	end
 
 	local target = meta:get_string("target_item")
 	if target ~= "" then
-		formspec = formspec .. "item_image_button[4.5,2;1,1;" .. target .. ";target;]"
+		inventory[#inventory+1] = "item_image_button[4.5,2;1,1;" .. target .. ";target;]"
 	else
-		formspec = formspec .. "item_image_button[4.5,2;1,1;;;]"
+		inventory[#inventory+1] = "item_image_button[4.5,2;1,1;;;]"
 	end
 
 	for i = 1, 8 do
 		local current_item = product_list[i + product_page*8]
 		if current_item then
-			formspec = formspec .. "item_image_button[" ..
+			inventory[#inventory+1] = "item_image_button[" ..
 			6 + (i-1)%4 .. "," .. 2.75 + math.floor((i-1)/4) ..
 			";1,1;" .. current_item.name .. ";product_".. i ..
 			";\n\n       " .. current_item.count .. "]"
 		else
-			formspec = formspec .. "item_image_button[" ..
+			inventory[#inventory+1] = "item_image_button[" ..
 			6 + (i-1)%4 .. "," .. 2.75 + math.floor((i-1)/4) ..
 			";1,1;;empty;]"
 		end
 	end
 	
 	if show_guides then
-		formspec = formspec .. "button[9.0,8.3;1,0.75;show_guide;"..S("Show\nGuide").."]"
+		inventory[#inventory+1] = "button[9.0,8.3;1,0.75;show_guide;"..S("Show\nGuide").."]"
 	end
 	
-	meta:set_string("formspec", formspec)
+	meta:set_string("formspec", table.concat(inventory))
 end
 
 local function refresh_products(meta)

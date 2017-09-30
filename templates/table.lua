@@ -19,15 +19,15 @@ local function make_formspec(row, item_count, max_mode)
 	end
 
 	local inventory = {
-		"size[10.2,10.2]"
-		, "list[context;store;0,0.5;2,5;]"
-		, "list[context;output;2.2,0;8,6;" , tostring(row*8), "]"
-		, "list[current_player;main;1.1,6.25;8,1;]"
-		, "list[current_player;main;1.1,7.5;8,3;8]"
-		, "listring[context;output]"
-		, "listring[current_player;main]"
-		, "listring[context;store]"
-		, "listring[current_player;main]"
+		"size[10.2,10.2]",
+		"list[context;store;0,0.5;2,5;]",
+		"list[context;output;2.2,0;8,6;" , tostring(row*8), "]",
+		"list[current_player;main;1.1,6.25;8,1;]",
+		"list[current_player;main;1.1,7.5;8,3;8]",
+		"listring[context;output]",
+		"listring[current_player;main]",
+		"listring[context;store]",
+		"listring[current_player;main]",
 	}
 	
 	if modpath_default then
