@@ -5,6 +5,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 --{
 --	show_guides = true or false
 --	alphabetize_items = true or false
+--	description = string
 --}
 
 
@@ -60,6 +61,10 @@ local function refresh_formspec(meta)
 		"listring[context;fuel]",
 		"listring[current_player;main]",		
 	}
+	
+	if multifurnace_def.description then
+		inventory[#inventory+1] = "label[4.5,0;"..multifurnace_def.description.."]"
+	end
 	
 	if modpath_default then
 		inventory[#inventory+1] = default.gui_bg

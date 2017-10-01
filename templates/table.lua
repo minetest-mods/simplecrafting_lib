@@ -40,6 +40,10 @@ local function make_formspec(row, item_count, max_mode)
 		"listring[current_player;main]",
 	}
 	
+	if table_def.description then
+		inventory[#inventory+1] = "label[0,0;"..table_def.description.."]"
+	end
+	
 	if modpath_default then
 		inventory[#inventory+1] = default.gui_bg
 		inventory[#inventory+1] = default.gui_bg_img
