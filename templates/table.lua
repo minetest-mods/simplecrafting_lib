@@ -3,10 +3,20 @@ local S, NS = dofile(MP.."/intllib.lua")
 
 local modpath_default = minetest.get_modpath("default")
 
-simplecrafting_lib.generate_table_functions = function(craft_type, show_guides, alphabetize_items)
+-- table_def can have the following:
+--{
+--	show_guides = true or false
+--	alphabetize_items = true or false
+--}
+
+simplecrafting_lib.generate_table_functions = function(craft_type, table_def)
+
+if table_def == nil then
+	table_def = {}
+end
 
 local function refresh_output(inv, max_mode)
-	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("store"), max_mode, alphabetize_items)
+	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("store"), max_mode, table_def.alphabetize_items)
 	inv:set_size("output", #craftable + ((8*6) - (#craftable%(8*6))))
 	inv:set_list("output", craftable)
 end
@@ -59,7 +69,7 @@ local function make_formspec(row, item_count, max_mode)
 		inventory[#inventory+1] = "button[9.3,8.7;1,0.75;max_mode;"..S("Min\nOutput").."]"
 	end
 	
-	if show_guides then
+	if table_def.show_guides then
 		inventory[#inventory+1] = "button[9.3,9.7;1,0.75;show_guide;"..S("Show\nGuide").."]"
 	end
 
@@ -158,7 +168,7 @@ local on_receive_fields = function(pos, formname, fields, sender)
 			max_mode = ""
 		end
 		refresh = true
-	elseif fields.show_guide and show_guides then
+	elseif fields.show_guide and table_def.show_guides then
 		simplecrafting_lib.show_crafting_guide(craft_type, sender)
 	else
 		return

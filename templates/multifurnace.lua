@@ -1,7 +1,18 @@
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
-simplecrafting_lib.generate_multifurnace_functions = function(craft_type, fuel_type, show_guides, alphabetize_items)
+-- multifurnace_def can have the following:
+--{
+--	show_guides = true or false
+--	alphabetize_items = true or false
+--}
+
+
+simplecrafting_lib.generate_multifurnace_functions = function(craft_type, fuel_type, multifurnace_def)
+
+if multifurnace_def == nil then
+	multifurnace_def = {}
+end
 
 local modpath_default = minetest.get_modpath("default")
 
@@ -69,7 +80,7 @@ local function refresh_formspec(meta)
 		end
 	end
 	
-	if show_guides then
+	if multifurnace_def.show_guides then
 		inventory[#inventory+1] = "button[9.0,8.3;1,0.75;show_guide;"..S("Show\nGuide").."]"
 	end
 	
@@ -78,7 +89,7 @@ end
 
 local function refresh_products(meta)
 	local inv = meta:get_inventory()
-	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), false, alphabetize_items)
+	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), false, multifurnace_def.alphabetize_items)
 	local product_list = {}
 	for _, craft in pairs(craftable) do
 		table.insert(product_list, craft:to_table())
@@ -282,7 +293,7 @@ local on_receive_fields = function(pos, formname, fields, sender)
 		end
 	end
 	
-	if fields.show_guide and show_guides then
+	if fields.show_guide and multifurnace_def.show_guides then
 		simplecrafting_lib.show_crafting_guide(craft_type, sender)
 	end
 	
