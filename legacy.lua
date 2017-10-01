@@ -21,6 +21,21 @@ local function create_recipe(legacy)
 	return recipe
 end
 
+-- It's possible to have a recipe with a replacements pair that gives back more than what's being replaced,
+-- eg in cottages the straw mat recipe replaces 1 default:stone with 3 farming:seed_wheats.
+-- This parses out that possibility
+local function get_item_and_quantity(item_string)
+	local string_split_list = {}
+	for v in string.gmatch(item_string, "%S+") do
+		table.insert(string_split_list, v)
+	end	
+	if #string_split_list == 1 then
+		return item_string, 1 -- no number provided
+	else
+		return string_split_list[1], tonumber(string_split_list[#string_split_list])
+	end	
+end
+
 local function process_shaped_recipe(recipe)
 	local legacy = {items={},returns={},output=recipe.output}
 	local count = {}
@@ -32,7 +47,8 @@ local function process_shaped_recipe(recipe)
 	end
 	if recipe.replacements then
 		for _,pair in pairs(recipe.replacements) do
-			legacy.returns[pair[2]] = count[pair[1]]
+			local item_name, item_quantity = get_item_and_quantity(pair[2])
+			legacy.returns[item_name] = count[pair[1]] * item_quantity
 		end
 	end
 	return create_recipe(legacy)
@@ -46,7 +62,8 @@ local function process_shapeless_recipe(recipe)
 			count[item] = (count[item] or 0) + 1
 		end
 		for _,pair in pairs(recipe.replacements) do
-			legacy.returns[pair[2]] = count[pair[1]]
+			local item_name, item_quantity = get_item_and_quantity(pair[2])
+			legacy.returns[item_name] = count[pair[1]] * item_quantity
 		end
 	end
 	legacy.items = recipe.recipe
@@ -68,7 +85,8 @@ local function process_fuel_recipe(recipe)
 	if recipe.replacements then
 		legacy.returns = {}
 		for _,pair in pairs(recipe.replacements) do
-			legacy.returns[pair[2]] = 1
+			local item_name, item_quantity = get_item_and_quantity(pair[2])
+			legacy.returns[item_name] = item_quantity
 		end
 	end	
 	return legacy

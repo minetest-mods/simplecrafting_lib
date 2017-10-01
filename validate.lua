@@ -27,7 +27,7 @@ local validate = function()
 			if #invalid_items > 0 then
 				minetest.log("error", "[simplecrafting_lib] recipe " .. dump(contents.recipes[i])
 					.. "\nof type " .. craft_type .. " contains invalid items: "
-					.. table.concat(invalid_items, " ") .. "\nRecipe removed.")
+					.. table.concat(invalid_items, " ") .. "\nRecipe removed. This could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
 				table.remove(contents.recipes, i)
 			end			
 		end
