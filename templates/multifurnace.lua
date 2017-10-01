@@ -28,8 +28,16 @@ local function refresh_formspec(meta)
 	if total_burn_time > 0 then burn_percent = math.floor((math.min(burn_time, total_burn_time) / total_burn_time) * 100) else burn_percent = 0 end
 
 	local product_list = minetest.deserialize(meta:get_string("product_list"))
-
 	local product_page = meta:get_int("product_page") or 0
+	local max_pages = math.floor(#product_list / 8)
+	
+	if product_page > max_pages then
+		product_page = max_pages
+		meta:set_int("product_page", product_page)
+	elseif product_page < 0 then
+		product_page = 0
+		meta:set_int("product_page", product_page)
+	end
 	
 	local inventory = {
 		"size[10,9.2]",
@@ -66,6 +74,13 @@ local function refresh_formspec(meta)
 		inventory[#inventory+1] = "item_image_button[4.5,2;1,1;;;]"
 	end
 
+	if product_page > 0 then
+		inventory[#inventory+1] = "button[6.0,2.5;1,0.1;prev_page;<<]"	
+	end
+	if product_page < max_pages then
+		inventory[#inventory+1] = "button[9.0,2.5;1,0.1;next_page;>>]"			
+	end
+	
 	for i = 1, 8 do
 		local current_item = product_list[i + product_page*8]
 		if current_item then
@@ -295,6 +310,14 @@ local on_receive_fields = function(pos, formname, fields, sender)
 	
 	if fields.show_guide and multifurnace_def.show_guides then
 		simplecrafting_lib.show_crafting_guide(craft_type, sender)
+	end
+	
+	if fields.next_page then
+		meta:set_int("product_page", meta:get_int("product_page") + 1)
+		refresh_formspec(meta)
+	elseif fields.prev_page then
+		meta:set_int("product_page", meta:get_int("product_page") - 1)	
+		refresh_formspec(meta)
 	end
 	
 	on_timer(pos, 0)
