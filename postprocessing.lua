@@ -102,45 +102,47 @@ end
 local disintermediate = function(craft_type, contents)
 	local disintermediating_recipes = {}
 	for _, recipe in pairs(contents.recipes) do
-		for in_item, in_count in pairs(recipe.input) do
-			-- check if there's recipes in this crafting type that produces the input item
-			if contents.recipes_by_out[in_item] then
-				-- find a recipe whose output divides evenly into the input
-				for _, recipe_producing_in_item in pairs(contents.recipes_by_out[in_item]) do
-					if in_count % recipe_producing_in_item.output[in_item] == 0 then
-						local multiplier = in_count / recipe_producing_in_item.output[in_item]
-						local working_recipe = deep_copy(recipe)
-						working_recipe.input[in_item] = nil -- clear the input from the working recipe (soon to be our newly created disintermediated recipe)
-						-- add the inputs and outputs of the disintermediating recipe
-						for new_in_item, new_in_count in pairs(recipe_producing_in_item.input) do
-							if not working_recipe.input[new_in_item] then
-								working_recipe.input[new_in_item] = new_in_count * multiplier
-							else
-								working_recipe.input[new_in_item] = working_recipe.input[new_in_item] + new_in_count * multiplier
-							end						
-						end
-						for new_out_item, new_out_count in pairs(recipe_producing_in_item.output) do
-							if new_out_item ~= in_item then -- this output is what's replacing the input we deleted, so don't add it.
-								if not working_recipe.output[new_out_item] then
-									working_recipe.output[new_out_item] = new_out_count * multiplier
+		if not recipe.do_not_disintermediate then
+			for in_item, in_count in pairs(recipe.input) do
+				-- check if there's recipes in this crafting type that produces the input item
+				if contents.recipes_by_out[in_item] then
+					-- find a recipe whose output divides evenly into the input
+					for _, recipe_producing_in_item in pairs(contents.recipes_by_out[in_item]) do
+						if not recipe_producing_in_item.do_not_use_for_disintermediation and in_count % recipe_producing_in_item.output[in_item] == 0 then
+							local multiplier = in_count / recipe_producing_in_item.output[in_item]
+							local working_recipe = deep_copy(recipe)
+							working_recipe.input[in_item] = nil -- clear the input from the working recipe (soon to be our newly created disintermediated recipe)
+							-- add the inputs and outputs of the disintermediating recipe
+							for new_in_item, new_in_count in pairs(recipe_producing_in_item.input) do
+								if not working_recipe.input[new_in_item] then
+									working_recipe.input[new_in_item] = new_in_count * multiplier
 								else
-									working_recipe.output[new_out_item] = working_recipe.output[new_out_item] + new_out_count * multiplier
+									working_recipe.input[new_in_item] = working_recipe.input[new_in_item] + new_in_count * multiplier
+								end						
+							end
+							for new_out_item, new_out_count in pairs(recipe_producing_in_item.output) do
+								if new_out_item ~= in_item then -- this output is what's replacing the input we deleted, so don't add it.
+									if not working_recipe.output[new_out_item] then
+										working_recipe.output[new_out_item] = new_out_count * multiplier
+									else
+										working_recipe.output[new_out_item] = working_recipe.output[new_out_item] + new_out_count * multiplier
+									end
 								end
 							end
-						end
-						for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
-							if not working_recipe.returns[new_returns_item] then
-								working_recipe.returns[new_returns_item] = new_returns_count * multiplier
-							else
-								working_recipe.returns[new_returns_item] = working_recipe.returns[new_returns_item] + new_returns_count * multiplier
-							end						
-						end
+							for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
+								if not working_recipe.returns[new_returns_item] then
+									working_recipe.returns[new_returns_item] = new_returns_count * multiplier
+								else
+									working_recipe.returns[new_returns_item] = working_recipe.returns[new_returns_item] + new_returns_count * multiplier
+								end						
+							end
 						
-						if operative_recipe(working_recipe) then
-							table.insert(disintermediating_recipes, working_recipe)
+							if operative_recipe(working_recipe) then
+								table.insert(disintermediating_recipes, working_recipe)
+							end
 						end
-					end
-				end				
+					end				
+				end
 			end
 		end
 	end
@@ -177,6 +179,7 @@ local postprocess = function()
 					.. "or reduce the value of this craft type's disintermediation_cycles property to prevent "
 					.. "the recipe growth from getting too bad.")
 			end
+			previous_count = new_count
 			cycles = cycles - 1
 		end	
 	end

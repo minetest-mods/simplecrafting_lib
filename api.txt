@@ -173,7 +173,24 @@ simplecrafting_lib.get_crafting_result(crafting_type, item_list, request_stack)
 * Note that the output could actually be larger than request_stack if an exactly matching recipe can't be found.
 * returns nil if crafting is impossible with the given source inventory
 
+Automatic Disintermediation
+---------------------------
+
 simplecrafting_lib.set_craft_type_disintermediation_cycles(craft_type, cycle_count)
 * This is a somewhat more advanced function. Setting a crafting type's disintermediation cycle count greater than zero will cause the recipes for that type to be searched for recipes that produce outputs that are inputs for other recipes within that type. New recipes will then be generated to allow the player to skip those intermediate steps. For example, if there was a recipe A + B => C and a recipe C + D => E within a crafting type, disintermediation would automatically generate the recipe A + B + D => E for the player. The original recipes are left intact, this only adds new recipes.
 * The disintermediation process can be repeated up to cycle_count times, since each run can provide additional "shortcuts" based on the recipes that were added in the previous run. Normally the recipe set should converge on an optimal state where further disintermediation cycles won't add any new recipes.
 * Note however that it is possible to have a set of recipes where repeatedly running disintermediation will result in an endless exponential growth of new recipes. This usually happens when there's some recipe that "recycles" an output back into its original inputs. This is why it's a good idea to keep the cycle_count low, possibly no more than 1 or 2. If runaway recipe growth like this occurs then simplecrafting_lib will log an error indicating what craft_type got into that state. You'll have to examine the resulting craft_type's guide and figure out where the source of the problem is based on which outputs are building up an unreasonable number of recipes.
+
+There are two ways that one can "fine-tune" the disintermediation process to prevent runaways like this. Recipes can have the flags "do_not_disintermediate" or "do_not_use_for_disintermediation" added to them to break a loop like this. The two flags can be used to attack the problem from two different sides; "do_not_disintermediate" prevents disintermediation from trying to find replacement recipes for that recipe's inputs, "and do_not_use_for_disintermediation" prevents disintermediation from using that recipe *as* a replacement for some other recipe's inputs.
+
+As a concrete example the [digtron] mod uses a "digtron_core" craft item as an intermediate in a lot of its recipes, and allows nodes crafted from them to be broken back down again to recover digtron cores. When disintermediation is run on a craft_type containing digtron's recipes this causes a very rapid exponential growth in possible recipes. However, adding the following to the legacy recipe importer:
+
+simplecrafting_lib.register_recipe_import_filter(function(legacy_method, recipe)
+...
+	if recipe.output["digtron:digtron_core"] and not recipe.input["default:mese_crystal_fragment"] then
+		recipe.do_not_use_for_disintermediation = true
+	end
+...
+end
+
+results in only the original make-a-digtron-core-from-scratch being left as an option for disintermediation.
