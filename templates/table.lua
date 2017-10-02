@@ -16,7 +16,7 @@ if table_def == nil then
 end
 
 local function refresh_output(inv, max_mode)
-	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("store"), max_mode, table_def.alphabetize_items)
+	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), max_mode, table_def.alphabetize_items)
 	inv:set_size("output", #craftable + ((8*6) - (#craftable%(8*6))))
 	inv:set_list("output", craftable)
 end
@@ -30,13 +30,13 @@ local function make_formspec(row, item_count, max_mode)
 
 	local inventory = {
 		"size[10.2,10.2]",
-		"list[context;store;0,0.5;2,5;]",
+		"list[context;input;0,0.5;2,5;]",
 		"list[context;output;2.2,0;8,6;" , tostring(row*8), "]",
 		"list[current_player;main;1.1,6.25;8,1;]",
 		"list[current_player;main;1.1,7.5;8,3;8]",
 		"listring[context;output]",
 		"listring[current_player;main]",
-		"listring[context;store]",
+		"listring[context;input]",
 		"listring[current_player;main]",
 	}
 	
@@ -94,7 +94,7 @@ end
 local on_construct = function(pos)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	inv:set_size("store", 2*5)
+	inv:set_size("input", 2*5)
 	inv:set_size("output", 8*6)
 	meta:set_int("row", 0)
 	meta:set_string("formspec", make_formspec(0, 0, true))
@@ -104,8 +104,8 @@ local allow_metadata_inventory_move = function(pos, from_list, from_index, to_li
 	if to_list == "output" then
 		return 0
 	end
-	if to_list == "store" then
-		if from_list == "store" then
+	if to_list == "input" then
+		if from_list == "input" then
 			return number
 		end
 		local meta = minetest.get_meta(pos)
@@ -122,7 +122,7 @@ local allow_metadata_inventory_put = function(pos, list_name, index, stack, play
 	if list_name == "output" then
 		return 0
 	end
-	if list_name == "store" and simplecrafting_lib.is_possible_input(craft_type, stack:get_name()) then
+	if list_name == "input" and simplecrafting_lib.is_possible_input(craft_type, stack:get_name()) then
 		return stack:get_count()
 	end
 	return 0
@@ -130,10 +130,10 @@ end
 	
 local on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, number, player)
 	local meta = minetest.get_meta(pos)
-	if from_list == "output" and to_list == "store" then
+	if from_list == "output" and to_list == "input" then
 		local inv = meta:get_inventory()
 		local stack = inv:get_stack(to_list, to_index)
-		simplecrafting_lib.craft_stack(craft_type, stack, inv, "store", inv, to_list, player)
+		simplecrafting_lib.craft_stack(craft_type, stack, inv, "input", inv, to_list, player)
 	end
 	refresh_inv(meta)
 end
@@ -142,7 +142,7 @@ local on_metadata_inventory_take = function(pos, list_name, index, stack, player
 	local meta = minetest.get_meta(pos)
 	if list_name == "output" then
 		local inv = meta:get_inventory()
-		simplecrafting_lib.craft_stack(craft_type, stack, inv, "store", player:get_inventory(), "main", player)
+		simplecrafting_lib.craft_stack(craft_type, stack, inv, "input", player:get_inventory(), "main", player)
 	end
 	refresh_inv(meta)
 end
@@ -190,7 +190,7 @@ end
 local can_dig = function(pos, player)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	return inv:is_empty("store")
+	return inv:is_empty("input")
 end
 
 return {
