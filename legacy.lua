@@ -72,7 +72,8 @@ end
 
 local function process_cooking_recipe(recipe)
 	local legacy = {input={},output={}, method="cooking"}
-	legacy.output[recipe.output] = 1
+	local output_item, output_quantity = get_item_and_quantity(recipe.output)
+	legacy.output[output_item] = output_quantity
 	legacy.input[recipe.recipe] = 1
 	legacy.cooktime = recipe.cooktime or 3			
 	return legacy
