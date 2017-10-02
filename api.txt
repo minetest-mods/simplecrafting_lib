@@ -84,7 +84,12 @@ simplecrafting_lib.craft_stack(craft_type, request_stack, source_inv, source_lis
 
 simplecrafting_lib.show_crafting_guide(craft_type, player)
 * Displays a crafting guide to the player for the given craft_type
-* The crafting guide can be given a text label to indicate what kind of crafting it shows by adding a "description" to the craft_type's info, like so: simplecrafting_lib.get_crafting_info("smelter").description = "Smelting"
+
+simplecrafting_lib.set_craft_type_description(craft_type, description)
+* A crafting type can be given a human-readable text label by adding a "description" to the craft_type's info. This label is used by the default crafting guides.
+
+simplecrafting_lib.get_craft_type_description(craft_type)
+* Returns the description set by the previous function.
 
 simplecrafting_lib.generate_table_functions(craft_type, show_guides, alphabetize_items)
 * A convenience function that generates a table of functions that can be used directly with register node to create a basic crafting table.
@@ -167,3 +172,8 @@ simplecrafting_lib.get_crafting_result(crafting_type, item_list, request_stack)
 * Returns a recipe with the inputs and outputs multiplied to match the requested quantity of ouput items in the crafted stack.
 * Note that the output could actually be larger than request_stack if an exactly matching recipe can't be found.
 * returns nil if crafting is impossible with the given source inventory
+
+simplecrafting_lib.set_craft_type_disintermediation_cycles(craft_type, cycle_count)
+* This is a somewhat more advanced function. Setting a crafting type's disintermediation cycle count greater than zero will cause the recipes for that type to be searched for recipes that produce outputs that are inputs for other recipes within that type. New recipes will then be generated to allow the player to skip those intermediate steps. For example, if there was a recipe A + B => C and a recipe C + D => E within a crafting type, disintermediation would automatically generate the recipe A + B + D => E for the player. The original recipes are left intact, this only adds new recipes.
+* The disintermediation process can be repeated up to cycle_count times, since each run can provide additional "shortcuts" based on the recipes that were added in the previous run. Normally the recipe set should converge on an optimal state where further disintermediation cycles won't add any new recipes.
+* Note however that it is possible to have a set of recipes where repeatedly running disintermediation will result in an endless exponential growth of new recipes. This usually happens when there's some recipe that "recycles" an output back into its original inputs. This is why it's a good idea to keep the cycle_count low, possibly no more than 1 or 2. If runaway recipe growth like this occurs then simplecrafting_lib will log an error indicating what craft_type got into that state. You'll have to examine the resulting craft_type's guide and figure out where the source of the problem is based on which outputs are building up an unreasonable number of recipes.

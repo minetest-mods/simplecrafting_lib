@@ -119,7 +119,7 @@ simplecrafting_lib.register = function(craft_type, def)
 	-- to keep things tidy and efficient.
 	for _, existing_recipe in pairs(crafting_info.recipes) do
 		if deep_equals(def, existing_recipe) then
-			return true
+			return false
 		end
 	end
 

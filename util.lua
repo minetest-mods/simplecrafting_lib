@@ -137,6 +137,17 @@ simplecrafting_lib.get_crafting_info = function(craft_type)
 	return simplecrafting_lib.type[craft_type]
 end
 
+simplecrafting_lib.set_craft_type_description = function(craft_type, desc)
+	simplecrafting_lib.get_crafting_info(craft_type).description = desc
+end
+simplecrafting_lib.get_craft_type_description = function(craft_type)
+	return simplecrafting_lib.get_crafting_info(craft_type).description
+end
+
+simplecrafting_lib.set_craft_type_disintermediation_cycles = function(craft_type, cycle_count)
+	simplecrafting_lib.get_crafting_info(craft_type).disintermediation_cycles = cycle_count
+end
+
 -- returns a fuel definition for the item if it is fuel, nil otherwise
 -- note: will always return the last-registered definition for a particular item
 -- or group.

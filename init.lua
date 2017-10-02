@@ -9,8 +9,8 @@ dofile(modpath .. "/craft.lua")
 dofile(modpath .. "/inventory.lua")
 dofile(modpath .. "/legacy.lua")
 
-dofile(modpath .. "/validate.lua")
-
 dofile(modpath .. "/templates/guide.lua")
 dofile(modpath .. "/templates/table.lua")
 dofile(modpath .. "/templates/multifurnace.lua")
+
+dofile(modpath .. "/postprocessing.lua")
