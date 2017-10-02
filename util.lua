@@ -137,14 +137,14 @@ simplecrafting_lib.get_crafting_info = function(craft_type)
 	return simplecrafting_lib.type[craft_type]
 end
 
-simplecrafting_lib.set_craft_type_description = function(craft_type, desc)
+simplecrafting_lib.set_description = function(craft_type, desc)
 	simplecrafting_lib.get_crafting_info(craft_type).description = desc
 end
-simplecrafting_lib.get_craft_type_description = function(craft_type)
+simplecrafting_lib.get_description = function(craft_type)
 	return simplecrafting_lib.get_crafting_info(craft_type).description
 end
 
-simplecrafting_lib.set_craft_type_disintermediation_cycles = function(craft_type, cycle_count)
+simplecrafting_lib.set_disintermediation_cycles = function(craft_type, cycle_count)
 	simplecrafting_lib.get_crafting_info(craft_type).disintermediation_cycles = cycle_count
 end
 
