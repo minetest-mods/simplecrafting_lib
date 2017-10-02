@@ -84,6 +84,7 @@ simplecrafting_lib.craft_stack(craft_type, request_stack, source_inv, source_lis
 
 simplecrafting_lib.show_crafting_guide(craft_type, player)
 * Displays a crafting guide to the player for the given craft_type
+* The crafting guide can be given a text label to indicate what kind of crafting it shows by adding a "description" to the craft_type's info, like so: simplecrafting_lib.get_crafting_info("smelter").description = "Smelting"
 
 simplecrafting_lib.generate_table_functions(craft_type, show_guides, alphabetize_items)
 * A convenience function that generates a table of functions that can be used directly with register node to create a basic crafting table.
@@ -97,6 +98,19 @@ simplecrafting_lib.generate_table_functions(craft_type, show_guides, alphabetize
 	on_receive_fields
 	can_dig
 * Add these functions to a node definition and it will produce a node that allows crafting of the specified type to be done via a standardized formspec.
+
+simplecrafting_lib.register_crafting_guide_item = function(item_name, craft_type, guide_def)
+* Registers a basic crafting guide item. guide_def has many options.
+	{
+		description = string description the item will get. Defaults to "<description of craft type> Guide" (method of setting this description is given under the "show_crafting_guide" documentation above, if not set will simply use the craft_type string directly)
+		inventory_image = inventory image to be used with this item. Defaults to the book texture included with simplecrafting_lib
+		guide_color = ColorString. If defined, the inventory image will be tinted with this color.
+		wield_image = image to be used when wielding this item. Defaults to inventory image.
+		groups = groups this item will belong to. Defaults to {book = 1}
+		stack_max = maximum stack size. Defaults to 1.
+		wield_scale = scale of weild_image, defaults to nil (same as standard craftitem def)
+		copy_item_to_book = an item name string (eg, "workshops:smelter"). If the default mod is installed, a recipe will be generated that combines a default:book with copy_item_to_book and returns this guide and copy_item_to_book. In this manner the player can only get a handy portable reference guide if they are already in possession of the thing that the guide is used with. If copy_item_to_book is not defined then no crafting recipe is generated for this guide.
+	}
 
 Lower-level functions
 ---------------------

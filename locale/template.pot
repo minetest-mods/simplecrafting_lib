@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-09-29 23:26-0600\n"
+"POT-Creation-Date: 2017-10-01 19:13-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,72 +17,59 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: simplecrafting_lib\craft.lua:27
-msgid "@1 crafts @2"
-msgstr ""
-
-#: simplecrafting_lib\craft.lua:29
-msgid "@1 was crafted at @2"
-msgstr ""
-
-#: simplecrafting_lib\craft.lua:31
-msgid "@1 was crafted somewhere by someone"
-msgstr ""
-
-#: simplecrafting_lib\craft.lua:53
-msgid ""
-"After crafting @1 some output items could not be placed into an inventory or "
-"dropped in world, and were lost."
-msgstr ""
-
-#: simplecrafting_lib\templates\guide.lua:148
-#: simplecrafting_lib\templates\guide.lua:168
+#: templates\guide.lua:162
+#: templates\guide.lua:182
 msgid "Prev"
 msgstr ""
 
-#: simplecrafting_lib\templates\guide.lua:149
-#: simplecrafting_lib\templates\guide.lua:169
+#: templates\guide.lua:163
+#: templates\guide.lua:183
 msgid "Next"
 msgstr ""
 
-#: simplecrafting_lib\templates\guide.lua:150
+#: templates\guide.lua:164
 msgid ""
 "Product\n"
 "page @1"
 msgstr ""
 
-#: simplecrafting_lib\templates\guide.lua:167
+#: templates\guide.lua:181
 msgid ""
 "Recipe\n"
 "page @1"
 msgstr ""
 
-#: simplecrafting_lib\templates\multifurnace.lua:68
-#: simplecrafting_lib\templates\table.lua:63
+#: templates\guide.lua:324
+#: templates\guide.lua:326
+msgid "@1 Recipes"
+msgstr ""
+
+#: templates\multifurnace.lua:104
+#: templates\table.lua:77
 msgid ""
 "Show\n"
 "Guide"
 msgstr ""
 
-#: simplecrafting_lib\templates\table.lua:43
+#: templates\table.lua:57
 msgid "Next page of crafting products"
 msgstr ""
 
-#: simplecrafting_lib\templates\table.lua:49
+#: templates\table.lua:63
 msgid "Previous page of crafting products"
 msgstr ""
 
-#: simplecrafting_lib\templates\table.lua:53
+#: templates\table.lua:67
 msgid "Page @1"
 msgstr ""
 
-#: simplecrafting_lib\templates\table.lua:57
+#: templates\table.lua:71
 msgid ""
 "Max\n"
 "Output"
 msgstr ""
 
-#: simplecrafting_lib\templates\table.lua:59
+#: templates\table.lua:73
 msgid ""
 "Min\n"
 "Output"

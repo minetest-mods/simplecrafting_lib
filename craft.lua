@@ -24,11 +24,11 @@ simplecrafting_lib.craft_stack = function(crafting_type, request_stack, source_i
 			
 			-- log it
 			if player then
-				minetest.log("action", S("@1 crafts @2", player:get_player_name(), item_name .. " " .. tostring(craft_result.output[item_name])))
+				minetest.log("action", player:get_player_name() .. " crafts " .. item_name .. " " .. tostring(craft_result.output[item_name]))
 			elseif pos then
-				minetest.log("action", S("@1 was crafted at @2", item_name .. " " .. tostring(craft_result.output[item_name]), minetest.pos_to_string(pos)))
+				minetest.log("action", item_name .. " " .. tostring(craft_result.output[item_name]) .. " was crafted at " .. minetest.pos_to_string(pos))
 			else
-				minetest.log("action", S("@1 was crafted somewhere by someone", item_name .. " " .. tostring(craft_result.output[item_name])))
+				minetest.log("action", item_name .. " " .. tostring(craft_result.output[item_name]) ..  "was crafted somewhere by someone.")
 			end
 					
 			-- subtract the amount of output that the player's getting anyway (from having taken it)
@@ -50,8 +50,8 @@ simplecrafting_lib.craft_stack = function(crafting_type, request_stack, source_i
 					break
 				end
 				if still_has_leftovers then
-					minetest.log("error", S("After crafting @1 some output items could not be placed into an inventory or dropped in world, and were lost.",
-						item_name .. " " .. tostring(craft_result.output[item_name])))
+					minetest.log("error", "After crafting " .. item_name .. " " .. tostring(craft_result.output[item_name]) ..
+						" some output items could not be placed into an inventory or dropped in world, and were lost.")
 				end
 			end
 			return true
