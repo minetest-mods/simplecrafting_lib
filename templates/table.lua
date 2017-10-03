@@ -7,12 +7,22 @@ local modpath_default = minetest.get_modpath("default")
 --{
 --	show_guides = true or false
 --	alphabetize_items = true or false
+--	description = string
+--	hopper_node_name = string
 --}
 
 simplecrafting_lib.generate_table_functions = function(craft_type, table_def)
 
 if table_def == nil then
 	table_def = {}
+end
+
+if table_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+	hopper:add_container({
+		{"top", table_def.hopper_node_name, "input"},
+		{"bottom", table_def.hopper_node_name, "input"},
+		{"side", table_def.hopper_node_name, "input"},
+	})
 end
 
 local function refresh_output(inv, max_mode)

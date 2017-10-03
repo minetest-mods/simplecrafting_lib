@@ -6,6 +6,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	show_guides = true or false
 --	alphabetize_items = true or false
 --	description = string
+--	hopper_node_name = string
 --}
 
 
@@ -13,6 +14,14 @@ simplecrafting_lib.generate_multifurnace_functions = function(craft_type, fuel_t
 
 if multifurnace_def == nil then
 	multifurnace_def = {}
+end
+
+if multifurnace_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+	hopper:add_container({
+		{"top", multifurnace_def.hopper_node_name, "output"},
+		{"bottom", multifurnace_def.hopper_node_name, "input"},
+		{"side", multifurnace_def.hopper_node_name, "fuel"},
+})
 end
 
 local modpath_default = minetest.get_modpath("default")

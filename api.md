@@ -143,8 +143,10 @@ A convenience function that generates a table of functions that can be used dire
 		show_guides = true,
 		alphabetize_items = false,
 		description = "String",
+		hopper_node_name = "mod:node",
 	}
 
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named.
 
 The returned table of functions contains:
 
@@ -173,8 +175,11 @@ A convenience function that generates a table of functions that can be used dire
 		show_guides = true,
 		alphabetize_items = false,
 		description = "String",
+		hopper_node_name = "mod:node",
 	}
 
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named.
+	
 The returned table of functions contains:
 
 		allow_metadata_inventory_move
