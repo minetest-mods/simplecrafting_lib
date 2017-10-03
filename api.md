@@ -193,21 +193,30 @@ Add these functions to a node definition and it will produce a node that allows 
 
 An example of the crafting interface that a multifurnace template can produce.
 
-## `simplecrafting_lib.register_crafting_guide_item = function(item_name, craft_type, guide_def)`
+## `simplecrafting_lib.register_crafting_guide_item(item_name, craft_type, guide_def)`
 
 Registers a basic crafting guide item. `guide_def` has many options.
 
 	{
-		description = string description the item will get. Defaults to "<description of craft type> Guide" (method of setting this description is given under the show_crafting_guide documentation above, if not set will simply use the craft_type string directly)
-		inventory_image = inventory image to be used with this item. Defaults to the book texture included with simplecrafting_lib
-		guide_color = ColorString. If defined, the inventory image will be tinted with this color.
-		wield_image = image to be used when wielding this item. Defaults to inventory image.
-		groups = groups this item will belong to. Defaults to **{book = 1}**
-		stack_max = maximum stack size. Defaults to 1.
-		wield_scale = scale of wield_image, defaults to **nil** (same as standard craftitem def)
-		copy_item_to_book = an item name string (eg, **"workshops:smelter"**). If the default mod is installed, a recipe will be generated that combines a **"default:book"** with copy_item_to_book and returns this guide and copy_item_to_book. In this manner the player can only get a handy portable reference guide if they are already in possession of the thing that the guide is used with. If copy_item_to_book is not defined then no crafting recipe is generated for this guide.
+		description = "string",
+		inventory_image = "image.png",
+		guide_color = "#000000",
+		wield_image = "image.png",
+		groups = {book = 1},
+		stack_max = 1,
+		wield_scale = nil,
+		copy_item_to_book = "mod:item",
 	}
 
+* `description` is a string description the item will get. Defaults to "<description of craft type> Guide" (method of setting this description is given under the show_crafting_guide documentation above, if not set will simply use the craft_type string directly)
+* `inventory_image` is the inventory image to be used with this item. Defaults to the book texture included with simplecrafting_lib
+* `guide_color` is a ColorString. If defined, the inventory image will be tinted with this color.
+* `wield_image` is the image to be used when wielding this item. Defaults to inventory image.
+* `wield_scale` is the scale of wield_image, defaults to **nil** (same as standard craftitem def)
+* `groups` is a table of the groups this item will belong to. Defaults to **{book = 1}**
+* `stack_max` is the maximum stack size. Defaults to 1.
+* `copy_item_to_book` is an item name string (eg, **"workshops:smelter"**). If the `[default]` mod is installed a recipe will be generated that combines a **"default:book"** with `copy_item_to_book` and returns this guide and `copy_item_to_book`. In this manner the player can only get a handy portable reference guide if they are already in possession of the thing that the guide is used with. If `copy_item_to_book` is not defined then no crafting recipe is generated for this guide.
+	
 # Lower-level functions
 
 These functions can be used for more sophisticated and special-purpose crafting mechanics.
