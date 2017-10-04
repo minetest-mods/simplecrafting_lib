@@ -3,10 +3,12 @@ local S, NS = dofile(MP.."/intllib.lua")
 
 -- multifurnace_def can have the following:
 --{
---	show_guides = true or false
---	alphabetize_items = true or false
---	description = string
---	hopper_node_name = string
+--	show_guides = true or false,
+--	alphabetize_items = true or false,
+--	description = string,
+--	hopper_node_name = string,
+--	enable_pipeworks = true or false,
+--	protect_inventory = true or false
 --}
 
 
@@ -16,6 +18,7 @@ if multifurnace_def == nil then
 	multifurnace_def = {}
 end
 
+-- Hopper compatibility
 if multifurnace_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
 	hopper:add_container({
 		{"top", multifurnace_def.hopper_node_name, "output"},
@@ -228,11 +231,15 @@ local on_construct = function(pos)
 	refresh_formspec(meta)
 end
 
+local _pipeworks_override_player = {} -- Horrible hack. Pipeworks gets to insert stuff regardless of protection.
+
 local function allow_metadata_inventory_put(pos, listname, index, stack, player)
-	if minetest.is_protected(pos, player:get_player_name()) then
+	if multifurnace_def.protect_inventory and
+		player ~= _pipeworks_override_player and
+		minetest.is_protected(pos, player:get_player_name())
+		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
 		return 0
 	end
-	local meta = minetest.get_meta(pos)
 	if listname == "input" then
 		if simplecrafting_lib.is_possible_input(craft_type, stack:get_name()) then
 			return stack:get_count()
@@ -252,8 +259,43 @@ local function allow_metadata_inventory_put(pos, listname, index, stack, player)
 	return stack:get_count()
 end
 
+-- Pipeworks compatibility
+local tube = nil
+if multifurnace_def.enable_pipeworks and minetest.get_modpath("pipeworks") then
+	tube = {
+		insert_object = function(pos, node, stack, direction)
+			local meta = minetest.get_meta(pos)
+			local inv = meta:get_inventory()
+			local timer = minetest.get_node_timer(pos)
+			if not timer:is_started() then
+				timer:start(1.0)
+			end
+			if direction.y == 1 then
+				return inv:add_item("fuel", stack)
+			else
+				return inv:add_item("input", stack)
+			end
+		end,
+		can_insert = function(pos,node,stack,direction)
+			local meta = minetest.get_meta(pos)
+			local inv = meta:get_inventory()
+			if direction.y == 1 then
+				return allow_metadata_inventory_put(pos, "fuel", 1, stack, _pipeworks_override_player) > 0
+					and inv:room_for_item("fuel", stack)
+			else
+				return allow_metadata_inventory_put(pos, "input", 1, stack, _pipeworks_override_player) > 0
+					and inv:room_for_item("input", stack)
+			end
+		end,
+		input_inventory = "output",
+		connect_sides = {left = 1, right = 1, back = 1, front = 1, bottom = 1, top = 1}
+	}
+end
+
 local function allow_metadata_inventory_take(pos, listname, index, stack, player)
-	if minetest.is_protected(pos, player:get_player_name()) then
+	if multifurnace_def.protect_inventory and
+		minetest.is_protected(pos, player:get_player_name())
+		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
 		return 0
 	end
 	if listname == "target" then
@@ -340,6 +382,7 @@ end
 return {
 	allow_metadata_inventory_move = allow_metadata_inventory_move,
 	allow_metadata_inventory_put = allow_metadata_inventory_put,
+	allow_metadata_inventory_take = allow_metadata_inventory_take,
 	can_dig = can_dig,
 	on_construct = on_construct,
 	on_metadata_inventory_move = on_metadata_inventory_move,
@@ -347,5 +390,6 @@ return {
 	on_metadata_inventory_take = on_metadata_inventory_take,
 	on_receive_fields = on_receive_fields,
 	on_timer = on_timer,
+	tube = tube,
 }
 end

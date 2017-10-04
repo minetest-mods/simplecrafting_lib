@@ -5,10 +5,11 @@ local modpath_default = minetest.get_modpath("default")
 
 -- table_def can have the following:
 --{
---	show_guides = true or false
---	alphabetize_items = true or false
---	description = string
---	hopper_node_name = string
+--	show_guides = true or false,
+--	alphabetize_items = true or false,
+--	description = string,
+--	hopper_node_name = string,
+--	enable_pipeworks = true or false,
 --}
 
 simplecrafting_lib.generate_table_functions = function(craft_type, table_def)
@@ -17,6 +18,7 @@ if table_def == nil then
 	table_def = {}
 end
 
+-- Hopper compatibility
 if table_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
 	hopper:add_container({
 		{"top", table_def.hopper_node_name, "input"},
@@ -114,6 +116,11 @@ local allow_metadata_inventory_move = function(pos, from_list, from_index, to_li
 	if to_list == "output" then
 		return 0
 	end
+	if table_def.protect_inventory and
+		minetest.is_protected(pos, player:get_player_name())
+		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
+		return 0
+	end
 	if to_list == "input" then
 		if from_list == "input" then
 			return number
@@ -127,8 +134,16 @@ local allow_metadata_inventory_move = function(pos, from_list, from_index, to_li
 	end
 	return 0
 end
-	
+
+local _pipeworks_override_player = {} -- Horrible hack. Pipeworks gets to insert stuff regardless of protection.
+
 local allow_metadata_inventory_put = function(pos, list_name, index, stack, player)
+	if table_def.protect_inventory and
+		player ~= _pipeworks_override_player and
+		minetest.is_protected(pos, player:get_player_name())
+		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
+		return 0
+	end
 	if list_name == "output" then
 		return 0
 	end
@@ -136,6 +151,34 @@ local allow_metadata_inventory_put = function(pos, list_name, index, stack, play
 		return stack:get_count()
 	end
 	return 0
+end
+
+-- Pipeworks compatibility
+local tube = nil
+if table_def.enable_pipeworks and minetest.get_modpath("pipeworks") then
+	tube = {
+		insert_object = function(pos, node, stack, direction)
+			local meta = minetest.get_meta(pos)
+			local inv = meta:get_inventory()
+			return inv:add_item("main", stack)
+		end,
+		can_insert = function(pos, node, stack, direction)
+			local meta = minetest.get_meta(pos)
+			local inv = meta:get_inventory()
+			return allow_metadata_inventory_put(pos, "input", 1, stack, _pipeworks_override_player) > 0 and inv:room_for_item("main", stack)
+		end,
+		input_inventory = "main",
+		connect_sides = {left = 1, right = 1, back = 1, bottom = 1, top = 1}
+	}
+end
+
+local function allow_metadata_inventory_take(pos, listname, index, stack, player)
+	if table_def.protect_inventory and
+		minetest.is_protected(pos, player:get_player_name())
+		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
+		return 0
+	end
+	return stack:get_count()
 end
 	
 local on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, number, player)
@@ -206,11 +249,13 @@ end
 return {
 	allow_metadata_inventory_move = allow_metadata_inventory_move,
 	allow_metadata_inventory_put = allow_metadata_inventory_put,
+	allow_metadata_inventory_take = allow_metadata_inventory_take,
 	can_dig = can_dig,
 	on_construct = on_construct,
 	on_metadata_inventory_move = on_metadata_inventory_move,
 	on_metadata_inventory_put = on_metadata_inventory_put,
 	on_metadata_inventory_take = on_metadata_inventory_take,
 	on_receive_fields = on_receive_fields,
+	tube = tube,
 }
 end

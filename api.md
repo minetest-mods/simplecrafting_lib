@@ -144,20 +144,27 @@ A convenience function that generates a table of functions that can be used dire
 		alphabetize_items = false,
 		description = "String",
 		hopper_node_name = "mod:node",
+		enable_pipeworks = true,
+		protect_inventory = true,
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named.
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the crafting table will behave like a chest does with the `[pipeworks]` mod.  **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your crafting table's node.
+
+`protect_inventory` causes the inventories to respect player protection.
 
 The returned table of functions contains:
 
 		allow_metadata_inventory_move
 		allow_metadata_inventory_put
+		allow_metadata_inventory_take
 		can_dig
 		on_construct
 		on_metadata_inventory_move
 		on_metadata_inventory_put
 		on_metadata_inventory_take
 		on_receive_fields
+
+And, if `enable_pipeworks` is **true**, also the function `tube`.
 
 Add these functions to a node definition and it will produce a node that allows crafting of the specified type to be done via a standardized formspec.
 
@@ -173,17 +180,22 @@ A convenience function that generates a table of functions that can be used dire
 
 	{
 		show_guides = true,
-		alphabetize_items = false,
+		alphabetize_items = true,
 		description = "String",
 		hopper_node_name = "mod:node",
+		enable_pipeworks = true,
+		protect_inventory = true,
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named.
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the multifurnace will behave like a furnace does with the `[pipeworks]` mod. **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your multifurnace's node.
+
+`protect_inventory` causes the inventories to respect player protection.
 	
 The returned table of functions contains:
 
 		allow_metadata_inventory_move
 		allow_metadata_inventory_put
+		allow_metadata_inventory_take
 		can_dig
 		on_construct
 		on_metadata_inventory_move
@@ -192,6 +204,8 @@ The returned table of functions contains:
 		on_receive_fields
 		on_timer
 
+And, if `enable_pipeworks` is **true**, also the function `tube`.
+		
 Add these functions to a node definition and it will produce a node that allows crafting of the specified type to be done via a standardized formspec.
 
 ![An example of the crafting interface that a multifurnace template can produce.](screenshot-multifurnace.png)
