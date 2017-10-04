@@ -172,7 +172,47 @@ Add these functions to a node definition and it will produce a node that allows 
 
 An example of the crafting interface that a table template can produce.
 
-## `simplecrafting_lib.generate_multifurnace_functions(craft_type, multifurnace_def)`
+## `simplecrafting_lib.generate_autocraft_functions(craft_type, autocraft_def)`
+
+A convenience function that generates a table of functions that can be used directly with register node to create an auto-crafting node. Place raw materials in the leftmost inventory grid, select an output from the array of buttons, and then the auto-crafting system will start producing output into the upper inventory grid. If the recipe has a `cooktime` parameter this will determine the number of seconds each crafting event will take, otherwise the crafting time equals the number of input items the recipe requires.
+
+`autocraft_def` is a table of various options for the node's behaviour. They include:
+
+	{
+		show_guides = true,
+		alphabetize_items = true,
+		description = "String",
+		hopper_node_name = "mod:node",
+		enable_pipeworks = true,
+		protect_inventory = true,
+	}
+
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the autocrafter will interact with the `[pipeworks]` mod like a chest (input items go to the input inventory). **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your autocrafter's node.
+
+`protect_inventory` causes the inventories to respect player protection.
+
+The returned table of functions contains:
+
+		allow_metadata_inventory_move
+		allow_metadata_inventory_put
+		allow_metadata_inventory_take
+		can_dig
+		on_construct
+		on_metadata_inventory_move
+		on_metadata_inventory_put
+		on_metadata_inventory_take
+		on_receive_fields
+		on_timer
+
+And, if `enable_pipeworks` is **true**, also the function `tube`.
+		
+Add these functions to a node definition and it will produce a node that allows crafting of the specified type to be done via a standardized formspec.
+
+![An example of the crafting interface that an autocrafting template can produce.](screenshot-autocraft.png)
+
+An example of the crafting interface that an autocrafting template can produce.
+
+## `simplecrafting_lib.generate_multifurnace_functions(craft_type, fuel_type, multifurnace_def)`
 
 A convenience function that generates a table of functions that can be used directly with register node to create a furnace-like node. Unlike a default furnace a multifurnace is able to support recipes that take multiple inputs and produce multiple outputs. It also has a fuel inventory that can hold multiple different fuel items.
 

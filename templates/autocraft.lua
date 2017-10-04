@@ -1,7 +1,7 @@
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
--- multifurnace_def can have the following:
+-- autocraft_def can have the following:
 --{
 --	show_guides = true or false,
 --	alphabetize_items = true or false,
@@ -12,59 +12,49 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	elapsed_multiplier = function(pos)
 --}
 
+simplecrafting_lib.generate_autocraft_functions = function(craft_type, autocraft_def)
 
-simplecrafting_lib.generate_multifurnace_functions = function(craft_type, fuel_type, multifurnace_def)
-
-if multifurnace_def == nil then
-	multifurnace_def = {}
+if autocraft_def == nil then
+	autocraft_def = {}
 end
 
 -- Hopper compatibility
-if multifurnace_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+if autocraft_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
 	hopper:add_container({
-		{"top", multifurnace_def.hopper_node_name, "output"},
-		{"bottom", multifurnace_def.hopper_node_name, "input"},
-		{"side", multifurnace_def.hopper_node_name, "fuel"},
+		{"top", autocraft_def.hopper_node_name, "output"},
+		{"bottom", autocraft_def.hopper_node_name, "input"},
+		{"side", autocraft_def.hopper_node_name, "input"},
 })
 end
 
 local modpath_default = minetest.get_modpath("default")
 
 local function refresh_formspec(meta)
-	local cook_time = meta:get_float("cook_time") or 0.0
-	local total_cook_time = meta:get_float("total_cook_time") or 0.0
-	local burn_time = meta:get_float("burn_time") or 0.0
-	local total_burn_time = meta:get_float("total_burn_time") or 0.0
+	local craft_time = meta:get_float("craft_time") or 0.0
+	local total_craft_time = meta:get_float("total_craft_time") or 0.0
 
 	local item_percent
-	if total_cook_time > 0 then item_percent = math.floor((math.min(cook_time, total_cook_time) / total_cook_time) * 100) else item_percent = 0 end
-	local burn_percent
-	if total_burn_time > 0 then burn_percent = math.floor((math.min(burn_time, total_burn_time) / total_burn_time) * 100) else burn_percent = 0 end
-
+	if total_craft_time > 0 then item_percent = math.floor((math.min(craft_time, total_craft_time) / total_craft_time) * 100) else item_percent = 0 end
+	
 	local inventory = {
-		"size[10,9.2]",
-
-		"list[context;input;0,0.25;4,2;]",
-		"list[context;fuel;0,2.75;4,2]",
+		"size[10,10.2]",
+		"list[context;input;0,0.5;2,5;]",
 		
-		"image[4.5,0.7;1,1;gui_furnace_arrow_bg.png^[lowpart:"..(item_percent)..":gui_furnace_arrow_fg.png^[transformR270]",
-		"image[4.5,3.3;1,1;default_furnace_fire_bg.png^[lowpart:"..(burn_percent)..":default_furnace_fire_fg.png]",
+		"image[3,0.5;1,1;gui_furnace_arrow_bg.png^[lowpart:"..(item_percent)..":gui_furnace_arrow_fg.png^[transformR270]",
 
-		"list[context;output;6,0.25;4,2;]",
+		"list[context;output;4,0;6,2;]",
 
-		"list[current_player;main;1,5;8,1;0]",
-		"list[current_player;main;1,6.2;8,3;8]",
+		"list[current_player;main;1,6.2;8,1;0]",
+		"list[current_player;main;1,7.4;8,3;8]",
 		
 		"listring[context;output]",
 		"listring[current_player;main]",
 		"listring[context;input]",
 		"listring[current_player;main]",
-		"listring[context;fuel]",
-		"listring[current_player;main]",		
 	}
 	
-	if multifurnace_def.description then
-		inventory[#inventory+1] = "label[4.5,0;"..multifurnace_def.description.."]"
+	if autocraft_def.description then
+		inventory[#inventory+1] = "label[1.5,0;"..autocraft_def.description.."]"
 	end
 	
 	if modpath_default then
@@ -75,15 +65,17 @@ local function refresh_formspec(meta)
 
 	local target = meta:get_string("target_item")
 	if target ~= "" then
-		inventory[#inventory+1] = "item_image_button[4.5,2;1,1;" .. target .. ";target;]"
+		inventory[#inventory+1] = "item_image_button[2,0.5;1,1;" .. target .. ";target;]"
 	else
-		inventory[#inventory+1] = "item_image_button[4.5,2;1,1;;;]"
+		inventory[#inventory+1] = "item_image_button[2,0.5;1,1;;;]"
 	end
 
-	local product_x_dim = 4
-	local product_y_dim = 2
-	local corner_x = 6
-	local corner_y = 2.75
+	-- product selection buttons
+	
+	local product_x_dim = 8
+	local product_y_dim = 4
+	local corner_x = 2
+	local corner_y = 2
 	local product_count = product_x_dim * product_y_dim
 
 	local product_list = minetest.deserialize(meta:get_string("product_list"))
@@ -97,19 +89,24 @@ local function refresh_formspec(meta)
 		product_page = 0
 		meta:set_int("product_page", product_page)
 	end
-	
+
 	local pages = false
-	if product_page > 0 then
-		inventory[#inventory+1] = "button[6.0,2.5;1,0.1;prev_page;<<]"	
-	end
+	local page_button_y = "7.3"
 	if product_page < max_pages then
-		inventory[#inventory+1] = "button[9.0,2.5;1,0.1;next_page;>>]"			
+		inventory[#inventory+1] = "button[9,"..page_button_y..";1,0.75;next_page;»]"
+		inventory[#inventory+1] = "tooltip[next;"..S("Next page of crafting products").."]"
+		page_button_y = "8.0"
+		pages = true
+	end
+	if product_page > 0 then
+		inventory[#inventory+1] = "button[9,"..page_button_y..";1,0.75;prev_page;«]"
+		inventory[#inventory+1] = "tooltip[prev;"..S("Previous page of crafting products").."]"
+		pages = true
 	end
 	if pages then
-		inventory[#inventory+1] = "label[9.3,2.5;" .. S("Page @1", tostring(product_page)) .. "]"
+		inventory[#inventory+1] = "label[9.2,6.25;" .. S("Page @1", tostring(product_page+1)) .. "]"
 	end
-
-	
+		
 	for i = 1, product_count do
 		local current_item = product_list[i + product_page*product_count]
 		if current_item then
@@ -124,8 +121,10 @@ local function refresh_formspec(meta)
 		end
 	end
 	
-	if multifurnace_def.show_guides then
-		inventory[#inventory+1] = "button[9.0,8.3;1,0.75;show_guide;"..S("Show\nGuide").."]"
+	-----------------
+	
+	if autocraft_def.show_guides then
+		inventory[#inventory+1] = "button[9,9.5;1,0.75;show_guide;"..S("Show\nGuide").."]"
 	end
 	
 	meta:set_string("formspec", table.concat(inventory))
@@ -133,7 +132,7 @@ end
 
 local function refresh_products(meta)
 	local inv = meta:get_inventory()
-	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), false, multifurnace_def.alphabetize_items)
+	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), false, autocraft_def.alphabetize_items)
 	local product_list = {}
 	for _, craft in pairs(craftable) do
 		table.insert(product_list, craft:to_table())
@@ -141,25 +140,31 @@ local function refresh_products(meta)
 	meta:set_string("product_list", minetest.serialize(product_list))
 end
 
+local function count_items(count_list)
+	local totalcount = 0
+	for _, itemcount in pairs(count_list) do
+		totalcount = totalcount + itemcount
+	end
+	return totalcount
+end
+
 local function on_timer(pos, elapsed)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 	
-	if multifurnace_def.elapsed_multiplier then
-		elapsed = elapsed * multifurnace_def.elapsed_multiplier(pos)
+	if autocraft_def.elapsed_multiplier then
+		elapsed = elapsed * autocraft_def.elapsed_multiplier(pos)
 	end
 	
-	local cook_time = meta:get_float("cook_time") or 0.0
-	local total_cook_time = meta:get_float("total_cook_time") or 0.0
-	local burn_time = meta:get_float("burn_time") or 0.0
-	local total_burn_time = meta:get_float("total_burn_time") or 0.0
+	local craft_time = meta:get_float("craft_time") or 0.0
+	local total_craft_time = meta:get_float("total_craft_time") or 0.0
 
 	local target_item = meta:get_string("target_item")
 
-	cook_time = cook_time + elapsed
-	burn_time = burn_time - elapsed
+	craft_time = craft_time + elapsed
 	
 	local recipe
+	local recipe_input_count
 	local room_for_items = false
 	local output
 	if target_item ~= "" then
@@ -167,60 +172,28 @@ local function on_timer(pos, elapsed)
 		if recipe then
 			output = simplecrafting_lib.count_list_add(recipe.output, recipe.returns)
 			room_for_items = simplecrafting_lib.room_for_items(inv, "output", output)
-			total_cook_time = recipe.cooktime
+			recipe_input_count = count_items(recipe.input)
+			total_craft_time = recipe.cooktime or recipe_input_count
+			minetest.debug("total_craft_time " .. total_craft_time .. " # input " .. count_items(recipe.input) .. " input " .. dump(recipe.input))
 		end
 	end
 	
 	if recipe == nil or not room_for_items then
-		-- we're not cooking anything.
-		cook_time = 0.0
-		if burn_time < 0 then burn_time = 0 end
+		-- we're not crafting anything.
+		craft_time = 0.0
 		minetest.get_node_timer(pos):stop()
 	else
+		
 		while true do
-			if burn_time < 0 then
-				-- burn some fuel, if possible.
-				local fuel_recipes = simplecrafting_lib.get_fuels(fuel_type, inv:get_list("fuel"))
-				local longest_burning
-				for _, fuel_recipe in pairs(fuel_recipes) do
-					if longest_burning == nil or longest_burning.burntime < fuel_recipe.burntime then
-						longest_burning = fuel_recipe
-					end
-				end
-						
-				if longest_burning then
-					total_burn_time = longest_burning.burntime
-					burn_time = burn_time + total_burn_time
-					local success = true
-					if longest_burning.returns then
-						success = simplecrafting_lib.add_items_if_room(inv, "output", longest_burning.returns) and
-							simplecrafting_lib.room_for_items(inv, "output", output)						
-					end
-					if success then
-						for item, count in pairs(longest_burning.input) do
-							inv:remove_item("fuel", ItemStack({name = item, count = count}))
-						end
-					else
-						--no room for both output and fuel reside
-						cook_time = 0
-						if burn_time < 0 then burn_time = 0 end
-						break
-					end
-				else
-					--out of fuel
-					cook_time = 0
-					if burn_time < 0 then burn_time = 0 end
-					break
-				end
-			elseif cook_time >= recipe.cooktime then
+			if craft_time >= (recipe.cooktime or recipe_input_count) then
 				-- produce product
 				simplecrafting_lib.add_items(inv, "output", output)
 				simplecrafting_lib.remove_items(inv, "input", recipe.input)
-				cook_time = cook_time - recipe.cooktime
+				craft_time = craft_time - (recipe.cooktime or recipe_input_count)
 				minetest.get_node_timer(pos):start(1)
 				break
 			else
-				-- if we get here there's burning fuel but cook time hasn't reached recipe time yet.
+				-- if we get here craft time hasn't reached recipe time yet.
 				-- Do nothing this round.
 				minetest.get_node_timer(pos):start(1)
 				break
@@ -228,10 +201,8 @@ local function on_timer(pos, elapsed)
 		end
 	end
 
-	meta:set_float("burn_time", burn_time)
-	meta:set_float("total_burn_time", total_burn_time)
-	meta:set_float("cook_time", cook_time)	
-	meta:set_float("total_cook_time", total_cook_time)	
+	meta:set_float("craft_time", craft_time)	
+	meta:set_float("total_craft_time", total_craft_time)	
 
 	refresh_formspec(meta)
 end
@@ -239,9 +210,8 @@ end
 local on_construct = function(pos)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	inv:set_size("input", 2*4) -- materials that can be processed to outputs
-	inv:set_size("fuel", 2*4) -- materials that can be burned for fuel
-	inv:set_size("output", 2*4) -- holds output product
+	inv:set_size("input", 2*5) -- materials that can be processed to outputs
+	inv:set_size("output", 2*6) -- holds output product
 	meta:set_string("product_list", minetest.serialize({}))
 	meta:set_string("target", "")
 	refresh_formspec(meta)
@@ -250,7 +220,7 @@ end
 local _pipeworks_override_player = {} -- Horrible hack. Pipeworks gets to insert stuff regardless of protection.
 
 local function allow_metadata_inventory_put(pos, listname, index, stack, player)
-	if multifurnace_def.protect_inventory and
+	if autocraft_def.protect_inventory and
 		player ~= _pipeworks_override_player and
 		minetest.is_protected(pos, player:get_player_name())
 		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
@@ -258,12 +228,6 @@ local function allow_metadata_inventory_put(pos, listname, index, stack, player)
 	end
 	if listname == "input" then
 		if simplecrafting_lib.is_possible_input(craft_type, stack:get_name()) then
-			return stack:get_count()
-		else
-			return 0
-		end
-	elseif listname == "fuel" then
-		if simplecrafting_lib.is_fuel(fuel_type, stack:get_name()) then
 			return stack:get_count()
 		else
 			return 0
@@ -277,39 +241,25 @@ end
 
 -- Pipeworks compatibility
 local tube = nil
-if multifurnace_def.enable_pipeworks and minetest.get_modpath("pipeworks") then
+if autocraft_def.enable_pipeworks and minetest.get_modpath("pipeworks") then
 	tube = {
 		insert_object = function(pos, node, stack, direction)
 			local meta = minetest.get_meta(pos)
 			local inv = meta:get_inventory()
-			local timer = minetest.get_node_timer(pos)
-			if not timer:is_started() then
-				timer:start(1.0)
-			end
-			if direction.y == 1 then
-				return inv:add_item("fuel", stack)
-			else
-				return inv:add_item("input", stack)
-			end
+			return inv:add_item("input", stack)
 		end,
-		can_insert = function(pos,node,stack,direction)
+		can_insert = function(pos, node, stack, direction)
 			local meta = minetest.get_meta(pos)
 			local inv = meta:get_inventory()
-			if direction.y == 1 then
-				return allow_metadata_inventory_put(pos, "fuel", 1, stack, _pipeworks_override_player) > 0
-					and inv:room_for_item("fuel", stack)
-			else
-				return allow_metadata_inventory_put(pos, "input", 1, stack, _pipeworks_override_player) > 0
-					and inv:room_for_item("input", stack)
-			end
+			return allow_metadata_inventory_put(pos, "input", 1, stack, _pipeworks_override_player) > 0 and inv:room_for_item("input", stack)
 		end,
-		input_inventory = "output",
-		connect_sides = {left = 1, right = 1, back = 1, front = 1, bottom = 1, top = 1}
+		input_inventory = "input",
+		connect_sides = {left = 1, right = 1, back = 1, bottom = 1, top = 1}
 	}
 end
 
 local function allow_metadata_inventory_take(pos, listname, index, stack, player)
-	if multifurnace_def.protect_inventory and
+	if autocraft_def.protect_inventory and
 		minetest.is_protected(pos, player:get_player_name())
 		and not minetest.check_player_privs(player:get_name(), "protection_bypass") then
 		return 0
@@ -354,7 +304,7 @@ end
 local can_dig = function(pos, player)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	return inv:is_empty("output") and inv:is_empty("fuel") and inv:is_empty("input")
+	return inv:is_empty("output") and inv:is_empty("input")
 end
 	
 local on_receive_fields = function(pos, formname, fields, sender)
@@ -364,17 +314,17 @@ local on_receive_fields = function(pos, formname, fields, sender)
 	for field, _ in pairs(fields) do
 		if field == "target" then
 			meta:set_string("target_item", "")
-			meta:set_float("cook_time", 0.0)
-			meta:set_float("total_cook_time", 0.0)
+			meta:set_float("craft_time", 0.0)
+			meta:set_float("total_craft_time", 0.0)
 		elseif string.sub(field, 1, 8) == "product_" then
 			local new_target = product_list[tonumber(string.sub(field, 9))].name
 			meta:set_string("target_item", new_target)
-			meta:set_float("cook_time", 0.0)
+			meta:set_float("craft_time", 0.0)
 			refresh_formspec(meta)
 		end
 	end
 	
-	if fields.show_guide and multifurnace_def.show_guides then
+	if fields.show_guide and autocraft_def.show_guides then
 		simplecrafting_lib.show_crafting_guide(craft_type, sender)
 	end
 	

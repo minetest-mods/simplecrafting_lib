@@ -160,14 +160,14 @@ if table_def.enable_pipeworks and minetest.get_modpath("pipeworks") then
 		insert_object = function(pos, node, stack, direction)
 			local meta = minetest.get_meta(pos)
 			local inv = meta:get_inventory()
-			return inv:add_item("main", stack)
+			return inv:add_item("input", stack)
 		end,
 		can_insert = function(pos, node, stack, direction)
 			local meta = minetest.get_meta(pos)
 			local inv = meta:get_inventory()
-			return allow_metadata_inventory_put(pos, "input", 1, stack, _pipeworks_override_player) > 0 and inv:room_for_item("main", stack)
+			return allow_metadata_inventory_put(pos, "input", 1, stack, _pipeworks_override_player) > 0 and inv:room_for_item("input", stack)
 		end,
-		input_inventory = "main",
+		input_inventory = "input",
 		connect_sides = {left = 1, right = 1, back = 1, bottom = 1, top = 1}
 	}
 end
