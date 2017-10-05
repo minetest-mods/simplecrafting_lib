@@ -1,0 +1,6 @@
+#When true, simplecrafting_lib will generate log errors on startup listing all the recipes
+#that were removed due to invalid items in their inputs or outputs, or due to a lack of
+#registered items fulfilling the group requirements of their inputs. This can be useful
+#for identifying bad recipes in other mods.
+
+simplecrafting_lib_log_invalid_recipe_removal (Log invalid recipe removal as errors) bool false

@@ -1,59 +1,129 @@
-local get_invalid_items = function(recipe)
-	local invalid_items = {}
-			
-	for item, _ in pairs(recipe.input) do
-		if minetest.registered_items[item] == nil and string.find(item, ":") ~= nil then
-			table.insert(invalid_items, item)
+----------------------------------------------------------------------------------------
+-- Run-once code, post server initialization, that purges all uncraftable recipes from the
+-- crafting system data.
+
+-- splits a string into an array of substrings based on a delimiter
+local function split(str, delimiter)
+    local result = {}
+    for match in (str..delimiter):gmatch("(.-)"..delimiter) do
+        table.insert(result, match)
+    end
+    return result
+end
+
+local group_examples = {}
+
+local function input_exists(input_item)
+	if minetest.registered_items[input_item] then
+		return true
+	end
+
+	if group_examples[input_item] then
+		return true
+	end
+
+	if not string.match(input_item, ",") then
+		return false
+	end
+	
+	local target_groups = split(input_item, ",")
+
+	for item, def in pairs(minetest.registered_items) do
+		local overall_found = true
+		for _, target_group in pairs(target_groups) do
+			local one_group_found = false
+			for group, _ in pairs(def.groups) do
+				if group == target_group then
+					one_group_found = true
+					break
+				end
+			end
+			if not one_group_found then
+				overall_found = false
+				break
+			end
+		end
+		if overall_found then
+			group_examples[input_item] = item
+			return true
 		end
 	end
-	for item, _ in pairs(recipe.output) do
-		if minetest.registered_items[item] == nil then
-			table.insert(invalid_items, item)
+	return false
+end
+
+local function validate_inputs_and_outputs(recipe)
+	for item, count in pairs(recipe.input) do
+		if not input_exists(item) then
+			return item
 		end
 	end
-	for item, _ in pairs(recipe.returns) do
-		if minetest.registered_items[item] == nil then
-			table.insert(invalid_items, item)
+	if recipe.output then
+		for item, count in pairs(recipe.output) do
+			if not minetest.registered_items[item] then
+				return item
+			end
+		end
+	end
+	if recipe.returns then
+		for item, count in pairs(recipe.returns) do
+			if not minetest.registered_items[item] then
+				return item
+			end
+		end
+	end
+	return true
+end
+
+local log_removals = minetest.settings:get_bool("simplecrafting_lib_log_invalid_recipe_removal")
+
+local purge_uncraftable_recipes = function()
+	for item, def in pairs(minetest.registered_items) do
+		for group, _ in pairs(def.groups) do
+			group_examples[group] = item
+		end
+	end
+
+	for craft_type, _  in pairs(simplecrafting_lib.type) do
+		local i = 1
+		local recs = simplecrafting_lib.type[craft_type].recipes
+		while i <= #simplecrafting_lib.type[craft_type].recipes do
+			local validation_result = validate_inputs_and_outputs(recs[i])
+			if validation_result == true then
+				i = i + 1
+			else
+				if log_removals then
+					if string.match(validation_result, ":") then
+						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to the nonexistent item " .. validation_result .. "\n"..dump(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
+					else
+						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to no registered items matching the group requirement " .. validation_result .. "\n"..dump(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
+					end
+				end
+				table.remove(recs, i)
+			end
+		end
+		for output, outs in pairs(simplecrafting_lib.type[craft_type].recipes_by_out) do
+			i = 1
+			while i <= #outs do
+				if validate_inputs_and_outputs(outs[i]) == true then
+					i = i + 1
+				else
+					table.remove(outs, i)
+				end
+			end		
+		end
+		for input, ins in pairs(simplecrafting_lib.type[craft_type].recipes_by_in) do
+			i = 1
+			while i <= #ins do
+				if validate_inputs_and_outputs(ins[i]) == true then
+					i = i + 1
+				else
+					table.remove(ins, i)
+				end
+			end		
 		end
 	end
 	
-	return invalid_items
-end
-
-local validate = function()
-	for craft_type, contents in pairs(simplecrafting_lib.type) do
-		for i = #contents.recipes, 1, -1 do
-			local invalid_items = get_invalid_items(contents.recipes[i])
-			if #invalid_items > 0 then
-				minetest.log("error", "[simplecrafting_lib] recipe " .. dump(contents.recipes[i])
-					.. "\nof type " .. craft_type .. " contains invalid items: "
-					.. table.concat(invalid_items, " ") .. "\nRecipe removed. This could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
-				table.remove(contents.recipes, i)
-			end			
-		end
-		for out_item, recipes in pairs(contents.recipes_by_out) do
-			for i = #recipes, 1, -1 do
-				local invalid_items = get_invalid_items(recipes[i])
-				if #invalid_items > 0 then
-					table.remove(recipes, i)
-				end			
-			end			
-			if #contents.recipes_by_out[out_item] == 0 or minetest.registered_items[out_item] == nil then
-				contents.recipes_by_out[out_item] = nil
-			end
-		end
-		for in_item, recipes in pairs(contents.recipes_by_in) do
-			for i = #recipes, 1, -1 do
-				local invalid_items = get_invalid_items(recipes[i])
-				if #invalid_items > 0 then
-					table.remove(recipes, i)
-				end			
-			end
-			if #contents.recipes_by_in[in_item] == 0 or minetest.registered_items[in_item] == nil then
-				contents.recipes_by_in[in_item] = nil
-			end			
-		end
-	end
+	group_examples = nil -- don't need this any more.
 end
 
 -- Note that a circular table reference will result in a crash, TODO: guard against that.
@@ -157,7 +227,7 @@ local disintermediate = function(craft_type, contents)
 end
 
 local postprocess = function()
-	validate()
+	purge_uncraftable_recipes()
 	
 	for craft_type, contents in pairs(simplecrafting_lib.type) do
 		local cycles = contents.disintermediation_cycles or 0
