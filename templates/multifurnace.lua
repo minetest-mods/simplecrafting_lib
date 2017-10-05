@@ -9,9 +9,8 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	hopper_node_name = string,
 --	enable_pipeworks = true or false,
 --	protect_inventory = true or false
---	elapsed_multiplier = function(pos)
+--	crafting_time_multiplier = function(pos, recipe)
 --}
-
 
 simplecrafting_lib.generate_multifurnace_functions = function(craft_type, fuel_type, multifurnace_def)
 
@@ -144,20 +143,13 @@ end
 local function on_timer(pos, elapsed)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	
-	if multifurnace_def.elapsed_multiplier then
-		elapsed = elapsed * multifurnace_def.elapsed_multiplier(pos)
-	end
-	
+
 	local cook_time = meta:get_float("cook_time") or 0.0
 	local total_cook_time = meta:get_float("total_cook_time") or 0.0
 	local burn_time = meta:get_float("burn_time") or 0.0
 	local total_burn_time = meta:get_float("total_burn_time") or 0.0
 
 	local target_item = meta:get_string("target_item")
-
-	cook_time = cook_time + elapsed
-	burn_time = burn_time - elapsed
 	
 	local recipe
 	local room_for_items = false
@@ -170,6 +162,13 @@ local function on_timer(pos, elapsed)
 			total_cook_time = recipe.cooktime
 		end
 	end
+	
+	if multifurnace_def.crafting_time_multiplier then
+		elapsed = elapsed / multifurnace_def.crafting_time_multiplier(pos, recipe)
+	end
+
+	cook_time = cook_time + elapsed
+	burn_time = burn_time - elapsed
 	
 	if recipe == nil or not room_for_items then
 		-- we're not cooking anything.

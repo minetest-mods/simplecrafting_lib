@@ -9,7 +9,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	hopper_node_name = string,
 --	enable_pipeworks = true or false,
 --	protect_inventory = true or false
---	elapsed_multiplier = function(pos)
+--	crafting_time_multiplier = function(pos, recipe)
 --}
 
 simplecrafting_lib.generate_autocraft_functions = function(craft_type, autocraft_def)
@@ -151,17 +151,11 @@ end
 local function on_timer(pos, elapsed)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	
-	if autocraft_def.elapsed_multiplier then
-		elapsed = elapsed * autocraft_def.elapsed_multiplier(pos)
-	end
-	
+		
 	local craft_time = meta:get_float("craft_time") or 0.0
 	local total_craft_time = meta:get_float("total_craft_time") or 0.0
 
 	local target_item = meta:get_string("target_item")
-
-	craft_time = craft_time + elapsed
 	
 	local recipe
 	local recipe_input_count
@@ -177,6 +171,12 @@ local function on_timer(pos, elapsed)
 			minetest.debug("total_craft_time " .. total_craft_time .. " # input " .. count_items(recipe.input) .. " input " .. dump(recipe.input))
 		end
 	end
+
+	if autocraft_def.crafting_time_multiplier then
+		elapsed = elapsed / autocraft_def.crafting_time_multiplier(pos, recipe)
+	end
+
+	craft_time = craft_time + elapsed
 	
 	if recipe == nil or not room_for_items then
 		-- we're not crafting anything.

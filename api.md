@@ -185,6 +185,7 @@ A convenience function that generates a table of functions that can be used dire
 		hopper_node_name = "mod:node",
 		enable_pipeworks = true,
 		protect_inventory = true,
+		crafting_time_multiplier = function(pos, recipe),
 	}
 
 If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the autocrafter will interact with the `[pipeworks]` mod like a chest (input items go to the input inventory). **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your autocrafter's node.
@@ -225,6 +226,7 @@ A convenience function that generates a table of functions that can be used dire
 		hopper_node_name = "mod:node",
 		enable_pipeworks = true,
 		protect_inventory = true,
+		crafting_time_multiplier = function(pos, recipe),
 	}
 
 If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the multifurnace will behave like a furnace does with the `[pipeworks]` mod. **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your multifurnace's node.
