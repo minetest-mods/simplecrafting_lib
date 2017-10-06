@@ -10,7 +10,10 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	enable_pipeworks = true or false,
 --	protect_inventory = true or false
 --	crafting_time_multiplier = function(pos, recipe)
+--	active_node = string,
 --}
+
+local modpath_default = minetest.get_modpath("default")
 
 simplecrafting_lib.generate_autocraft_functions = function(craft_type, autocraft_def)
 
@@ -26,8 +29,6 @@ if autocraft_def.hopper_node_name and minetest.get_modpath("hopper") and hopper 
 		{"side", autocraft_def.hopper_node_name, "input"},
 })
 end
-
-local modpath_default = minetest.get_modpath("default")
 
 local function refresh_formspec(meta)
 	local craft_time = meta:get_float("craft_time") or 0.0
@@ -182,6 +183,11 @@ local function on_timer(pos, elapsed)
 		-- we're not crafting anything.
 		craft_time = 0.0
 		minetest.get_node_timer(pos):stop()
+		if autocraft_def.active_node then -- only bother doing this if there's an active node
+			local this_node = minetest.get_node(pos)
+			this_node.name = meta:get_string("inactive_node")
+			minetest.swap_node(pos, this_node)
+		end
 	else
 		
 		while true do
@@ -195,6 +201,11 @@ local function on_timer(pos, elapsed)
 			else
 				-- if we get here craft time hasn't reached recipe time yet.
 				-- Do nothing this round.
+				if autocraft_def.active_node then
+					local this_node = minetest.get_node(pos)
+					this_node.name = autocraft_def.active_node
+					minetest.swap_node(pos, this_node)
+				end
 				minetest.get_node_timer(pos):start(1)
 				break
 			end
@@ -214,6 +225,9 @@ local on_construct = function(pos)
 	inv:set_size("output", 2*6) -- holds output product
 	meta:set_string("product_list", minetest.serialize({}))
 	meta:set_string("target", "")
+	if autocraft_def.active_node then
+		meta:set_string("inactive_node", minetest.get_node(pos).name) -- we only need this if there's an active node defined
+	end
 	refresh_formspec(meta)
 end
 
@@ -320,6 +334,7 @@ local on_receive_fields = function(pos, formname, fields, sender)
 			local new_target = product_list[tonumber(string.sub(field, 9))].name
 			meta:set_string("target_item", new_target)
 			meta:set_float("craft_time", 0.0)
+			meta:set_string("last_selector_name", sender:get_player_name())
 			refresh_formspec(meta)
 		end
 	end
