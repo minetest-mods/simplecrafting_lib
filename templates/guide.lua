@@ -6,6 +6,10 @@ simplecrafting_lib.guide.outputs = {}
 simplecrafting_lib.guide.playerdata = {}
 simplecrafting_lib.guide.groups = {}
 
+local width = 10
+local height = 6
+local recipes_per_page = 4
+
 -- Explicitly set examples for some common input item groups
 -- Other mods can also add explicit items like this if they wish
 -- Groups list isn't populated with "guessed" examples until
@@ -120,11 +124,11 @@ local function make_formspec(craft_type, player_name)
 	end
 	
 	local formspec = {
-		"size[8.0," .. 8.7 + displace_y .."]",
+		"size[" .. width .. "," .. height + recipes_per_page + 0.7 + displace_y .."]",
 	}
 
 	if description then
-		table.insert(formspec, "label[3.5,0;"..description.."]")
+		table.insert(formspec, "label[" .. width/2-0.5 .. ",0;"..description.."]")
 	end
 	
 	if minetest.get_modpath("default") then
@@ -135,33 +139,35 @@ local function make_formspec(craft_type, player_name)
 
 	local x = 0
 	local y = 0
+	
+	local buttons_per_page = width*height
 
-	for i = 1, 8*4 do
-		local current_item_index = i + playerdata.output_page * 8 * 4
+	for i = 1, buttons_per_page do
+		local current_item_index = i + playerdata.output_page * buttons_per_page
 		local current_item = outputs[current_item_index]
 		if current_item then
 			table.insert(formspec, "item_image_button[" ..
-				x + (i-1)%8 .. "," .. y + math.floor((i-1)/8) + displace_y ..
+				x + (i-1)%width .. "," .. y + math.floor((i-1)/width) + displace_y ..
 				";1,1;" .. current_item .. ";product_" .. current_item_index ..
 				";]")
 		else
 			table.insert(formspec, "item_image_button[" ..
-				x + (i-1)%8 .. "," .. y + math.floor((i-1)/8) + displace_y ..
+				x + (i-1)%width .. "," .. y + math.floor((i-1)/width) + displace_y ..
 				";1,1;;;]")
 		end
 	end
 
 	if playerdata.selection == 0 then
-		table.insert(formspec,  "item_image[" .. x + 3.5 .. "," .. y + 4 + displace_y .. ";1,1;]")
+		table.insert(formspec,  "item_image[" .. x + width/2-0.5 .. "," .. y + height + displace_y .. ";1,1;]")
 	else
-		table.insert(formspec, "item_image[" .. x + 3.5 .. "," .. y + 4 + displace_y .. ";1,1;" ..
+		table.insert(formspec, "item_image[" .. x + width/2-0.5 .. "," .. y + height + displace_y .. ";1,1;" ..
 			outputs[playerdata.selection] .. "]")
 	end
 
-	if #outputs > 8*4 then
-		table.insert(formspec, "button[" .. x .. "," .. y + 4 + displace_y .. ";1,1;previous_output;"..S("Prev").."]")
-		table.insert(formspec, "button[" .. x + 1 .. "," .. y + 4 + displace_y .. ";1,1;next_output;"..S("Next").."]")
-		table.insert(formspec, "label[" .. x + 2 .. "," .. y + 4 + displace_y .. ";".. S("Product\npage @1", playerdata.output_page + 1) .."]")
+	if #outputs > buttons_per_page then
+		table.insert(formspec, "button[" .. x .. "," .. y + height + displace_y .. ";1,1;previous_output;"..S("Prev").."]")
+		table.insert(formspec, "button[" .. x + 1 .. "," .. y + height + displace_y .. ";1,1;next_output;"..S("Next").."]")
+		table.insert(formspec, "label[" .. x + 2 .. "," .. y + height + displace_y .. ";".. S("Product\npage @1", playerdata.output_page + 1) .."]")
 	end
 
 	local recipes
@@ -173,21 +179,26 @@ local function make_formspec(craft_type, player_name)
 		return table.concat(formspec)
 	end
 
-	if playerdata.input_page > #recipes/4 then
-		playerdata.input_page = math.floor(#recipes/4)
+	local last_page = math.floor((#recipes-1)/recipes_per_page)
+	local next_input = "next_input"
+	if playerdata.input_page >= last_page then
+		playerdata.input_page = last_page
+	end
+	if playerdata.input_page == last_page then
+		next_input = "" -- disable the next_input button, we're on the last page.
 	end
 	
-	if #recipes > 4 then
-		table.insert(formspec, "label[" .. x + 5 .. "," .. y + 4 + displace_y .. ";".. S("Recipe\npage @1", playerdata.input_page + 1) .."]")
-		table.insert(formspec, "button[" .. x + 6 .. "," .. y + 4 + displace_y .. ";1,1;previous_input;"..S("Prev").."]")
-		table.insert(formspec, "button[" .. x + 7 .. "," .. y + 4 + displace_y .. ";1,1;next_input;"..S("Next").."]")
+	if #recipes > recipes_per_page then
+		table.insert(formspec, "label[" .. x + width - 3 .. "," .. y + height + displace_y .. ";".. S("Recipe\npage @1", playerdata.input_page + 1) .."]")
+		table.insert(formspec, "button[" .. x + width - 2 .. "," .. y + height + displace_y .. ";1,1;previous_input;"..S("Prev").."]")
+		table.insert(formspec, "button[" .. x + width - 1 .. "," .. y + height + displace_y .. ";1,1;"..next_input..";"..S("Next").."]")
 	end
 	
 	local x_out = x
-	local y_out = y + 5 + displace_y
+	local y_out = y + height + 1 + displace_y
 	local recipe_button_count = 1
-	for i = 1,4 do
-		local recipe = recipes[i + playerdata.input_page * 4]
+	for i = 1, recipes_per_page do
+		local recipe = recipes[i + playerdata.input_page * recipes_per_page]
 		if not recipe then break end
 		local recipe_formspec = {}
 		
@@ -218,7 +229,7 @@ local function make_formspec(craft_type, player_name)
 		end
 
 		-------------------------------- Outputs
-		x_out = 7
+		x_out = width - 1
 		for output, count in pairs(recipe.output) do
 			local itemdesc = minetest.registered_items[output].description -- we know this item exists otherwise a recipe wouldn't have been found
 			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
@@ -271,7 +282,7 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			playerdata.output_page = playerdata.output_page - 1
 			minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
-		elseif field == "next_output" and playerdata.output_page < #outputs/(8*4)-1 then
+		elseif field == "next_output" and playerdata.output_page < #outputs/(width*height)-1 then
 			playerdata.output_page = playerdata.output_page + 1
 			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
