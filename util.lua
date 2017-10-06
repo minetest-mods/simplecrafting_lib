@@ -252,17 +252,28 @@ end
 -- Returns true if the item name is an input for at least one
 -- recipe belonging to the given craft type
 simplecrafting_lib.is_possible_input = function(craft_type, item_name)
-	local recipes = simplecrafting_lib.type[craft_type].recipes
+	local info = simplecrafting_lib.get_crafting_info(craft_type)
+	
+	if info.recipes_by_in[item_name] then
+		return true -- that was easy.
+	end
+	
+	-- Now for the group checks. :(
 	local item_def = minetest.registered_items[item_name]
 	local groups = item_def.groups or {}
-	for i = 1, #recipes do
-		if recipes[i].input[item_name] then
-			return true
-		end
-		-- TODO: this group check doesn't handle the dual-group flower/dye thing
-		for group, _ in pairs(groups) do
-			if recipes[i].input[group] then
-				return true
+	for _, recipe in pairs(info.recipes) do
+		--the multi-group flower/dye type inputs are complicated to check for
+		for input_item, _ in pairs(recipe.input) do
+			if not string.match(input_item, ":") then
+				local input_grouplist = split(input_item, ",") -- most of the time we'll have a list of one.
+				local input_matches = true
+				for _, needed_group in pairs(input_grouplist) do -- for each group in that list of input groups
+					if not groups[needed_group] then -- if the test item doesn't have that group
+						input_matches = false -- it's not a match.
+						break
+					end
+				end
+				if input_matches then return true end
 			end
 		end
 	end
