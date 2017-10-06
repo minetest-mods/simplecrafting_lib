@@ -178,10 +178,34 @@ local disintermediate = function(craft_type, contents)
 				if contents.recipes_by_out[in_item] then
 					-- find a recipe whose output divides evenly into the input
 					for _, recipe_producing_in_item in pairs(contents.recipes_by_out[in_item]) do
-						if not recipe_producing_in_item.do_not_use_for_disintermediation and in_count % recipe_producing_in_item.output[in_item] == 0 then
+						if not recipe_producing_in_item.do_not_use_for_disintermediation and
+								(in_count % recipe_producing_in_item.output[in_item] == 0 or recipe_producing_in_item.output[in_item] % in_count == 0) then
+								
 							local multiplier = in_count / recipe_producing_in_item.output[in_item]
+
 							local working_recipe = deep_copy(recipe)
 							working_recipe.input[in_item] = nil -- clear the input from the working recipe (soon to be our newly created disintermediated recipe)
+							
+							if multiplier < 1 then
+								-- the recipe_producing_in_item produces more than the working recipe requires by a whole multiplier.
+								-- eg, 1A + 1B => 2C, 1C + 1D => 1E.
+								-- Multiply working recipe by the inverse of multiplier and then set multiplier to 1.
+								-- That will get us 1A + 1B + 2D => 2E
+								local inverse = 1/multiplier
+								multiplier = 1
+								
+								for item, count in pairs(working_recipe.input) do
+									working_recipe.input[item] = count * inverse
+								end
+								for item, count in pairs(working_recipe.output) do
+									working_recipe.output[item] = count * inverse
+								end
+								for item, count in pairs(working_recipe.returns) do
+									working_recipe.returns[item] = count * inverse
+								end
+								
+							end
+							
 							-- add the inputs and outputs of the disintermediating recipe
 							for new_in_item, new_in_count in pairs(recipe_producing_in_item.input) do
 								if not working_recipe.input[new_in_item] then
