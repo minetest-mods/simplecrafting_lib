@@ -2,6 +2,7 @@ local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
 local modpath_default = minetest.get_modpath("default")
+local modpath_awards = minetest.get_modpath("awards")
 
 -- table_def can have the following:
 --{
@@ -187,6 +188,9 @@ local on_metadata_inventory_move = function(pos, from_list, from_index, to_list,
 		local inv = meta:get_inventory()
 		local stack = inv:get_stack(to_list, to_index)
 		simplecrafting_lib.craft_stack(craft_type, stack, inv, "input", inv, to_list, player)
+		if modpath_awards then
+			awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
+		end
 	end
 	refresh_inv(meta)
 end
@@ -196,6 +200,9 @@ local on_metadata_inventory_take = function(pos, list_name, index, stack, player
 	if list_name == "output" then
 		local inv = meta:get_inventory()
 		simplecrafting_lib.craft_stack(craft_type, stack, inv, "input", player:get_inventory(), "main", player)
+		if modpath_awards then
+			awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
+		end
 	end
 	refresh_inv(meta)
 end
