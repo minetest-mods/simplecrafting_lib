@@ -284,7 +284,9 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
 		elseif string.sub(field, 1, 8) == "product_" then
+			playerdata.input_page = 0
 			playerdata.selection = tonumber(string.sub(field, 9))
+			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
 		elseif field == "exit" then
 			return true
