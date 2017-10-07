@@ -12,9 +12,11 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	crafting_time_multiplier = function(pos, recipe)
 --	active_node = string,
 --	lock_in_mode = "count" | "endless"
+--	get_infotext = function(pos)
 --}
 
 local modpath_default = minetest.get_modpath("default")
+
 
 simplecrafting_lib.generate_autocraft_functions = function(craft_type, autocraft_def)
 
@@ -50,7 +52,8 @@ local function get_count_mode(meta)
 	end
 end
 
-local function refresh_formspec(meta)
+local function refresh_formspec(pos)
+	local meta = minetest.get_meta(pos)
 	local craft_time = meta:get_float("craft_time") or 0.0
 	local total_craft_time = meta:get_float("total_craft_time") or 0.0
 	local product_count = meta:get_int("product_count") or 0
@@ -161,6 +164,7 @@ local function refresh_formspec(meta)
 	end
 	
 	meta:set_string("formspec", table.concat(inventory))
+	meta:set_string("infotext", autocraft_def.get_infotext(pos))
 end
 
 local function refresh_products(meta)
@@ -254,7 +258,7 @@ local function on_timer(pos, elapsed)
 	meta:set_float("craft_time", craft_time)	
 	meta:set_float("total_craft_time", total_craft_time)
 
-	refresh_formspec(meta)
+	refresh_formspec(pos)
 end
 
 local on_construct = function(pos)
@@ -267,7 +271,7 @@ local on_construct = function(pos)
 	if autocraft_def.active_node then
 		meta:set_string("inactive_node", minetest.get_node(pos).name) -- we only need this if there's an active node defined
 	end
-	refresh_formspec(meta)
+	refresh_formspec(pos)
 end
 
 local _pipeworks_override_player = {} -- Horrible hack. Pipeworks gets to insert stuff regardless of protection.
@@ -340,7 +344,7 @@ local on_metadata_inventory_take = function(pos, lname, i, stack, player)
 	local meta = minetest.get_meta(pos)
 	if lname == "input" then
 		refresh_products(meta)
-		refresh_formspec(meta)
+		refresh_formspec(pos)
 	elseif lname == "output" then
 		on_timer(pos, 0)
 	end
@@ -410,11 +414,38 @@ local on_receive_fields = function(pos, formname, fields, sender)
 	end
 	
 	if refresh then
-		refresh_formspec(meta)
+		refresh_formspec(pos)
 	end
 	
 	on_timer(pos, 0)
 end
+
+local function default_infotext(pos)
+	local infotext = ""
+	local meta = minetest.get_meta(pos)
+
+	if autocraft_def.description then
+		infotext = infotext .. autocraft_def.description
+	end
+
+	local target = meta:get_string("target_item")
+	if target ~= "" then
+		local craft_time = meta:get_float("craft_time") or 0.0
+		local total_craft_time = meta:get_float("total_craft_time") or 0.0
+		local item_percent
+		if total_craft_time > 0 then item_percent = math.floor((math.min(craft_time, total_craft_time) / total_craft_time) * 100) else item_percent = 0 end	
+
+		infotext = infotext .. "\n" .. S("@1% done crafting @2", item_percent, minetest.registered_items[target].description)
+		
+		if get_count_mode(meta) then
+			local product_count = meta:get_int("product_count") or 0
+			infotext = infotext .. "\n" .. S("@1 remaining to do", product_count)
+		end
+	end
+	
+	return infotext	
+end
+autocraft_def.get_infotext = autocraft_def.get_infotext or default_infotext
 
 return {
 	allow_metadata_inventory_move = allow_metadata_inventory_move,

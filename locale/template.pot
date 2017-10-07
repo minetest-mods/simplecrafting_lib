@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-10-07 01:48-0600\n"
+"POT-Creation-Date: 2017-10-07 11:07-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,42 +17,52 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: templates\autocraft.lua:62
-#: templates\multifurnace.lua:71
+#: templates\autocraft.lua:86
+#: templates\multifurnace.lua:93
 msgid ""
 "Endless\n"
 "Output"
 msgstr ""
 
-#: templates\autocraft.lua:64
-#: templates\multifurnace.lua:73
+#: templates\autocraft.lua:89
+#: templates\multifurnace.lua:96
 msgid ""
 "Counted\n"
 "Output"
 msgstr ""
 
-#: templates\autocraft.lua:108
+#: templates\autocraft.lua:133
 #: templates\table.lua:70
 msgid "Next page of crafting products"
 msgstr ""
 
-#: templates\autocraft.lua:114
+#: templates\autocraft.lua:139
 #: templates\table.lua:76
 msgid "Previous page of crafting products"
 msgstr ""
 
-#: templates\autocraft.lua:118
-#: templates\multifurnace.lua:119
+#: templates\autocraft.lua:143
+#: templates\multifurnace.lua:142
 #: templates\table.lua:80
 msgid "Page @1"
 msgstr ""
 
-#: templates\autocraft.lua:138
-#: templates\multifurnace.lua:137
+#: templates\autocraft.lua:163
+#: templates\multifurnace.lua:160
 #: templates\table.lua:90
 msgid ""
 "Show\n"
 "Guide"
+msgstr ""
+
+#: templates\autocraft.lua:438
+#: templates\multifurnace.lua:485
+msgid "@1% done crafting @2"
+msgstr ""
+
+#: templates\autocraft.lua:442
+#: templates\multifurnace.lua:489
+msgid "@1 remaining to do"
 msgstr ""
 
 #: templates\guide.lua:168
