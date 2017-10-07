@@ -186,11 +186,19 @@ A convenience function that generates a table of functions that can be used dire
 		enable_pipeworks = true,
 		protect_inventory = true,
 		crafting_time_multiplier = function(pos, recipe),
+		active_node = "mod:node",
+		lock_in_mode = "count" | "endless"
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the autocrafter will interact with the `[pipeworks]` mod like a chest (input items go to the input inventory). **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your autocrafter's node.
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named.
+
+If `enable_pipeworks` is **true** then the autocrafter will interact with the `[pipeworks]` mod like a chest (input items go to the input inventory). **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your autocrafter's node.
 
 `protect_inventory` causes the inventories to respect player protection.
+
+`active_node` is the name of a node that the autocrafter will swap into its position when it's actively crafting. When it stops crafting it'll swap back to the node that it was initially placed as. **Note:** it is important to add the same autocraft functions to both the "inactive" and "active" nodes.
+
+`lock_in_mode` can be used to permanently lock the autocrafter in either **"count"** mode or **"endless"** mode. If this is not specified the user will have a button that allows them to change between the two nodes.
 
 The returned table of functions contains:
 
@@ -229,9 +237,15 @@ A convenience function that generates a table of functions that can be used dire
 		crafting_time_multiplier = function(pos, recipe),
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the multifurnace will behave like a furnace does with the `[pipeworks]` mod. **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your multifurnace's node.
+If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named.
+
+If `enable_pipeworks` is **true** then the multifurnace will behave like a furnace does with the `[pipeworks]` mod. **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your multifurnace's node.
 
 `protect_inventory` causes the inventories to respect player protection.
+
+`active_node` is the name of a node that the autocrafter will swap into its position when it's actively crafting. When it stops crafting it'll swap back to the node that it was initially placed as. **Note:** it is important to add the same autocraft functions to both the "inactive" and "active" nodes.
+
+`lock_in_mode` can be used to permanently lock the autocrafter in either **"count"** mode or **"endless"** mode. If this is not specified the user will have a button that allows them to change between the two nodes.
 	
 The returned table of functions contains:
 

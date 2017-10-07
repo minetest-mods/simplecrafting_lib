@@ -11,6 +11,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	protect_inventory = true or false
 --	crafting_time_multiplier = function(pos, recipe)
 --	active_node = string,
+--	lock_in_mode = "count" | "endless",
 --}
 
 local modpath_default = minetest.get_modpath("default")
@@ -30,14 +31,24 @@ if multifurnace_def.hopper_node_name and minetest.get_modpath("hopper") and hopp
 })
 end
 
+local function get_count_mode(meta)
+	if multifurnace_def.lock_in_mode == "endless" then
+		return false
+	elseif multifurnace_def.lock_in_mode == "count" then
+		return true
+	else
+		return meta:get_string("count_mode") == "true"
+	end
+end
+
 local function refresh_formspec(meta)
 	local cook_time = meta:get_float("cook_time") or 0.0
 	local total_cook_time = meta:get_float("total_cook_time") or 0.0
 	local burn_time = meta:get_float("burn_time") or 0.0
 	local total_burn_time = meta:get_float("total_burn_time") or 0.0
 	local product_count = meta:get_int("product_count") or 0
-	local count_mode = meta:get_string("count_mode") == "true"
-
+	local count_mode = get_count_mode(meta)
+	
 	local item_percent
 	if total_cook_time > 0 then item_percent = math.floor((math.min(cook_time, total_cook_time) / total_cook_time) * 100) else item_percent = 0 end
 	local burn_percent
@@ -68,8 +79,10 @@ local function refresh_formspec(meta)
 	if count_mode then
 		inventory[#inventory+1] = "field[4.8,1.7;1,0.25;product_count;;"..product_count.."]"
 		inventory[#inventory+1] = "field_close_on_enter[product_count;false]"
-		inventory[#inventory+1] = "button[9,7.5;1,0.75;count_mode;"..S("Endless\nOutput").."]"
-	else
+		if multifurnace_def.lock_in_mode == nil then
+			inventory[#inventory+1] = "button[9,7.5;1,0.75;count_mode;"..S("Endless\nOutput").."]"
+		end
+	elseif multifurnace_def.lock_in_mode == nil then
 		inventory[#inventory+1] = "button[9,7.5;1,0.75;count_mode;"..S("Counted\nOutput").."]"	
 	end
 	
@@ -159,7 +172,7 @@ local function on_timer(pos, elapsed)
 	local burn_time = meta:get_float("burn_time") or 0.0
 	local total_burn_time = meta:get_float("total_burn_time") or 0.0
 	local product_count = meta:get_int("product_count") or 0
-	local count_mode = meta:get_string("count_mode") == "true"
+	local count_mode = get_count_mode(meta)
 
 	local target_item = meta:get_string("target_item")
 	
@@ -414,7 +427,7 @@ local on_receive_fields = function(pos, formname, fields, sender)
 		simplecrafting_lib.show_crafting_guide(craft_type, sender)
 	end
 	
-	if fields.key_enter_field == "product_count" then
+	if fields.product_count ~= nil then
 		meta:set_int("product_count", math.max((tonumber(fields.product_count) or 0), 0))
 		refresh = true
 	end
