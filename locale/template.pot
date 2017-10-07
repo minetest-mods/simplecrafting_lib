@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-10-01 19:13-0600\n"
+"POT-Creation-Date: 2017-10-07 01:48-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,59 +17,78 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: templates\guide.lua:162
-#: templates\guide.lua:182
-msgid "Prev"
-msgstr ""
-
-#: templates\guide.lua:163
-#: templates\guide.lua:183
-msgid "Next"
-msgstr ""
-
-#: templates\guide.lua:164
+#: templates\autocraft.lua:62
+#: templates\multifurnace.lua:71
 msgid ""
-"Product\n"
-"page @1"
+"Endless\n"
+"Output"
 msgstr ""
 
-#: templates\guide.lua:181
+#: templates\autocraft.lua:64
+#: templates\multifurnace.lua:73
 msgid ""
-"Recipe\n"
-"page @1"
+"Counted\n"
+"Output"
 msgstr ""
 
-#: templates\guide.lua:324
-#: templates\guide.lua:326
-msgid "@1 Recipes"
+#: templates\autocraft.lua:108
+#: templates\table.lua:70
+msgid "Next page of crafting products"
 msgstr ""
 
-#: templates\multifurnace.lua:104
-#: templates\table.lua:77
+#: templates\autocraft.lua:114
+#: templates\table.lua:76
+msgid "Previous page of crafting products"
+msgstr ""
+
+#: templates\autocraft.lua:118
+#: templates\multifurnace.lua:119
+#: templates\table.lua:80
+msgid "Page @1"
+msgstr ""
+
+#: templates\autocraft.lua:138
+#: templates\multifurnace.lua:137
+#: templates\table.lua:90
 msgid ""
 "Show\n"
 "Guide"
 msgstr ""
 
-#: templates\table.lua:57
-msgid "Next page of crafting products"
+#: templates\guide.lua:168
+#: templates\guide.lua:193
+msgid "Prev"
 msgstr ""
 
-#: templates\table.lua:63
-msgid "Previous page of crafting products"
+#: templates\guide.lua:169
+#: templates\guide.lua:194
+msgid "Next"
 msgstr ""
 
-#: templates\table.lua:67
-msgid "Page @1"
+#: templates\guide.lua:170
+msgid ""
+"Product\n"
+"page @1"
 msgstr ""
 
-#: templates\table.lua:71
+#: templates\guide.lua:192
+msgid ""
+"Recipe\n"
+"page @1"
+msgstr ""
+
+#: templates\guide.lua:337
+#: templates\guide.lua:339
+msgid "@1 Recipes"
+msgstr ""
+
+#: templates\table.lua:84
 msgid ""
 "Max\n"
 "Output"
 msgstr ""
 
-#: templates\table.lua:73
+#: templates\table.lua:86
 msgid ""
 "Min\n"
 "Output"

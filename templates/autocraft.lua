@@ -33,6 +33,8 @@ end
 local function refresh_formspec(meta)
 	local craft_time = meta:get_float("craft_time") or 0.0
 	local total_craft_time = meta:get_float("total_craft_time") or 0.0
+	local product_count = meta:get_int("product_count") or 0
+	local count_mode = meta:get_string("count_mode") == "true"
 
 	local item_percent
 	if total_craft_time > 0 then item_percent = math.floor((math.min(craft_time, total_craft_time) / total_craft_time) * 100) else item_percent = 0 end
@@ -53,6 +55,14 @@ local function refresh_formspec(meta)
 		"listring[context;input]",
 		"listring[current_player;main]",
 	}
+	
+	if count_mode then
+		inventory[#inventory+1] = "field[3.3,1.5;1,0.25;product_count;;"..product_count.."]"
+		inventory[#inventory+1] = "field_close_on_enter[product_count;false]"
+		inventory[#inventory+1] = "button[9,8.7;1,0.75;count_mode;"..S("Endless\nOutput").."]"
+	else
+		inventory[#inventory+1] = "button[9,8.7;1,0.75;count_mode;"..S("Counted\nOutput").."]"	
+	end
 	
 	if autocraft_def.description then
 		inventory[#inventory+1] = "label[1.5,0;"..autocraft_def.description.."]"
@@ -155,6 +165,8 @@ local function on_timer(pos, elapsed)
 		
 	local craft_time = meta:get_float("craft_time") or 0.0
 	local total_craft_time = meta:get_float("total_craft_time") or 0.0
+	local product_count = meta:get_int("product_count") or 0
+	local count_mode = meta:get_string("count_mode") == "true"
 
 	local target_item = meta:get_string("target_item")
 	
@@ -167,19 +179,16 @@ local function on_timer(pos, elapsed)
 		if recipe then
 			output = simplecrafting_lib.count_list_add(recipe.output, recipe.returns)
 			room_for_items = simplecrafting_lib.room_for_items(inv, "output", output)
-			recipe_input_count = count_items(recipe.input)
-			total_craft_time = recipe.cooktime or recipe_input_count
-			minetest.debug("total_craft_time " .. total_craft_time .. " # input " .. count_items(recipe.input) .. " input " .. dump(recipe.input))
+			total_craft_time = recipe.cooktime or 1
+			if autocraft_def.crafting_time_multiplier then
+				total_craft_time = total_craft_time * autocraft_def.crafting_time_multiplier(pos, recipe)
+			end
 		end
-	end
-
-	if autocraft_def.crafting_time_multiplier then
-		elapsed = elapsed / autocraft_def.crafting_time_multiplier(pos, recipe)
 	end
 
 	craft_time = craft_time + elapsed
 	
-	if recipe == nil or not room_for_items then
+	if recipe == nil or not room_for_items or (product_count <= 0 and count_mode) then
 		-- we're not crafting anything.
 		craft_time = 0.0
 		minetest.get_node_timer(pos):stop()
@@ -191,11 +200,19 @@ local function on_timer(pos, elapsed)
 	else
 		
 		while true do
-			if craft_time >= (recipe.cooktime or recipe_input_count) then
+			if craft_time >= total_craft_time then
 				-- produce product
+				if count_mode then
+					local output_produced = 0
+					for _, count in pairs(recipe.output) do
+						output_produced = output_produced + count
+					end
+					product_count = product_count - output_produced
+					meta:set_int("product_count", math.max(product_count, 0))
+				end
 				simplecrafting_lib.add_items(inv, "output", output)
 				simplecrafting_lib.remove_items(inv, "input", recipe.input)
-				craft_time = craft_time - (recipe.cooktime or recipe_input_count)
+				craft_time = craft_time - total_craft_time
 				minetest.get_node_timer(pos):start(1)
 				break
 			else
@@ -213,7 +230,7 @@ local function on_timer(pos, elapsed)
 	end
 
 	meta:set_float("craft_time", craft_time)	
-	meta:set_float("total_craft_time", total_craft_time)	
+	meta:set_float("total_craft_time", total_craft_time)
 
 	refresh_formspec(meta)
 end
@@ -325,18 +342,37 @@ local on_receive_fields = function(pos, formname, fields, sender)
 	local meta = minetest.get_meta(pos)
 	local product_list = minetest.deserialize(meta:get_string("product_list"))
 
+	local refresh = false
+	
 	for field, _ in pairs(fields) do
 		if field == "target" then
 			meta:set_string("target_item", "")
 			meta:set_float("craft_time", 0.0)
 			meta:set_float("total_craft_time", 0.0)
 		elseif string.sub(field, 1, 8) == "product_" then
-			local new_target = product_list[tonumber(string.sub(field, 9))].name
-			meta:set_string("target_item", new_target)
-			meta:set_float("craft_time", 0.0)
-			meta:set_string("last_selector_name", sender:get_player_name())
-			refresh_formspec(meta)
+			local product = product_list[tonumber(string.sub(field, 9))]
+			if product then
+				local new_target = product.name
+				meta:set_string("target_item", new_target)
+				meta:set_float("craft_time", 0.0)
+				meta:set_string("last_selector_name", sender:get_player_name())
+				refresh = true
+			end
 		end
+	end
+	
+	if fields.count_mode then
+		if meta:get_string("count_mode") == "" then
+			meta:set_string("count_mode", "true")
+		else
+			meta:set_string("count_mode", "")
+		end
+		refresh = true
+	end
+	
+	if fields.key_enter_field == "product_count" then
+		meta:set_int("product_count", math.max((tonumber(fields.product_count) or 0), 0))
+		refresh = true
 	end
 	
 	if fields.show_guide and autocraft_def.show_guides then
@@ -345,9 +381,13 @@ local on_receive_fields = function(pos, formname, fields, sender)
 	
 	if fields.next_page then
 		meta:set_int("product_page", meta:get_int("product_page") + 1)
-		refresh_formspec(meta)
+		refresh = true
 	elseif fields.prev_page then
 		meta:set_int("product_page", meta:get_int("product_page") - 1)	
+		refresh = true
+	end
+	
+	if refresh then
 		refresh_formspec(meta)
 	end
 	
