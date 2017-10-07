@@ -24,11 +24,20 @@ end
 
 -- Hopper compatibility
 if multifurnace_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+
 	hopper:add_container({
 		{"top", multifurnace_def.hopper_node_name, "output"},
 		{"bottom", multifurnace_def.hopper_node_name, "input"},
 		{"side", multifurnace_def.hopper_node_name, "fuel"},
-})
+	})
+	
+	if multifurnace_def.active_node then
+		hopper:add_container({
+			{"top", multifurnace_def.active_node, "output"},
+			{"bottom", multifurnace_def.active_node, "input"},
+			{"side", multifurnace_def.active_node, "fuel"},
+		})
+	end
 end
 
 local function get_count_mode(meta)

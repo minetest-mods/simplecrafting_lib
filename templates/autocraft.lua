@@ -24,17 +24,26 @@ end
 
 -- Hopper compatibility
 if autocraft_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
+
 	hopper:add_container({
 		{"top", autocraft_def.hopper_node_name, "output"},
 		{"bottom", autocraft_def.hopper_node_name, "input"},
 		{"side", autocraft_def.hopper_node_name, "input"},
-})
+	})
+	
+	if autocraft_def.active_node then
+		hopper:add_container({
+			{"top", autocraft_def.active_node, "output"},
+			{"bottom", autocraft_def.active_node, "input"},
+			{"side", autocraft_def.active_node, "input"},
+		})
+	end
 end
 
 local function get_count_mode(meta)
-	if multifurnace_def.lock_in_mode == "endless" then
+	if autocraft_def.lock_in_mode == "endless" then
 		return false
-	elseif multifurnace_def.lock_in_mode == "count" then
+	elseif autocraft_def.lock_in_mode == "count" then
 		return true
 	else
 		return meta:get_string("count_mode") == "true"
