@@ -101,18 +101,76 @@ minetest.after(0, function()
 	already_cleared_processed = nil
 end)
 
+local function itemlist_to_countlist(itemlist)
+	local count_list = {}
+	for _, item in ipairs(itemlist) do
+		count_list[item] = (count_list[item] or 0) + 1
+	end
+	return count_list
+end
+
+local has_prefix = function(str, prefix)
+	return str:sub(1, string.len(prefix)) == prefix
+end
+
+local function compare_recipe_items(item1, item2)
+	if item1 == item2 then
+		return true
+	end
+	
+	local item1_group = nil
+	local item2_group = nil
+	if item1:sub(1, 6) == "group:" then
+		item1_group = item1:sub(7)
+	end		
+	if item2:sub(1, 6) == "group:" then
+		item2_group = item2:sub(7)
+	end
+	
+	if item1_group and item2_group then
+		return false -- they're both groups and they're both different
+	end
+	
+	if item1_group and minetest.get_item_group(item2, item1_group) > 0 then
+		return true
+	end
+	if item2_group and minetest.get_item_group(item1, item2_group) > 0 then
+		return true
+	end
+	
+	return false
+end
+
 local function compare_recipe_to_clear(recipe1, recipe2)
-	if recipe1.method ~= recipe2.method then
+	if recipe1.type ~= recipe2.type then
 		return false
 	end	
-	if recipe1.width ~= recipe2.width then
-		return false
-	end
-	for i = 1,9 do
-		if recipe1.items[i] ~= recipe2.items[i] then
+	
+	if recipe1.type == "cooking" then
+		if recipe1.recipe ~= recipe2.recipe then
 			return false
-		end			
+		end
+	elseif recipe1.type == "shapeless" then
+		local recipe1_input = itemlist_to_countlist(recipe1.recipe)
+		local recipe2_input = itemlist_to_countlist(recipe2.recipe)
+		for item, count in pairs(recipe1_input) do
+			if recipe2_input[item] ~= count then
+				return false
+			end
+		end
+	else
+		if recipe1.width ~= recipe2.width then
+			return false
+		end
+		for i = 1, recipe1.width do
+			for k = 1, 3 do
+				if not compare_recipe_items(recipe1.recipe[i][k], recipe2.recipe[i][k]) then
+					return false
+				end
+			end
+		end
 	end
+	
 	return true
 end
 
@@ -122,13 +180,11 @@ end
 -- clearing a "nonexistent" recipe). Also, the format of recipes returned by
 -- get_all_crafts is completely different from the format required by clear_craft.
 -- Minetest is... quirky sometimes, let's put it diplomatically.
+
+-- https://github.com/minetest/minetest/issues/5962
+-- https://github.com/minetest/minetest/issues/5790
+
 local function safe_clear_craft(recipe_to_clear, processed_recipe)
-	for _, recipe in pairs(already_cleared) do
-		if compare_recipe_to_clear(recipe, recipe_to_clear) then
-			return
-		end
-	end
-	table.insert(already_cleared, recipe_to_clear)
 	table.insert(already_cleared_processed, processed_recipe)
 	
 	local parameter_recipe = {}
@@ -162,10 +218,19 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 		parameter_recipe.type = "cooking"
 		parameter_recipe.recipe = recipe_to_clear.items[1]
 	else
-		minetest.log("error", "safe_clear_craft was unable to parse recipe "..dump(recipe_to_clear))
-		return
+		minetest.log("error", "[simplecrafting_lib] safe_clear_craft was unable to parse recipe "..dump(recipe_to_clear))
+		return false
 	end
+	
+	for _, recipe in pairs(already_cleared) do
+		if compare_recipe_to_clear(recipe, parameter_recipe) then
+			return false
+		end
+	end
+	table.insert(already_cleared, parameter_recipe)
+	
 	minetest.clear_craft(parameter_recipe)
+	return true
 end
 
 simplecrafting_lib.import_filters = {}
