@@ -51,24 +51,20 @@ system exclusively. Examples are given below:
 		burntime = 25.4,
 	})
 
-The following example code used in a mod that depends on simplecrafting_lib to import existing recipes from Minetest's native crafting system. In this particular case the mod it is from adds the concept of "fuel grade," which the mod's furnace node can take into account when determining whether a given fuel is hot enough to catalyze a given reaction. This shows how import filters can modify imported recipes however it likes and how simplecrafting recipes can include arbitrary metadata beyond the standard parameters shown above. It could also choose to place the recipes into categories based on other properties of the recipe - for example, it could place "cooking" recipes involving ore into a different crafting type than "cooking" recipes involving food items.
+The following example code used in a mod that depends on simplecrafting_lib to import existing recipes from Minetest's native crafting system. It could also choose to place the recipes into categories based on other properties of the recipe - for example, it could place "cooking" recipes involving ore into a different crafting type than "cooking" recipes involving food items. Note also that you can modify legacy_recipe in this method and that modification will carry through to the registered recipe.
 
 	simplecrafting_lib.register_recipe_import_filter(function(legacy_method, legacy_recipe)
 		if legacy_method == "normal" then
 			return "table", true
 		elseif legacy_method == "cooking" then
-			legacy_recipe.fuel_grade = {}
-			legacy_recipe.fuel_grade.min = 0
-			legacy_recipe.fuel_grade.max = math.huge
 			return "furnace", true
 		elseif legacy_method == "fuel" then
-			legacy_recipe.grade = 1
 			return "fuel", true
 		end
-		minetest.log("error", "get_legacy_type encountered unknown legacy method: "..legacy_method)
 	end)
 	simplecrafting_lib.import_legacy_recipes()
 
+Note that clearing large numbers of recipes from the native crafting system can take a long time on startup, see [issue #5790 on Minetest](https://github.com/minetest/minetest/issues/5790).
 
 To create a standard crafting table that would be able to make use of the "table" craft_type populated by the above recipe import filter, there's a convenience function that provides pre-generated functions for use with a crafting table node definition. The following code shows an example:
 
