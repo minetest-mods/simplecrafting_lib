@@ -165,7 +165,7 @@ local function refresh_formspec(pos)
 	end
 	
 	if autocraft_def.append_to_formspec then
-		inventory[#inventory+1] = table_def.append_to_formspec
+		inventory[#inventory+1] = autocraft_def.append_to_formspec
 	end
 	
 	meta:set_string("formspec", table.concat(inventory))
