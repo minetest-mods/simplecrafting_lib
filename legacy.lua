@@ -93,93 +93,14 @@ local function process_fuel_recipe(recipe)
 	return legacy
 end
 
-local already_cleared = {} -- contains "raw" recipes straight from get_all_craft_recipes
 local already_cleared_processed = {} -- contains recipes suitable for re-registering
 -- once we're done initializing, throw these tables away. They're not needed after that.
 minetest.after(0, function()
-	already_cleared = nil
 	already_cleared_processed = nil
 end)
 
-local function itemlist_to_countlist(itemlist)
-	local count_list = {}
-	for _, item in ipairs(itemlist) do
-		count_list[item] = (count_list[item] or 0) + 1
-	end
-	return count_list
-end
-
-local has_prefix = function(str, prefix)
-	return str:sub(1, string.len(prefix)) == prefix
-end
-
-local function compare_recipe_items(item1, item2)
-	if item1 == item2 then
-		return true
-	end
-	
-	local item1_group = nil
-	local item2_group = nil
-	if item1:sub(1, 6) == "group:" then
-		item1_group = item1:sub(7)
-	end		
-	if item2:sub(1, 6) == "group:" then
-		item2_group = item2:sub(7)
-	end
-	
-	if item1_group and item2_group then
-		return false -- they're both groups and they're both different
-	end
-	
-	if item1_group and minetest.get_item_group(item2, item1_group) > 0 then
-		return true
-	end
-	if item2_group and minetest.get_item_group(item1, item2_group) > 0 then
-		return true
-	end
-	
-	return false
-end
-
-local function compare_recipe_to_clear(recipe1, recipe2)
-	if recipe1.type ~= recipe2.type then
-		return false
-	end
-	
-	if recipe1.type == "cooking" then
-		if recipe1.recipe ~= recipe2.recipe then
-			return false
-		end
-	elseif recipe1.type == "shapeless" then
-		local recipe1_input = itemlist_to_countlist(recipe1.recipe)
-		local recipe2_input = itemlist_to_countlist(recipe2.recipe)
-		for item, count in pairs(recipe1_input) do
-			if recipe2_input[item] ~= count then
-				return false
-			end
-		end
-	else
-		if recipe1.width ~= recipe2.width then
-			return false
-		end
-		for i = 1, recipe1.width do
-			for k = 1, 3 do
-				if not compare_recipe_items(recipe1.recipe[k][i], recipe2.recipe[k][i]) then
-					return false
-				end
-			end
-		end
-	end
-	
-	return true
-end
-
--- This is necessary because it's possible to register multiple crafts
--- with the same input, but if you clear one then all of them are cleared
--- and if you try clearing the second Minetest will crash (because you're
--- clearing a "nonexistent" recipe). Also, the format of recipes returned by
+-- This is necessary because the format of recipes returned by
 -- get_all_crafts is completely different from the format required by clear_craft.
--- Minetest is... quirky sometimes, let's put it diplomatically.
 
 -- https://github.com/minetest/minetest/issues/5962
 -- https://github.com/minetest/minetest/issues/5790
@@ -222,14 +143,11 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 		return false
 	end
 
-	for _, recipe in pairs(already_cleared) do
-		if compare_recipe_to_clear(recipe, parameter_recipe) then
-			return false
-		end
+	-- https://github.com/minetest/minetest/issues/6513
+	local success, err = pcall(function() minetest.clear_craft(parameter_recipe) end)
+	if not success and err ~= "No crafting specified for input" then
+		minetest.log("error", "[simplecrafting_lib] minetest.clear_craft failed with error \"" ..err.. "\" while attempting to clear craft " ..dump(parameter_recipe))
 	end
-	table.insert(already_cleared, parameter_recipe)
-	
-	minetest.clear_craft(parameter_recipe)
 	return true
 end
 
