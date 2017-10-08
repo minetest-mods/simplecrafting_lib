@@ -76,9 +76,8 @@ registers a filter function used by `import_legacy_recipes`. The mod using simpl
 
 		function(legacy_method, recipe)
 
-The `legacy_method` parameter will be either **"normal"**, **"cooking"**, or **"fuel"**
-
-`recipe` will be in the format described above for `simplecrafting_lib.register`. This method can modify the `recipe` parameter in the course of execution and those modifications will be reflected in the final registered version.
+* `legacy_method` parameter will be either **"normal"**, **"cooking"**, or **"fuel"**
+* `recipe` will be in the format described above for `simplecrafting_lib.register`. This method can modify the `recipe` parameter in the course of execution and those modifications will be reflected in the final registered version.
 
 The filter function should return two values: `craft_type` (a string) and `clear_recipe` (a bool). If `craft_type` is **nil** then the recipe won't be imported. If `clear_recipe` is **true** then the recipe will be removed from the native crafting system.
 
@@ -106,13 +105,10 @@ The following methods are convenience functions that can be used by a mod to qui
 
 A convenienence function that attempts to do a generic crafting operation as part of an `on_metadata_inventory_take` or `on_metadata_inventory_move` call. You don't need to use this method if you want to do something more sophisticated.
 
-`request_stack` is an item stack that it is assumed the player has taken from a set of possible outputs. It is assumed that the contents of `request_stack` will be added to the destination inventory as a result of an existing inventory transfer and it will be deducted from the craft result. Note that the actual output of this crafting operation could be larger than `request_stack` if a recipe that produces an even multiple of `request_stack` cannot be found (for example, `request_stack` has 3 of an item but there is only a recipe producing 4 of the item in `craft_type`, a total of 4 will be crafted.)
-
-`source_inv`, `source_listname` are where the raw materials will be taken from.
-
-`destination_inv`, `destination_listname` are where the crafting outputs will be placed. This can be the same as the source inventory.
-
-`player_or_pos` is either a player object or a pos table. This is used for logging purposes and as a place to put output in the event that `destination_inv` can't hold it all.
+* `request_stack` is an item stack that it is assumed the player has taken from a set of possible outputs. It is assumed that the contents of `request_stack` will be added to the destination inventory as a result of an existing inventory transfer and it will be deducted from the craft result. Note that the actual output of this crafting operation could be larger than `request_stack` if a recipe that produces an even multiple of `request_stack` cannot be found (for example, `request_stack` has 3 of an item but there is only a recipe producing 4 of the item in `craft_type`, a total of 4 will be crafted.)
+* `source_inv`, `source_listname` are where the raw materials will be taken from.
+* `destination_inv`, `destination_listname` are where the crafting outputs will be placed. This can be the same as the source inventory.
+* `player_or_pos` is either a player object or a pos table. This is used for logging purposes and as a place to put output in the event that `destination_inv` can't hold it all.
 
 ## `simplecrafting_lib.show_crafting_guide(craft_type, player)`
 
@@ -125,6 +121,21 @@ Items with a "G" superimposed over them represent item *groups*. Simplecrafting_
 
     simplecrafting_lib.guide.groups["wood"] = "default:wood"
 
+## `simplecrafting_lib.set_crafting_guide_def(craft_type, guide_def)`
+
+Defines some parameters regarding how the formspec of the guide for a given craft_type is displayed. `guide_def` is a table with the following optional parameters:
+
+	{
+		output_width = 10,
+		output_height = 6,
+		recipes_per_page = 4,
+		append_to_formspec = string,
+	}
+
+* `output_width` and `output_height` define the dimensions of the grid of output buttons to click on.
+* `recipes_per_page` defines how many rows are dedicated to displaying recipes at the bottom.
+* `append to formspec` is a string that gets appended to the guide's formspec, and can be used to set colors and background images or add other decorative elements.
+	
 ## `simplecrafting_lib.set_description(craft_type, description)`
 
 A crafting type can be given a human-readable text label by adding a `description` string to the `craft_type`'s info. This label is used by the template crafting formspecs.
@@ -146,11 +157,12 @@ A convenience function that generates a table of functions that can be used dire
 		hopper_node_name = "mod:node",
 		enable_pipeworks = true,
 		protect_inventory = true,
+		append_to_formspec = "string",
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the crafting table will behave like a chest does with the `[pipeworks]` mod.  **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your crafting table's node.
-
-`protect_inventory` causes the inventories to respect player protection.
+* If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named. If `enable_pipeworks` is **true** then the crafting table will behave like a chest does with the `[pipeworks]` mod.  **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your crafting table's node.
+* `protect_inventory` causes the inventories to respect player protection.
+* `append to formspec` is a string that gets appended to the inventory formspec, and can be used to set colors and background images or add other decorative elements.
 
 The returned table of functions contains:
 
@@ -187,18 +199,16 @@ A convenience function that generates a table of functions that can be used dire
 		protect_inventory = true,
 		crafting_time_multiplier = function(pos, recipe),
 		active_node = "mod:node",
-		lock_in_mode = "count" | "endless"
+		lock_in_mode = "count" | "endless",
+		append_to_formspec = "string",
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named.
-
-If `enable_pipeworks` is **true** then the autocrafter will interact with the `[pipeworks]` mod like a chest (input items go to the input inventory). **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your autocrafter's node.
-
-`protect_inventory` causes the inventories to respect player protection.
-
-`active_node` is the name of a node that the autocrafter will swap into its position when it's actively crafting. When it stops crafting it'll swap back to the node that it was initially placed as. **Note:** it is important to add the same autocraft functions to both the "inactive" and "active" nodes.
-
-`lock_in_mode` can be used to permanently lock the autocrafter in either **"count"** mode or **"endless"** mode. If this is not specified the user will have a button that allows them to change between the two nodes.
+* If `hopper_node_name` is defined and the `[hopper]` mod is installed, a set of hopper inputs and outputs will be registered for the node that's named.
+* If `enable_pipeworks` is **true** then the autocrafter will interact with the `[pipeworks]` mod like a chest (input items go to the input inventory). **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your autocrafter's node.
+* `protect_inventory` causes the inventories to respect player protection.
+* `active_node` is the name of a node that the autocrafter will swap into its position when it's actively crafting. When it stops crafting it'll swap back to the node that it was initially placed as. **Note:** it is important to add the same autocraft functions to both the "inactive" and "active" nodes.
+* `lock_in_mode` can be used to permanently lock the autocrafter in either **"count"** mode or **"endless"** mode. If this is not specified the user will have a button that allows them to change between the two nodes.
+* `append to formspec` is a string that gets appended to the inventory formspec, and can be used to set colors and background images or add other decorative elements.
 
 The returned table of functions contains:
 
@@ -235,18 +245,18 @@ A convenience function that generates a table of functions that can be used dire
 		enable_pipeworks = true,
 		protect_inventory = true,
 		crafting_time_multiplier = function(pos, recipe),
+		active_node = "mod:node",
+		lock_in_mode = "count" | "endless",
+		append_to_formspec = "string",
 	}
 
-If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named.
+* If `hopper_node_name` is defined and the `[hopper]` mod is installed, a furnace-like set of hopper inputs and outputs will be registered for the node that's named.
+* If `enable_pipeworks` is **true** then the multifurnace will behave like a furnace does with the `[pipeworks]` mod. **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your multifurnace's node.
+* `protect_inventory` causes the inventories to respect player protection.
+* `active_node` is the name of a node that the autocrafter will swap into its position when it's actively crafting. When it stops crafting it'll swap back to the node that it was initially placed as. **Note:** it is important to add the same autocraft functions to both the "inactive" and "active" nodes.
+* `lock_in_mode` can be used to permanently lock the autocrafter in either **"count"** mode or **"endless"** mode. If this is not specified the user will have a button that allows them to change between the two nodes.
+* `append to formspec` is a string that gets appended to the inventory formspec, and can be used to set colors and background images or add other decorative elements.
 
-If `enable_pipeworks` is **true** then the multifurnace will behave like a furnace does with the `[pipeworks]` mod. **Note:** if you enable pipeworks, remember to also set `groups = {tubedevice = 1, tubedevice_receiver = 1}` on your multifurnace's node.
-
-`protect_inventory` causes the inventories to respect player protection.
-
-`active_node` is the name of a node that the autocrafter will swap into its position when it's actively crafting. When it stops crafting it'll swap back to the node that it was initially placed as. **Note:** it is important to add the same autocraft functions to both the "inactive" and "active" nodes.
-
-`lock_in_mode` can be used to permanently lock the autocrafter in either **"count"** mode or **"endless"** mode. If this is not specified the user will have a button that allows them to change between the two nodes.
-	
 The returned table of functions contains:
 
 		allow_metadata_inventory_move
@@ -268,9 +278,9 @@ Add these functions to a node definition and it will produce a node that allows 
 
 An example of the crafting interface that a multifurnace template can produce.
 
-## `simplecrafting_lib.register_crafting_guide_item(item_name, craft_type, guide_def)`
+## `simplecrafting_lib.register_crafting_guide_item(item_name, craft_type, guide_item_def)`
 
-Registers a basic crafting guide item. `guide_def` has many options.
+Registers a basic crafting guide item. `guide_item_def` has many options.
 
 	{
 		description = "string",

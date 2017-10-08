@@ -13,6 +13,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	active_node = string,
 --	lock_in_mode = "count" | "endless"
 --	get_infotext = function(pos)
+--	append_to_formspec = string,
 --}
 
 local modpath_default = minetest.get_modpath("default")
@@ -161,6 +162,10 @@ local function refresh_formspec(pos)
 	
 	if autocraft_def.show_guides then
 		inventory[#inventory+1] = "button[9,9.5;1,0.75;show_guide;"..S("Show\nGuide").."]"
+	end
+	
+	if autocraft_def.append_to_formspec then
+		inventory[#inventory+1] = table_def.append_to_formspec
 	end
 	
 	meta:set_string("formspec", table.concat(inventory))

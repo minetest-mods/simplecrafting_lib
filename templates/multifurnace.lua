@@ -12,6 +12,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 --	crafting_time_multiplier = function(pos, recipe)
 --	active_node = string,
 --	lock_in_mode = "count" | "endless",
+--	append_to_formspec = string,
 --}
 
 local modpath_default = minetest.get_modpath("default")
@@ -158,6 +159,10 @@ local function refresh_formspec(pos)
 	
 	if multifurnace_def.show_guides then
 		inventory[#inventory+1] = "button[9.0,8.3;1,0.75;show_guide;"..S("Show\nGuide").."]"
+	end
+	
+	if multifurnace_def.append_to_formspec then
+		inventory[#inventory+1] = table_def.append_to_formspec
 	end
 	
 	meta:set_string("formspec", table.concat(inventory))

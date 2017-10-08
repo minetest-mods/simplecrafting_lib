@@ -5,10 +5,15 @@ simplecrafting_lib.guide = {}
 simplecrafting_lib.guide.outputs = {}
 simplecrafting_lib.guide.playerdata = {}
 simplecrafting_lib.guide.groups = {}
+simplecrafting_lib.guide.guide_def = {}
 
-local width = 10
-local height = 6
-local recipes_per_page = 4
+local default_width = 10
+local default_height = 6
+local default_recipes_per_page = 4
+
+local function get_guide_def(craft_type)
+	return simplecrafting_lib.guide.guide_def[craft_type] or {}
+end
 
 -- Explicitly set examples for some common input item groups
 -- Other mods can also add explicit items like this if they wish
@@ -113,6 +118,11 @@ local function get_playerdata(craft_type, player_name)
 end
 
 local function make_formspec(craft_type, player_name)
+	local guide_def = get_guide_def(craft_type)
+	local width = guide_def.output_width or default_width
+	local height = guide_def.output_height or default_height
+	local recipes_per_page = guide_def.recipes_per_page or default_recipes_per_page
+
 	local groups = simplecrafting_lib.guide.groups
 	local outputs = get_output_list(craft_type)
 	local playerdata = get_playerdata(craft_type, player_name)
@@ -264,6 +274,10 @@ local function make_formspec(craft_type, player_name)
 		end
 	end
 	
+	if guide_def.append_to_formspec then
+		table.insert(formspec, guide_def.append_to_formspec)
+	end
+	
 	return table.concat(formspec)
 end
 
@@ -272,6 +286,10 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 
 	local craft_type = string.sub(formname, 31)
 
+	local guide_def = get_guide_def(craft_type)
+	local width = guide_def.output_width or default_width
+	local height = guide_def.output_height or default_height
+	
 	local playerdata = get_playerdata(craft_type, player:get_player_name())
 	local outputs = get_output_list(craft_type)
 	
@@ -314,9 +332,21 @@ simplecrafting_lib.show_crafting_guide = function(craft_type, user)
 	minetest.show_formspec(user:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
 end
 
+--	defines some parameters regarding how the formspec of the guide for a given craft_type is displayed.
+--	guide_def 
+--	{
+--		output_width = 10
+--		output_height = 6
+--		recipes_per_page = 4
+--		append_to_formspec = string
+--	}
+
+simplecrafting_lib.set_crafting_guide_def = function(craft_type, guide_def)
+	simplecrafting_lib.guide.guide_def[craft_type] = guide_def
+end
 
 --	creates a basic crafting guide item
---	guide_def has many options.
+--	guide_item_def has many options.
 --	{
 --		description = string description the item will get. Defaults to "<description of craft type> Recipes"
 --		inventory_image = inventory image to be used with this item. Defaults to the book texture included with simplecrafting_lib
@@ -328,11 +358,11 @@ end
 --		copy_item_to_book = an item name string (eg, "workshops:smelter"). If the default mod is installed, a recipe will be generated that combines a default:book with copy_item_to_book and returns this guide and copy_item_to_book. In this manner the player can only get a handy portable reference guide if they are already in possession of the thing that the guide is used with. If copy_item_to_book is not defined then no crafting recipe is generated for this guide.
 --	}
 
-simplecrafting_lib.register_crafting_guide_item = function(item_name, craft_type, guide_def)
+simplecrafting_lib.register_crafting_guide_item = function(item_name, craft_type, guide_item_def)
 
 	local description
-	if guide_def.description then
-		description = guide_def.description
+	if guide_item_def.description then
+		description = guide_item_def.description
 	elseif simplecrafting_lib.get_crafting_info(craft_type).description then
 		description = S("@1 Recipes", simplecrafting_lib.get_crafting_info(craft_type).description)
 	else
@@ -340,13 +370,13 @@ simplecrafting_lib.register_crafting_guide_item = function(item_name, craft_type
 	end
 	
 	local inventory_image
-	if guide_def.inventory_image then
-		inventory_image = guide_def.inventory_image
-		if guide_def.guide_color then
-			inventory_image = inventory_image .. "^[multiply:" .. guide_def.guide_color
+	if guide_item_def.inventory_image then
+		inventory_image = guide_item_def.inventory_image
+		if guide_item_def.guide_color then
+			inventory_image = inventory_image .. "^[multiply:" .. guide_item_def.guide_color
 		end
-	elseif guide_def.guide_color then
-		inventory_image = "crafting_guide_cover.png^[multiply:" .. guide_def.guide_color .. "^crafting_guide_contents.png"
+	elseif guide_item_def.guide_color then
+		inventory_image = "crafting_guide_cover.png^[multiply:" .. guide_item_def.guide_color .. "^crafting_guide_contents.png"
 	else
 		inventory_image = "crafting_guide_cover.png^crafting_guide_contents.png"
 	end
@@ -354,21 +384,21 @@ simplecrafting_lib.register_crafting_guide_item = function(item_name, craft_type
 	minetest.register_craftitem(item_name, {
 		description = description,
 		inventory_image = inventory_image,
-		wield_image = guide_def.wield_image or inventory_image,
-		wield_scale = guide_def.wield_scale,
-		stack_max = guide_def.stack_max or 1,
-		groups = guide_def.groups or {book = 1},
+		wield_image = guide_item_def.wield_image or inventory_image,
+		wield_scale = guide_item_def.wield_scale,
+		stack_max = guide_item_def.stack_max or 1,
+		groups = guide_item_def.groups or {book = 1},
 		on_use = function(itemstack, user)
 			simplecrafting_lib.show_crafting_guide(craft_type, user)
 		end,
 	})
 	
-	if guide_def.copy_item_to_book and minetest.get_modpath("default") then
+	if guide_item_def.copy_item_to_book and minetest.get_modpath("default") then
 		minetest.register_craft({
 			output = item_name,
 			type = "shapeless",
-			recipe = {guide_def.copy_item_to_book, "default:book"},
-			replacements = {{guide_def.copy_item_to_book, guide_def.copy_item_to_book}}
+			recipe = {guide_item_def.copy_item_to_book, "default:book"},
+			replacements = {{guide_item_def.copy_item_to_book, guide_item_def.copy_item_to_book}}
 		})
 	end
 

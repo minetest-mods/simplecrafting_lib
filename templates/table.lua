@@ -11,6 +11,8 @@ local modpath_awards = minetest.get_modpath("awards")
 --	description = string,
 --	hopper_node_name = string,
 --	enable_pipeworks = true or false,
+--	append_to_formspec = string,
+--	protect_inventory = true or false,
 --}
 
 simplecrafting_lib.generate_table_functions = function(craft_type, table_def)
@@ -18,6 +20,10 @@ simplecrafting_lib.generate_table_functions = function(craft_type, table_def)
 if table_def == nil then
 	table_def = {}
 end
+
+local output_width = 8
+local output_height = 6
+local output_count = output_width * output_height
 
 -- Hopper compatibility
 if table_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= nil and hopper.add_container ~= nil then
@@ -30,21 +36,21 @@ end
 
 local function refresh_output(inv, max_mode)
 	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), max_mode, table_def.alphabetize_items)
-	inv:set_size("output", #craftable + ((8*6) - (#craftable%(8*6))))
+	inv:set_size("output", #craftable + (output_count - (#craftable%output_count)))
 	inv:set_list("output", craftable)
 end
 
 local function make_formspec(row, item_count, max_mode)
-	if item_count < (8*6) then
+	if item_count < output_count then
 		row = 0
-	elseif (row*8)+(8*6) > item_count then
-		row = (item_count - (8*6)) / 8
+	elseif (row*output_width)+output_count > item_count then
+		row = (item_count - output_count) / output_width
 	end
 
 	local inventory = {
 		"size[10.2,10.2]",
 		"list[context;input;0,0.5;2,5;]",
-		"list[context;output;2.2,0;8,6;" , tostring(row*8), "]",
+		"list[context;output;2.2,0;"..output_width..","..output_height..";" , tostring(row*output_width), "]",
 		"list[current_player;main;1.1,6.25;8,1;]",
 		"list[current_player;main;1.1,7.5;8,3;8]",
 		"listring[context;output]",
@@ -65,19 +71,19 @@ local function make_formspec(row, item_count, max_mode)
 	
 	local pages = false
 	local page_button_y = "7.3"
-	if item_count > ((row/6)+1) * (8*6) then
+	if item_count > ((row/output_height)+1) * output_count then
 		inventory[#inventory+1] = "button[9.3,"..page_button_y..";1,0.75;next;»]"
 		inventory[#inventory+1] = "tooltip[next;"..S("Next page of crafting products").."]"
 		page_button_y = "8.0"
 		pages = true
 	end
-	if row >= 6 then
+	if row >= output_height then
 		inventory[#inventory+1] = "button[9.3,"..page_button_y..";1,0.75;prev;«]"
 		inventory[#inventory+1] = "tooltip[prev;"..S("Previous page of crafting products").."]"
 		pages = true
 	end
 	if pages then
-		inventory[#inventory+1] = "label[9.3,6.5;" .. S("Page @1", tostring(row/6+1)) .. "]"
+		inventory[#inventory+1] = "label[9.3,6.5;" .. S("Page @1", tostring(row/output_height+1)) .. "]"
 	end
 	
 	if max_mode then
@@ -88,6 +94,10 @@ local function make_formspec(row, item_count, max_mode)
 	
 	if table_def.show_guides then
 		inventory[#inventory+1] = "button[9.3,9.7;1,0.75;show_guide;"..S("Show\nGuide").."]"
+	end
+	
+	if table_def.append_to_formspec then
+		inventory[#inventory+1] = table_def.append_to_formspec
 	end
 
 	return table.concat(inventory), row
@@ -108,7 +118,7 @@ local on_construct = function(pos)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
 	inv:set_size("input", 2*5)
-	inv:set_size("output", 8*6)
+	inv:set_size("output", output_count)
 	meta:set_int("row", 0)
 	meta:set_string("formspec", make_formspec(0, 0, true))
 end
@@ -221,10 +231,10 @@ local on_receive_fields = function(pos, formname, fields, sender)
 	local refresh = false
 	if fields.next then
 		minetest.sound_play("paperflip1", {to_player=sender:get_player_name(), gain = 1.0})
-		row = row + 6
+		row = row + output_height
 	elseif fields.prev  then
 		minetest.sound_play("paperflip2", {to_player=sender:get_player_name(), gain = 1.0})
-		row = row - 6
+		row = row - output_height
 	elseif fields.max_mode then
 		if max_mode == "" then
 			max_mode = "True"
