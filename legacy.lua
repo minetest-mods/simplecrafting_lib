@@ -231,7 +231,8 @@ simplecrafting_lib.import_legacy_recipes = function()
 					end
 				elseif recipe.method == "cooking" then
 					local new_recipe = {input={},output={},method="cooking"}
-					new_recipe.output[recipe.output] = 1
+					local output_item, output_quantity = get_item_and_quantity(recipe.output)
+					new_recipe.output[output_item] = output_quantity
 					new_recipe.input[recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
 					new_recipe.cooktime = cooked.time
