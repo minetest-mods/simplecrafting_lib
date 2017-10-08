@@ -144,7 +144,7 @@ end
 local function compare_recipe_to_clear(recipe1, recipe2)
 	if recipe1.type ~= recipe2.type then
 		return false
-	end	
+	end
 	
 	if recipe1.type == "cooking" then
 		if recipe1.recipe ~= recipe2.recipe then
@@ -164,7 +164,7 @@ local function compare_recipe_to_clear(recipe1, recipe2)
 		end
 		for i = 1, recipe1.width do
 			for k = 1, 3 do
-				if not compare_recipe_items(recipe1.recipe[i][k], recipe2.recipe[i][k]) then
+				if not compare_recipe_items(recipe1.recipe[k][i], recipe2.recipe[k][i]) then
 					return false
 				end
 			end
@@ -221,7 +221,7 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 		minetest.log("error", "[simplecrafting_lib] safe_clear_craft was unable to parse recipe "..dump(recipe_to_clear))
 		return false
 	end
-	
+
 	for _, recipe in pairs(already_cleared) do
 		if compare_recipe_to_clear(recipe, parameter_recipe) then
 			return false
