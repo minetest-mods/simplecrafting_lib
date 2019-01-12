@@ -36,6 +36,34 @@ local function get_item_and_quantity(item_string)
 	end	
 end
 
+local function get_replacement_group_haver(item_name, item_counts, recipe)
+	if item_counts[item_name] == nil then
+		-- If the item to be replaced is a group identifier, and there's an item that matches it in the recipe, substitute that.
+		if string.sub(item_name, 1, 6) == "group:" then
+			local groupname = string.sub(item_name, 7)
+			for k, v in pairs(item_counts) do
+				if minetest.get_item_group(k, groupname) > 0 then
+					return k
+				end
+			end
+			minetest.log("error", "[simplecrafting_lib] recipe has a group replacement " .. item_name ..
+				" but an input belonging to that group can't be found: " .. dump(recipe))
+		end
+	
+		-- If the item to be replaced doesn't exist in the recipe but there are groups in the recipe, see if the item has one of those groups
+		for input, _ in pairs(item_counts) do
+			if string.sub(input, 1, 6) == "group:" and
+				minetest.get_item_group(item_name, string.sub(input, 7)) > 0 then
+				return input
+			end
+		end
+		minetest.log("error", "[simplecrafting_lib] recipe has a replacement target " .. item_name ..
+			" but an input matching it can't be found: " .. dump(recipe))
+	end
+	
+	return item_name
+end
+
 local function process_shaped_recipe(recipe)
 	local legacy = {items={},returns={},output=recipe.output}
 	local count = {}
@@ -48,6 +76,7 @@ local function process_shaped_recipe(recipe)
 	if recipe.replacements then
 		for _,pair in pairs(recipe.replacements) do
 			local item_name, item_quantity = get_item_and_quantity(pair[2])
+			pair[1] = get_replacement_group_haver(pair[1], count, recipe)
 			legacy.returns[item_name] = count[pair[1]] * item_quantity
 		end
 	end
@@ -63,6 +92,7 @@ local function process_shapeless_recipe(recipe)
 		end
 		for _,pair in pairs(recipe.replacements) do
 			local item_name, item_quantity = get_item_and_quantity(pair[2])
+			pair[1] = get_replacement_group_haver(pair[1], count, recipe)
 			legacy.returns[item_name] = count[pair[1]] * item_quantity
 		end
 	end
