@@ -183,12 +183,6 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 	return true
 end
 
-simplecrafting_lib.import_filters = {}
-
-simplecrafting_lib.register_recipe_import_filter = function(filter_function)
-	table.insert(simplecrafting_lib.import_filters, filter_function)
-end
-
 local function register_legacy_recipe(legacy_recipe)
 	local clear_recipe = false
 	for _, filter in ipairs(simplecrafting_lib.import_filters) do
@@ -207,7 +201,32 @@ end
 -- the old way without it being put into this system, use this method.
 simplecrafting_lib.minetest_register_craft = minetest.register_craft
 
-simplecrafting_lib.import_legacy_recipes = function()
+-- This replaces the core register_craft method so that any crafts
+-- registered after this one will be added to the new system.
+minetest.register_craft = function(recipe)
+	local clear = false
+	local new_recipe
+	if not recipe.type then
+		new_recipe = process_shaped_recipe(recipe)
+		clear = register_legacy_recipe(new_recipe)
+	elseif recipe.type == "shapeless" then
+		new_recipe = process_shapeless_recipe(recipe)
+		clear = register_legacy_recipe(new_recipe)
+	elseif recipe.type == "cooking" then
+		new_recipe = process_cooking_recipe(recipe)
+		clear = register_legacy_recipe(new_recipe)
+	elseif recipe.type == "fuel" then
+		new_recipe = process_fuel_recipe(recipe)
+		clear = register_legacy_recipe(new_recipe)
+	end
+	if not clear then
+		return simplecrafting_lib.minetest_register_craft(recipe)
+	else
+		table.insert(already_cleared_processed, new_recipe)
+	end
+end
+
+local function import_legacy_recipes()
 	-- if any recipes have been cleared by previous runs of import_legacy_recipes, let this run have the opportunity to look at them.
 	for _, recipe in pairs(already_cleared_processed) do
 		register_legacy_recipe(recipe)
@@ -277,29 +296,11 @@ simplecrafting_lib.import_legacy_recipes = function()
 			end
 		end
 	end
-	
-	-- This replaces the core register_craft method so that any crafts
-	-- registered after this one will be added to the new system.
-	minetest.register_craft = function(recipe)
-		local clear = false
-		local new_recipe
-		if not recipe.type then
-			new_recipe = process_shaped_recipe(recipe)
-			clear = register_legacy_recipe(new_recipe)
-		elseif recipe.type == "shapeless" then
-			new_recipe = process_shapeless_recipe(recipe)
-			clear = register_legacy_recipe(new_recipe)
-		elseif recipe.type == "cooking" then
-			new_recipe = process_cooking_recipe(recipe)
-			clear = register_legacy_recipe(new_recipe)
-		elseif recipe.type == "fuel" then
-			new_recipe = process_fuel_recipe(recipe)
-			clear = register_legacy_recipe(new_recipe)
-		end
-		if not clear then
-			return simplecrafting_lib.minetest_register_craft(recipe)
-		else
-			table.insert(already_cleared_processed, new_recipe)
-		end
-	end
+end
+
+simplecrafting_lib.import_filters = {}
+
+simplecrafting_lib.register_recipe_import_filter = function(filter_function)
+	table.insert(simplecrafting_lib.import_filters, filter_function)
+	import_legacy_recipes()
 end

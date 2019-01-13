@@ -89,14 +89,6 @@ As a simple example, the following code will register a filter that imports all 
 		end
 	end
 
-## `simplecrafting_lib.import_legacy_recipes()`
-
-When run this will cause recipes added via `minetest.register_craft` to be added to this crafting system. You should include a call to `import_legacy_recipes` after all `register_recipe_import_filter` calls have been made.
-
-See `simplecrafting_lib.register_recipe_import_filter(filter_function)` for details on how to register a filter that will cause recipes to be imported
-
-Note that a reference to the original version of `minetest.register_craft` is kept at `simplecrafting_lib.minetest_register_craft`. If you wish to register a recipe via the legacy method without it being processed by simplecrafting_lib (for example, to bypass a recipe import filter) you can use this as a way to access it.
-
 # Simple Methods for User Crafting
 
 The following methods are convenience functions that can be used by a mod to quickly implement a crafting system using simplecrafting_lib. They provide wrappers and templates that bring together the more basic functions of simplecrafting_lib in predefined ways.
