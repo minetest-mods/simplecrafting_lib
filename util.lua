@@ -292,6 +292,7 @@ simplecrafting_lib.count_list_add = function(list1, list2)
 	for item, count in pairs(list1) do
 		out_list[item] = count
 	end
+	if list2 == nil then return out_list end
 	for item, count in pairs(list2) do
 		if type(count) == "table" then
 			-- item is actually a group name, it has a set of items associated with it.

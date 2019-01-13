@@ -147,7 +147,8 @@ local operative_recipe = function(recipe)
 	local has_an_effect = false
 	for in_item, in_count in pairs(recipe.input) do
 		local out_count = recipe.output[in_item] or 0
-		local returns_count = recipe.returns[in_item] or 0
+		local returns_count = 0
+		if recipe.returns then returns_count = recipe.returns[in_item] or 0 end
 		if out_count + returns_count ~= in_count then
 			has_an_effect = true
 			break
@@ -200,8 +201,10 @@ local disintermediate = function(craft_type, contents)
 								for item, count in pairs(working_recipe.output) do
 									working_recipe.output[item] = count * inverse
 								end
-								for item, count in pairs(working_recipe.returns) do
-									working_recipe.returns[item] = count * inverse
+								if working_recipe.returns then
+									for item, count in pairs(working_recipe.returns) do
+										working_recipe.returns[item] = count * inverse
+									end
 								end
 								
 							end
@@ -223,12 +226,15 @@ local disintermediate = function(craft_type, contents)
 									end
 								end
 							end
-							for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
-								if not working_recipe.returns[new_returns_item] then
-									working_recipe.returns[new_returns_item] = new_returns_count * multiplier
-								else
-									working_recipe.returns[new_returns_item] = working_recipe.returns[new_returns_item] + new_returns_count * multiplier
-								end						
+							if recipe_producing_in_item.returns then
+								for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
+									working_recipe.returns = working_recipe.returns or {}
+									if not working_recipe.returns[new_returns_item] then
+										working_recipe.returns[new_returns_item] = new_returns_count * multiplier
+									else
+										working_recipe.returns[new_returns_item] = working_recipe.returns[new_returns_item] + new_returns_count * multiplier
+									end						
+								end
 							end
 						
 							if operative_recipe(working_recipe) then

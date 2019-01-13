@@ -106,8 +106,6 @@ end
 
 simplecrafting_lib.register = function(craft_type, def)
 	def.input = def.input or {}
-	def.output = def.output or {}
-	def.returns = def.returns or {}
 
 	reduce_recipe(def)
 	strip_groups(def)
@@ -125,13 +123,16 @@ simplecrafting_lib.register = function(craft_type, def)
 
 	table.insert(crafting_info.recipes, def)
 	
+	local recipes_by_out = crafting_info.recipes_by_out
 	if def.output then
-		local recipes_by_out = crafting_info.recipes_by_out
 		for item, _ in pairs(def.output) do
 			recipes_by_out[item] = recipes_by_out[item] or {} 
 			recipes_by_out[item][#recipes_by_out[item]+1] = def
 		end
-	end
+	else
+		recipes_by_out.none = recipes_by_out.none or {}
+		recipes_by_out.none[#recipes_by_out.none+1] = def
+	end	
 
 	local recipes_by_in = crafting_info.recipes_by_in
 	for item, _ in pairs(def.input) do
@@ -169,7 +170,9 @@ simplecrafting_lib.register_reversible = function(typeof, forward_def)
 	end
 	reverse_def.output = {[most_common_in_name]=most_common_in_count}
 	forward_in[most_common_in_name] = nil
-	reverse_def.returns = forward_in
+	if next(forward_in) ~= nil then -- if there are any items left, they become returns
+		reverse_def.returns = forward_in
+	end
 	
 	simplecrafting_lib.register(typeof, reverse_def)
 end

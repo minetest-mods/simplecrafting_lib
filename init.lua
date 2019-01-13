@@ -15,3 +15,5 @@ dofile(modpath .. "/templates/multifurnace.lua")
 dofile(modpath .. "/templates/autocraft.lua")
 
 dofile(modpath .. "/postprocessing.lua")
+
+dofile(modpath .. "/saveload.lua")
