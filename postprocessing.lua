@@ -109,7 +109,14 @@ local purge_uncraftable_recipes = function()
 				else
 					table.remove(outs, i)
 				end
-			end		
+			end
+			if #outs == 0 then
+				if log_removals then
+					minetest.log("error", "[simplecrafting_lib] All recipes that had an output of " .. output
+						.. " have been purged as uncraftable, this item can not be made by the player.")
+				end
+				simplecrafting_lib.type[craft_type].recipes_by_out[output] = nil
+			end
 		end
 		for input, ins in pairs(simplecrafting_lib.type[craft_type].recipes_by_in) do
 			i = 1
@@ -119,7 +126,10 @@ local purge_uncraftable_recipes = function()
 				else
 					table.remove(ins, i)
 				end
-			end		
+			end
+			if #ins == 0 then
+				simplecrafting_lib.type[craft_type].recipes_by_in[input] = nil				
+			end
 		end
 	end
 	

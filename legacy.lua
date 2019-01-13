@@ -1,3 +1,5 @@
+local log_removals = minetest.settings:get_bool("simplecrafting_lib_log_invalid_recipe_removal")
+
 local function create_recipe(legacy)
 	local items = legacy.items
 	local has_items = false
@@ -46,8 +48,8 @@ local function get_replacement_group_haver(item_name, item_counts, recipe)
 					return k
 				end
 			end
-			minetest.log("error", "[simplecrafting_lib] recipe has a group replacement " .. item_name ..
-				" but an input belonging to that group can't be found: " .. dump(recipe))
+			return false, "[simplecrafting_lib] recipe has a group replacement " .. item_name
+				.. " but an input belonging to that group can't be found."
 		end
 	
 		-- If the item to be replaced doesn't exist in the recipe but there are groups in the recipe, see if the item has one of those groups
@@ -57,11 +59,27 @@ local function get_replacement_group_haver(item_name, item_counts, recipe)
 				return input
 			end
 		end
-		minetest.log("error", "[simplecrafting_lib] recipe has a replacement target " .. item_name ..
-			" but an input matching it can't be found: " .. dump(recipe))
+		return false, "[simplecrafting_lib] recipe has a replacement target " .. item_name ..
+			" but an input matching it can't be found."
 	end
 	
 	return item_name
+end
+
+local function process_replacements(recipe, count, legacy_returns)
+	for _,pair in pairs(recipe.replacements) do
+		local item_name, item_quantity = get_item_and_quantity(pair[2])
+		local replace_input, err = get_replacement_group_haver(pair[1], count, recipe)
+		if replace_input == false then
+			return false, err
+		end
+		local input_count = count[replace_input]
+		if input_count == nil then
+			return false, "Replacement input not found: " .. replace_input
+		end
+		legacy_returns[item_name] = input_count * item_quantity
+	end
+	return true
 end
 
 local function process_shaped_recipe(recipe)
@@ -75,10 +93,9 @@ local function process_shaped_recipe(recipe)
 	end
 	if recipe.replacements then
 		legacy.returns = {}
-		for _,pair in pairs(recipe.replacements) do
-			local item_name, item_quantity = get_item_and_quantity(pair[2])
-			pair[1] = get_replacement_group_haver(pair[1], count, recipe)
-			legacy.returns[item_name] = count[pair[1]] * item_quantity
+		local success, err = process_replacements(recipe, count, legacy.returns)
+		if success == false then
+			return false, err
 		end
 	end
 	return create_recipe(legacy)
@@ -92,10 +109,9 @@ local function process_shapeless_recipe(recipe)
 		for _, item in pairs(recipe.recipe) do
 			count[item] = (count[item] or 0) + 1
 		end
-		for _,pair in pairs(recipe.replacements) do
-			local item_name, item_quantity = get_item_and_quantity(pair[2])
-			pair[1] = get_replacement_group_haver(pair[1], count, recipe)
-			legacy.returns[item_name] = count[pair[1]] * item_quantity
+		local success, err = process_replacements(recipe, count, legacy.returns)
+		if success == false then
+			return false, err
 		end
 	end
 	legacy.items = recipe.recipe
@@ -201,16 +217,36 @@ end
 -- the old way without it being put into this system, use this method.
 simplecrafting_lib.minetest_register_craft = minetest.register_craft
 
+local function log_failure(err, recipe)
+	if log_removals then
+		if err ~= nil then
+			minetest.log("error", err .. "\n" .. dump(recipe))
+		else
+			minetest.log("error", "[simplecrafting_lib] Shapeless recipe could not be processed, likely due to nonexistent replacement items:\n" .. dump(recipe))
+		end
+	end
+end
+
 -- This replaces the core register_craft method so that any crafts
 -- registered after this one will be added to the new system.
 minetest.register_craft = function(recipe)
 	local clear = false
 	local new_recipe
 	if not recipe.type then
-		new_recipe = process_shaped_recipe(recipe)
+		local err
+		new_recipe, err = process_shaped_recipe(recipe)
+		if new_recipe == false then
+			log_failure(err, recipe)
+			return
+		end
 		clear = register_legacy_recipe(new_recipe)
 	elseif recipe.type == "shapeless" then
-		new_recipe = process_shapeless_recipe(recipe)
+		local err
+		new_recipe, err = process_shapeless_recipe(recipe)
+		if new_recipe == false then
+			log_failure(err, recipe)
+			return
+		end
 		clear = register_legacy_recipe(new_recipe)
 	elseif recipe.type == "cooking" then
 		new_recipe = process_cooking_recipe(recipe)
