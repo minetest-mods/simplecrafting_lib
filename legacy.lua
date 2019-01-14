@@ -191,7 +191,7 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 	local success, err = pcall(function() minetest.clear_craft(parameter_recipe) end)
 	if not success and err ~= "No crafting specified for input" then
 		minetest.log("error", "[simplecrafting_lib] minetest.clear_craft failed with error \"" ..err.. "\" while attempting to clear craft " ..dump(parameter_recipe))
-	elseif success == true and not err then
+	elseif success == true and err == false then
 		minetest.log("warning", "[simplecrafting_lib] minetest.clear_craft wasn't able to find inputs for " .. dump(parameter_recipe))
 	end
 	return true
