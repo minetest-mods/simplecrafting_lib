@@ -58,10 +58,9 @@ local function validate_inputs_and_outputs(recipe)
 		end
 	end
 	if recipe.output then
-		for item, count in pairs(recipe.output) do
-			if not minetest.registered_items[item] then
-				return item
-			end
+		local output_name = ItemStack(recipe.output):get_name()
+		if not minetest.registered_items[output_name] then
+			return output_name
 		end
 	end
 	if recipe.returns then

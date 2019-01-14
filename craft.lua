@@ -24,17 +24,17 @@ simplecrafting_lib.craft_stack = function(crafting_type, request_stack, source_i
 			
 			-- log it
 			if player then
-				minetest.log("action", player:get_player_name() .. " crafts " .. item_name .. " " .. tostring(craft_result.output[item_name]))
+				minetest.log("action", player:get_player_name() .. " crafts " .. craft_result.output:to_string())
 			elseif pos then
-				minetest.log("action", item_name .. " " .. tostring(craft_result.output[item_name]) .. " was crafted at " .. minetest.pos_to_string(pos))
+				minetest.log("action", craft_result.output:to_string() .. " was crafted at " .. minetest.pos_to_string(pos))
 			else
-				minetest.log("action", item_name .. " " .. tostring(craft_result.output[item_name]) ..  "was crafted somewhere by someone.")
+				minetest.log("action", craft_result.output:to_string() ..  "was crafted somewhere by someone.")
 			end
 					
 			-- subtract the amount of output that the player's getting anyway (from having taken it)
-			craft_result.output[item_name] = craft_result.output[item_name] - request_stack:get_count()
+			craft_result.output:set_count(craft_result.output:get_count() - request_stack:get_count())
 			
-			local total_output = simplecrafting_lib.count_list_add(craft_result.output, craft_result.returns)
+			local total_output = simplecrafting_lib.count_list_add({[craft_result.output:get_name()]=craft_result.output:get_count()}, craft_result.returns)
 			
 			-- stuff the output in the target inventory, or the player's inventory if it doesn't fit, finally dropping anything that doesn't fit at the player's location
 			local leftover = simplecrafting_lib.add_items(destination_inv, destination_listname, total_output)
@@ -50,7 +50,7 @@ simplecrafting_lib.craft_stack = function(crafting_type, request_stack, source_i
 					break
 				end
 				if still_has_leftovers then
-					minetest.log("error", "After crafting " .. item_name .. " " .. tostring(craft_result.output[item_name]) ..
+					minetest.log("error", "After crafting " .. craft_result.output:to_string() ..
 						" some output items could not be placed into an inventory or dropped in world, and were lost.")
 				end
 			end

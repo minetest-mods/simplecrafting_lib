@@ -32,9 +32,7 @@ local function reduce_recipe(def)
 		table.insert(list, count)
 	end
 	if def.output then
-		for _, count in pairs(def.output) do
-			table.insert(list, count)
-		end
+		table.insert(list, ItemStack(def.output):get_count())
 	end
 	if def.returns then
 		for _, count in pairs(def.returns) do
@@ -47,9 +45,7 @@ local function reduce_recipe(def)
 			def.input[item] = count/gcd
 		end
 		if def.output then
-			for item, count in pairs(def.output) do
-				def.output[item] = count/gcd
-			end
+			def.output:set_count(def.output:get_count()/gcd)
 		end
 		if def.returns then
 			for item, count in pairs(def.returns) do
@@ -125,10 +121,10 @@ simplecrafting_lib.register = function(craft_type, def)
 	
 	local recipes_by_out = crafting_info.recipes_by_out
 	if def.output then
-		for item, _ in pairs(def.output) do
-			recipes_by_out[item] = recipes_by_out[item] or {} 
-			recipes_by_out[item][#recipes_by_out[item]+1] = def
-		end
+		def.output = ItemStack(def.output)
+		local output_name = def.output:get_name()
+		recipes_by_out[output_name] = recipes_by_out[output_name] or {} 
+		recipes_by_out[output_name][#recipes_by_out[output_name]+1] = def
 	else
 		recipes_by_out.none = recipes_by_out.none or {}
 		recipes_by_out.none[#recipes_by_out.none+1] = def
@@ -157,7 +153,7 @@ simplecrafting_lib.register_reversible = function(typeof, forward_def)
 	simplecrafting_lib.register(typeof, forward_def)
 
 	local forward_in = reverse_def.input
-	reverse_def.input = simplecrafting_lib.count_list_add(reverse_def.output, reverse_def.returns)
+	reverse_def.input = simplecrafting_lib.count_list_add({[reverse_def.output:get_name()] = reverse_def.output:get_count()}, reverse_def.returns)
 	
 	local most_common_in_name = ""
 	local most_common_in_count = 0
@@ -168,7 +164,10 @@ simplecrafting_lib.register_reversible = function(typeof, forward_def)
 			most_common_in_count = count
 		end
 	end
-	reverse_def.output = {[most_common_in_name]=most_common_in_count}
+	local reverse_output = ItemStack()
+	reverse_output:set_name(most_common_in_name)
+	reverse_output:set_count(most_common_in_count)
+	reverse_def.output = reverse_output
 	forward_in[most_common_in_name] = nil
 	if next(forward_in) ~= nil then -- if there are any items left, they become returns
 		reverse_def.returns = forward_in

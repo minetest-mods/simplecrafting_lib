@@ -21,9 +21,7 @@ example parameters:
 			["group:stone"] = 1,
 			["bucket:lava_bucket"] = 1,
 		},
-		output = {
-			["default:obsidian"] = 2,
-		},
+		output = "default:obsidian 2",
 	
 		-- Items which the crafting recipe produces, but is not
 		-- formally used to make.
@@ -36,9 +34,7 @@ example parameters:
 		input = {
 			["farming:flour"] = 1,
 		},
-		output = {
-			["farming:bread"] = 1,
-		},
+		output = "farming:bread",
 		cooktime = 5.0,
 	})
 	
@@ -48,8 +44,6 @@ example parameters:
 		-- definition of its longest burning group
 		input = {
 			["group:tree"] = 1,
-		},
-		output = {
 		},
 		burntime = 40.0,
 	})
@@ -74,17 +68,16 @@ These two methods will allow recipes to be imported into simplecrafting_lib from
 
 registers a filter function used by `import_legacy_recipes`. The mod using simplecrafting_lib will need to define this filter function. The filter function's signature must be of the form:  
 
-		function(legacy_method, recipe)
+		function(recipe)
 
-* `legacy_method` parameter will be either **"normal"**, **"cooking"**, or **"fuel"**
 * `recipe` will be in the format described above for `simplecrafting_lib.register`. This method can modify the `recipe` parameter in the course of execution and those modifications will be reflected in the final registered version.
 
 The filter function should return two values: `craft_type` (a string) and `clear_recipe` (a bool). If `craft_type` is **nil** then the recipe won't be imported. If `clear_recipe` is **true** then the recipe will be removed from the native crafting system.
 
 As a simple example, the following code will register a filter that imports all "normal" crafting recipes into a craft_type called "table", and removes them from the legacy crafting system in the process, but leaves "cooking" and "fuel" recipes alone:
 
-	simplecrafting_lib.register_recipe_import_filter(function(legacy_method, legacy_recipe)
-		if legacy_method == "normal" then
+	simplecrafting_lib.register_recipe_import_filter(function(legacy_recipe)
+		if legacy_recipe.burntime == nil and legacy_recipe.cooktime == nil then
 			return "table", true
 		end
 	end

@@ -82,7 +82,9 @@ simplecrafting_lib.save_by_out = function(param)
 				file:write("\t\t{\n")
 				for key, val in pairs(recipe) do
 					file:write("\t\t\t"..key.." = ")
-					if type(val) == "table" then
+					if key == "output" then
+						file:write("\t\"" .. val:to_string() .."\",\n")
+					elseif type(val) == "table" then
 						file:write("\t{")
 						for kk, vv in pairs(val) do
 							if type(vv) == "string" then
@@ -95,7 +97,7 @@ simplecrafting_lib.save_by_out = function(param)
 					elseif type(val) == "string" then
 						file:write("\t\"" .. tostring(val) .. "\",\n")
 					else
-						file:write(tostring(val) .. ",\n")
+						file:write("\t" .. tostring(val) .. ",\n")
 					end			
 				end
 				file:write("\t\t},\n")

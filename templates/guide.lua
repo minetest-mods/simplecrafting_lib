@@ -240,13 +240,15 @@ local function make_formspec(craft_type, player_name)
 
 		-------------------------------- Outputs
 		x_out = width - 1
-		for output, count in pairs(recipe.output) do
-			local itemdesc = minetest.registered_items[output].description -- we know this item exists otherwise a recipe wouldn't have been found
-			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
-			recipe_button_count = recipe_button_count + 1
-			x_out = x_out - 1
-		end
+
+		local output_name = recipe.output:get_name()
+		local output_count = recipe.output:get_count()
+		local itemdesc = minetest.registered_items[output_name].description -- we know this item exists otherwise a recipe wouldn't have been found
+		table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output_name..";recipe_button_"..recipe_button_count..";\n\n    "..output_count.."]")
+		table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..output_count.." "..itemdesc.."]")
+		recipe_button_count = recipe_button_count + 1
+		x_out = x_out - 1
+
 		if recipe.returns then
 			for returns, count in pairs(recipe.returns) do
 				local itemdef = minetest.registered_items[returns]

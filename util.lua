@@ -54,6 +54,9 @@ end
 local function get_craft_count(input_list, recipe)
 	-- Recipe without groups (most common node in group instead)
 	local work_recipe = table.copy(recipe)
+	if recipe.output then
+		work_recipe.output = ItemStack(recipe.output)
+	end
 	work_recipe.input = {}
 	local required_input = work_recipe.input
 	for item, count in pairs(recipe.input) do
@@ -222,14 +225,14 @@ simplecrafting_lib.get_craftable_items = function(craft_type, item_list, max_cra
 		local number, recipe = get_craft_count(count_list, recipes[i])
 		if number > 0 then
 			if not max_craftable then number = 1 end
-			for item, count in pairs(recipe.output) do
-				if craftable_count_list[item] and count*number > craftable_count_list[item] then
-					craftable_count_list[item] = count*number
-					chosen_recipe[item] = recipe
-				elseif not craftable_count_list[item] and count*number > 0 then
-					craftable_count_list[item] = count*number
-					chosen_recipe[item] = recipe
-				end
+			local output_name = recipe.output:get_name()
+			local output_count = recipe.output:get_count()
+			if craftable_count_list[output_name] and output_count*number > craftable_count_list[output_name] then
+				craftable_count_list[output_name] = output_count*number
+				chosen_recipe[output_name] = recipe
+			elseif not craftable_count_list[output_name] and output_count*number > 0 then
+				craftable_count_list[output_name] = output_count*number
+				chosen_recipe[output_name] = recipe
 			end
 		end
 	end
@@ -238,7 +241,7 @@ simplecrafting_lib.get_craftable_items = function(craft_type, item_list, max_cra
 		local stack = ItemStack(item)
 		local max = stack:get_stack_max()
 		if count > max then
-			count = max - max % chosen_recipe[item].output[item]
+			count = max - max % chosen_recipe[item].output:get_count()
 		end
 		stack:set_count(count)
 		table.insert(craftable_stacks, stack)
@@ -324,7 +327,7 @@ simplecrafting_lib.get_crafting_result = function(crafting_type, input_list, req
 	for i = 1, #recipes do
 		local number, recipe = get_craft_count(input_count, recipes[i])
 		if number > 0 then
-			local output_count = recipe.output[request_name]
+			local output_count = recipe.output:get_count()
 			if (request_count % output_count) <= smallest_remainder and output_count > smallest_remainder_output_count then
 				smallest_remainder = request_count % output_count
 				smallest_remainder_output_count = output_count
@@ -334,13 +337,11 @@ simplecrafting_lib.get_crafting_result = function(crafting_type, input_list, req
 	end
 
 	if smallest_remainder_recipe then
-		local multiple = math.ceil(request_count / smallest_remainder_recipe.output[request_name])
+		local multiple = math.ceil(request_count / smallest_remainder_recipe.output:get_count())
 		for input_item, quantity in pairs(smallest_remainder_recipe.input) do
 			smallest_remainder_recipe.input[input_item] = multiple * quantity
 		end
-		for output_item, quantity in pairs(smallest_remainder_recipe.output) do
-			smallest_remainder_recipe.output[output_item] = multiple * quantity
-		end
+		smallest_remainder_recipe.output:set_count(smallest_remainder_recipe.output:get_count() * multiple)
 		if smallest_remainder_recipe.returns then
 			for returned_item, quantity in pairs(smallest_remainder_recipe.returns) do
 				smallest_remainder_recipe.returns[returned_item] = multiple * quantity

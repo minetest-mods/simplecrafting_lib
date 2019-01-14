@@ -9,10 +9,7 @@ local function create_recipe(legacy)
 	end
 	if not has_items then return end
 	local recipe = {}
-	local stack = ItemStack(legacy.output)
-	local output = stack:get_name()
-	local nout = stack:get_count()
-	recipe.output = {[output] = nout}
+	recipe.output = ItemStack(legacy.output)
 	recipe.input = {}
 	recipe.returns = legacy.returns
 	for _, item in pairs(items) do
@@ -119,9 +116,8 @@ local function process_shapeless_recipe(recipe)
 end
 
 local function process_cooking_recipe(recipe)
-	local legacy = {input={},output={}}
-	local output_item, output_quantity = get_item_and_quantity(recipe.output)
-	legacy.output[output_item] = output_quantity
+	local legacy = {input={}}
+	legacy.output = recipe.output
 	legacy.input[recipe.recipe] = 1
 	legacy.cooktime = recipe.cooktime or 3			
 	return legacy
@@ -300,9 +296,8 @@ local function import_legacy_recipes()
 						safe_clear_craft(recipe, new_recipe)
 					end
 				elseif recipe.method == "cooking" then
-					local new_recipe = {input={},output={}}
-					local output_item, output_quantity = get_item_and_quantity(recipe.output)
-					new_recipe.output[output_item] = output_quantity
+					local new_recipe = {input={}}
+					new_recipe.output = recipe.output
 					new_recipe.input[recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
 					new_recipe.cooktime = cooked.time
