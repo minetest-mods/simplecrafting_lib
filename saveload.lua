@@ -1,18 +1,3 @@
-minetest.register_chatcommand("/saverecipes", {
-	params = "<file>",
-	description = "Save the current recipes to \"(world folder)/schems/<file>.lua\"",
-	func = function(name, param)
-		if param == "" then
-			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
-			return
-		end
-		
-		simplecrafting_lib.save_by_out(param)
-
-		minetest.chat_send_player(name, "Recipes saved", false)
-	end,
-})
-
 --[[
 Ordered table iterator
 From http://lua-users.org/wiki/SortedIteration
@@ -63,7 +48,7 @@ function orderedPairs(t)
 end
 
 
-simplecrafting_lib.save_by_out = function(param)
+local save_by_out = function(param)
 
 	local path = minetest.get_worldpath()
 	local filename = path .. "/" .. param .. ".lua"
@@ -74,19 +59,19 @@ simplecrafting_lib.save_by_out = function(param)
 	end
 	
 	file:write("return {\n")
-	for craft_type, recipe_list in pairs(simplecrafting_lib.type) do
+	for craft_type, recipe_list in orderedPairs(simplecrafting_lib.type) do
 		file:write("-- Craft Type " .. craft_type .. "--------------------------------------------------------\n" .. craft_type .. " = {\n")
 		for out, recipe_list in orderedPairs(recipe_list.recipes_by_out) do
-			file:write("\t{[\"" .. out .. "\"] = {\n")
+			file:write("\t[\"" .. out .. "\"] = {\n")
 			for _, recipe in ipairs(recipe_list) do
 				file:write("\t\t{\n")
-				for key, val in pairs(recipe) do
+				for key, val in orderedPairs(recipe) do
 					file:write("\t\t\t"..key.." = ")
 					if key == "output" then
 						file:write("\t\"" .. val:to_string() .."\",\n")
 					elseif type(val) == "table" then
 						file:write("\t{")
-						for kk, vv in pairs(val) do
+						for kk, vv in orderedPairs(val) do
 							if type(vv) == "string" then
 								file:write("[\"" .. kk .. "\"] = \"" .. tostring(vv) .. "\", ")
 							else
@@ -112,3 +97,69 @@ simplecrafting_lib.save_by_out = function(param)
 	file:close()
 
 end
+
+local load_by_out = function(param)
+	local path = minetest.get_worldpath()
+	local filename = path .. "/" .. param .. ".lua"
+	local new_recipes = dofile(filename)
+	
+	minetest.debug(dump(new_recipes))
+	
+	for crafting_type, outputs in pairs(new_recipes) do
+		for output, recipes in pairs(outputs) do
+			for _, recipe in pairs(recipes) do
+				simplecrafting_lib.register(crafting_type, recipe)
+			end
+		end	
+	end	
+end
+
+minetest.register_chatcommand("saverecipes", {
+	params = "<file>",
+	description = "Save the current recipes to \"(world folder)/<file>.lua\"",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+		end
+		
+		if param == "" then
+			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
+			return
+		end
+		
+		save_by_out(param)
+
+		minetest.chat_send_player(name, "Recipes saved", false)
+	end,
+})
+
+minetest.register_chatcommand("clearrecipes", {
+	params = "",
+	description = "Clear all recipes from simplecrafting_lib",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+		end
+		simplecrafting_lib.type = {}
+		minetest.chat_send_player(name, "Recipes cleared", false)
+	end,
+})
+
+minetest.register_chatcommand("loadrecipes", {
+	params="<file>",
+	description="Clear recipes and load replacements from \"(world folder)/<file>.lua\"",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+		end
+
+		if param == "" then
+			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
+			return
+		end
+		
+		load_by_out(param)
+		
+		minetest.chat_send_player(name, "Recipes loaded", false)
+	end,
+})
