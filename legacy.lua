@@ -179,7 +179,7 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 				{recipe_to_clear.items[7] or "", recipe_to_clear.items[8] or "", recipe_to_clear.items[9] or ""},
 			}
 		end
-	elseif recipe_to_clear.cooktime ~= nil then
+	elseif recipe_to_clear.type == "cooking" then
 		parameter_recipe.type = "cooking"
 		parameter_recipe.recipe = recipe_to_clear.items[1]
 	else
@@ -191,6 +191,8 @@ local function safe_clear_craft(recipe_to_clear, processed_recipe)
 	local success, err = pcall(function() minetest.clear_craft(parameter_recipe) end)
 	if not success and err ~= "No crafting specified for input" then
 		minetest.log("error", "[simplecrafting_lib] minetest.clear_craft failed with error \"" ..err.. "\" while attempting to clear craft " ..dump(parameter_recipe))
+	elseif success == true and not err then
+		minetest.log("warning", "[simplecrafting_lib] minetest.clear_craft wasn't able to find inputs for " .. dump(parameter_recipe))
 	end
 	return true
 end
@@ -269,11 +271,11 @@ local function import_legacy_recipes()
 	for item,_ in pairs(minetest.registered_items) do
 		local crafts = minetest.get_all_craft_recipes(item)
 		if crafts and item ~= "" then
-			for _,recipe in pairs(crafts) do
-				if recipe.method == nil then
+			for _,legacy_recipe in pairs(crafts) do
+				if legacy_recipe.method == nil then
 					-- get_all_craft_recipes output recipes omit replacements, need to find those experimentally
 					-- https://github.com/minetest/minetest/issues/4901
-					local output, decremented_input = minetest.get_craft_result(recipe)
+					local output, decremented_input = minetest.get_craft_result(legacy_recipe)
 					-- until https://github.com/minetest/minetest_game/commit/ae7206c0064cbb5c0e5434c19893d4bf3fa2b388
 					-- the dye:red + dye:green -> dye:brown recipe was broken here - there were two
 					-- red+green recipes, one producing dark grey and one producing brown dye, and when one gets
@@ -286,23 +288,23 @@ local function import_legacy_recipes()
 					if output.item:get_count() > 0 then 
 						for _, returned_item in pairs(decremented_input.items) do
 							if returned_item:get_count() > 0 then
-								recipe.returns = recipe.returns or {}
-								recipe.returns[returned_item:get_name()] = (recipe.returns[returned_item:get_name()] or 0) + returned_item:get_count()
+								legacy_recipe.returns = legacy_recipe.returns or {}
+								legacy_recipe.returns[returned_item:get_name()] = (legacy_recipe.returns[returned_item:get_name()] or 0) + returned_item:get_count()
 							end
 						end
 					end
-					local new_recipe = create_recipe(recipe)
+					local new_recipe = create_recipe(legacy_recipe)
 					if register_legacy_recipe(new_recipe) then
-						safe_clear_craft(recipe, new_recipe)
+						safe_clear_craft(legacy_recipe, new_recipe)
 					end
-				elseif recipe.method == "cooking" then
+				elseif legacy_recipe.method == "cooking" then
 					local new_recipe = {input={}}
-					new_recipe.output = recipe.output
-					new_recipe.input[recipe.items[1]] = 1 
-					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {recipe.items[1]}})
+					new_recipe.output = legacy_recipe.output
+					new_recipe.input[legacy_recipe.items[1]] = 1 
+					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {legacy_recipe.items[1]}})
 					new_recipe.cooktime = cooked.time
 					if register_legacy_recipe(new_recipe) then
-						safe_clear_craft(recipe, new_recipe)
+						safe_clear_craft(legacy_recipe, new_recipe)
 					end
 				end
 			end
