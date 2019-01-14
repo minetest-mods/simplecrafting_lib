@@ -13,47 +13,8 @@ minetest.register_chatcommand("/saverecipes", {
 	end,
 })
 
-simplecrafting_lib.save = function(param)
-
-	local path = minetest.get_worldpath()
-	local filename = path .. "/" .. param .. ".lua"
-	local file, err = io.open(filename, "w")
-	if err ~= nil then
-		minetest.log("error", "[simplecrafting_lib] Could not save recipes to \"" .. filename .. "\"")
-		return
-	end
-	
-	file:write("return {\n")
-	for craft_type, recipe_list in pairs(simplecrafting_lib.type) do
-		file:write("---------------------------------------------------------------\n" .. craft_type .. " = {\n")
-		for _, recipe in ipairs(recipe_list.recipes) do
-			file:write("{\n")
-			for key, val in pairs(recipe) do
-				file:write("\t"..key.." = ")
-				if type(val) == "table" then
-					file:write("{")
-					for kk, vv in pairs(val) do
-						file:write("[\"" .. kk .. "\"] = " .. tostring(vv) .. ", ")
-					end
-					file:write("},\n")
-				else
-					file:write(tostring(val) .. ",\n")
-				end			
-			end
-			file:write("},\n")
-		end
-		file:write("},\n")
-	end
-	file:write("}\n")
-
-	file:flush()
-	file:close()
-
-end
-
 --[[
-Ordered table iterator, allow to iterate on the natural order of the keys of a
-table.
+Ordered table iterator
 From http://lua-users.org/wiki/SortedIteration
 ]]
 
