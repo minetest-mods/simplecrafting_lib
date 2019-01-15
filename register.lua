@@ -75,7 +75,7 @@ local function strip_groups(def)
 end
 
 -- Deep equals, used to check for duplicate recipes during registration
-local function deep_equals(test1, test2)
+simplecrafting_lib.recipe_equals = function(test1, test2)
 	if test1 == test2 then
 		return true
 	end
@@ -85,7 +85,18 @@ local function deep_equals(test1, test2)
 	local value2
 	for key, value1 in pairs(test1) do
 		value2 = test2[key]
-		if value1 ~= value2 and not deep_equals(value1, test2[key]) then
+		
+		-- Special handling of output ItemStack
+		if key == "output" then
+			if type(value1) == "userdata" then
+				value1 = value1:to_string()
+			end
+			if type(value2) == "userdata" then
+				value2 = value2:to_string()
+			end
+		end
+		
+		if simplecrafting_lib.recipe_equals(value1, value2) == false then
 			return false
 		end
 	end
@@ -111,24 +122,27 @@ simplecrafting_lib.register = function(craft_type, def)
 	-- Check if this recipe has already been registered. Many different old-style recipes
 	-- can reduce down to equivalent recipes in this system, so this is a useful step
 	-- to keep things tidy and efficient.
-	for _, existing_recipe in pairs(crafting_info.recipes) do
-		if deep_equals(def, existing_recipe) then
-			return false
+	local output_name
+	if def.output then
+		def.output = ItemStack(def.output)
+		output_name = def.output:get_name()
+	else
+		output_name = "none" -- special value for recipes with no output. Shouldn't conflict with group:none since output can't be a group
+	end
+	local existing_recipes = crafting_info.recipes_by_out[output_name]
+	if existing_recipes ~= nil then
+		for _, existing_recipe in pairs(existing_recipes) do
+			if simplecrafting_lib.recipe_equals(def, existing_recipe) then
+				return false
+			end
 		end
 	end
 
 	table.insert(crafting_info.recipes, def)
 	
 	local recipes_by_out = crafting_info.recipes_by_out
-	if def.output then
-		def.output = ItemStack(def.output)
-		local output_name = def.output:get_name()
-		recipes_by_out[output_name] = recipes_by_out[output_name] or {} 
-		recipes_by_out[output_name][#recipes_by_out[output_name]+1] = def
-	else
-		recipes_by_out.none = recipes_by_out.none or {}
-		recipes_by_out.none[#recipes_by_out.none+1] = def
-	end	
+	recipes_by_out[output_name] = recipes_by_out[output_name] or {} 
+	recipes_by_out[output_name][#recipes_by_out[output_name]+1] = def
 
 	local recipes_by_in = crafting_info.recipes_by_in
 	for item, _ in pairs(def.input) do
