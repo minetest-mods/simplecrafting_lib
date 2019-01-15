@@ -16,4 +16,6 @@ dofile(modpath .. "/templates/autocraft.lua")
 
 dofile(modpath .. "/postprocessing.lua")
 
-dofile(modpath .. "/saveload.lua")
+if minetest.settings:get_bool("simplecrafting_lib_enable_developer_commands") then
+	dofile(modpath .. "/saveload.lua")
+end

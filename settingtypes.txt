@@ -4,3 +4,8 @@
 #for identifying bad recipes in other mods.
 
 simplecrafting_lib_log_invalid_recipe_removal (Log invalid recipe removal as errors) bool false
+
+#When true, enables a number of commands useful for mod and game devs: /saverecipes,
+#/loadrecipes, /clearrecipes, /diffrecipes. The "server" priviledge is required to use
+#these commands.
+simplecrafting_lib_enable_developer_commands (Enable save/load/clear commands useful for developers) bool false

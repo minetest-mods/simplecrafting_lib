@@ -215,6 +215,7 @@ minetest.register_chatcommand("saverecipes", {
 	func = function(name, param)
 		if not minetest.check_player_privs(name, {server = true}) then
 			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
 		end
 		
 		if param == "" then
@@ -236,6 +237,7 @@ minetest.register_chatcommand("clearrecipes", {
 	func = function(name, param)
 		if not minetest.check_player_privs(name, {server = true}) then
 			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
 		end
 		simplecrafting_lib.type = {}
 		minetest.chat_send_player(name, "Recipes cleared", false)
@@ -248,6 +250,7 @@ minetest.register_chatcommand("loadrecipes", {
 	func = function(name, param)
 		if not minetest.check_player_privs(name, {server = true}) then
 			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
 		end
 
 		if param == "" then
@@ -282,6 +285,7 @@ minetest.register_chatcommand("diffrecipes", {
 	func = function(name, param)
 		if not minetest.check_player_privs(name, {server = true}) then
 			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
 		end
 
 		local params = split(param)
