@@ -149,9 +149,7 @@ end)
 -- https://github.com/minetest/minetest/issues/5962
 -- https://github.com/minetest/minetest/issues/5790
 
-local function safe_clear_craft(recipe_to_clear, processed_recipe)
-	table.insert(already_cleared_processed, processed_recipe)
-	
+local function safe_clear_craft(recipe_to_clear)	
 	local parameter_recipe = {}
 	if recipe_to_clear.method == nil then
 		if recipe_to_clear.width == 0 then
@@ -295,7 +293,8 @@ local function import_legacy_recipes()
 					end
 					local new_recipe = create_recipe(legacy_recipe)
 					if register_legacy_recipe(new_recipe) then
-						safe_clear_craft(legacy_recipe, new_recipe)
+						safe_clear_craft(legacy_recipe)
+						table.insert(already_cleared_processed, new_recipe)
 					end
 				elseif legacy_recipe.method == "cooking" then
 					local new_recipe = {input={}}
@@ -304,7 +303,8 @@ local function import_legacy_recipes()
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {legacy_recipe.items[1]}})
 					new_recipe.cooktime = cooked.time
 					if register_legacy_recipe(new_recipe) then
-						safe_clear_craft(legacy_recipe, new_recipe)
+						safe_clear_craft(legacy_recipe)
+						table.insert(already_cleared_processed, new_recipe)
 					end
 				end
 			end

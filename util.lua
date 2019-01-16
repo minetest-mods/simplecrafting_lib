@@ -315,12 +315,12 @@ end
 -- quantity of ouput items in the crafted stack. Note that the output could
 -- actually be larger than crafted_stack if an exactly matching recipe can't be found.
 -- returns nil if crafting is impossible with the given source inventory
-simplecrafting_lib.get_crafting_result = function(crafting_type, input_list, request_stack)
+simplecrafting_lib.get_crafting_result = function(craft_type, input_list, request_stack)
 	local input_count = itemlist_to_countlist(input_list)
 	local request_name = request_stack:get_name()
 	local request_count = request_stack:get_count()
 		
-	local recipes = simplecrafting_lib.type[crafting_type].recipes_by_out[request_name]
+	local recipes = simplecrafting_lib.type[craft_type].recipes_by_out[request_name]
 	local smallest_remainder = math.huge
 	local smallest_remainder_output_count = 0
 	local smallest_remainder_recipe = nil

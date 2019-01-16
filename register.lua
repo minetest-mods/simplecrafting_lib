@@ -75,7 +75,8 @@ local function strip_groups(def)
 end
 
 -- Deep equals, used to check for duplicate recipes during registration
-simplecrafting_lib.recipe_equals = function(test1, test2)
+local deep_equals
+deep_equals = function(test1, test2)
 	if test1 == test2 then
 		return true
 	end
@@ -86,17 +87,7 @@ simplecrafting_lib.recipe_equals = function(test1, test2)
 	for key, value1 in pairs(test1) do
 		value2 = test2[key]
 		
-		-- Special handling of output ItemStack
-		if key == "output" then
-			if type(value1) == "userdata" then
-				value1 = value1:to_string()
-			end
-			if type(value2) == "userdata" then
-				value2 = value2:to_string()
-			end
-		end
-		
-		if simplecrafting_lib.recipe_equals(value1, value2) == false then
+		if deep_equals(value1, value2) == false then
 			return false
 		end
 	end
@@ -110,6 +101,36 @@ end
 
 --------------------------------------------------------------------------------------------------------------------
 -- Public API
+
+simplecrafting_lib.recipe_equals = function(recipe1, recipe2)
+	for key, value1 in pairs(recipe1) do
+		local value2 = recipe2[key]
+		
+		-- Special handling of output ItemStack
+		if key == "output" then
+			if type(value1) == "userdata" then
+				value1 = value1:to_string()
+			end
+			if type(value2) == "userdata" then
+				value2 = value2:to_string()
+			end
+			if value1 ~= value2 then
+				return false
+			end
+		else
+			if not deep_equals(value1, value2) then
+				return false
+			end
+		end			
+	end
+	for key, _ in pairs(recipe2) do
+		if recipe1[key] == nil then
+			return false
+		end
+	end
+	
+	return true
+end
 
 simplecrafting_lib.register = function(craft_type, def)
 	def.input = def.input or {}
@@ -133,7 +154,7 @@ simplecrafting_lib.register = function(craft_type, def)
 	if existing_recipes ~= nil then
 		for _, existing_recipe in pairs(existing_recipes) do
 			if simplecrafting_lib.recipe_equals(def, existing_recipe) then
-				return false
+				return nil
 			end
 		end
 	end
@@ -150,7 +171,7 @@ simplecrafting_lib.register = function(craft_type, def)
 		recipes_by_in[item][#recipes_by_in[item]+1] = def
 	end
 	
-	return true
+	return def
 end
 
 -- Registers the provided crafting recipe, and also
@@ -162,9 +183,9 @@ end
 -- player in the reverse craft.
 -- Don't use a recipe that has a "group:" input with this, because obviously that
 -- can't be turned into an output. The mod will assert if you try to do this.
-simplecrafting_lib.register_reversible = function(typeof, forward_def)
+simplecrafting_lib.register_reversible = function(craft_type, forward_def)
 	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
-	simplecrafting_lib.register(typeof, forward_def)
+	simplecrafting_lib.register(craft_type, forward_def)
 
 	local forward_in = reverse_def.input
 	reverse_def.input = simplecrafting_lib.count_list_add({[reverse_def.output:get_name()] = reverse_def.output:get_count()}, reverse_def.returns)
@@ -187,5 +208,5 @@ simplecrafting_lib.register_reversible = function(typeof, forward_def)
 		reverse_def.returns = forward_in
 	end
 	
-	simplecrafting_lib.register(typeof, reverse_def)
+	simplecrafting_lib.register(craft_type, reverse_def)
 end
