@@ -196,6 +196,7 @@ end
 
 local current_element = {}
 
+local key_ids
 local recipes
 local item_ids
 local parse_error
@@ -211,7 +212,9 @@ local parser = SLAXML:parser{
 	end,
 	attribute = function(name,value,nsURI,nsPrefix) -- attribute found on current element
 		if parse_error then return end
-		if current_element.type == "node" then
+		if current_element.type == "key" then
+			current_element[name] = value
+		elseif current_element.type == "node" then
 			if name == "id" then
 				current_element.id = value
 			end
@@ -224,20 +227,20 @@ local parser = SLAXML:parser{
 				current_element.source = value
 			end				
 		elseif current_element.type == "data" and name == "key" then
-			current_element.key = value
+			current_element.key = key_ids[value]
 		end
 	end,
 	closeElement = function(name,nsURI) -- When "</foo>" or </x:foo> or "/>" is seen
 		if parse_error then return end
 		if name == "node" or name == "edge" then
-			if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
-			
 			if current_element.node_type == "item" then
+				if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
 				if not current_element.item then parse_error = "item node " .. current_element.id .. " had no item data" return end
 
 				item_ids[current_element.id] = current_element.item
 
 			elseif current_element.node_type == "recipe" then
+				if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
 				local new_recipe = {craft_type=current_element.craft_type}
 				if current_element.recipe_extra_data then
 					local extra_data = minetest.deserialize(current_element.recipe_extra_data)
@@ -248,6 +251,7 @@ local parser = SLAXML:parser{
 				recipes[current_element.id] = new_recipe
 				
 			elseif current_element.edge_type == "input" then
+				if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
 				local current_recipe = recipes[current_element.target]
 				if not current_recipe then parse_error = "input edge " .. current_element.id .. " could not find target " .. current_element.target return end
 				local item = item_ids[current_element.source]
@@ -257,6 +261,7 @@ local parser = SLAXML:parser{
 				current_recipe.input[item] = current_element.quantity
 				
 			elseif current_element.edge_type == "output" then
+				if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
 				local current_recipe = recipes[current_element.source]
 				if not current_recipe then parse_error = "output edge " .. current_element.id .. " could not find source " .. current_element.source return end
 				local item = item_ids[current_element.target]
@@ -265,6 +270,7 @@ local parser = SLAXML:parser{
 				current_recipe.output = item.." "..tostring(current_element.quantity) --ItemStack({name=item, count=current_element.quantity})
 				
 			elseif current_element.edge_type == "returns" then
+				if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
 				local current_recipe = recipes[current_element.source]
 				if not current_recipe then parse_error = "returns edge " .. current_element.id .. " could not find source " .. current_element.source return end
 				local item = item_ids[current_element.target]
@@ -273,6 +279,10 @@ local parser = SLAXML:parser{
 				current_recipe.returns = current_recipe.returns or {}
 				current_recipe.returns[item] = current_element.quantity			
 			end
+			current_element = {}
+		elseif name == "key" then
+			if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
+			key_ids[current_element.id] = current_element["attr.name"]			
 			current_element = {}
 		end
 	end,
@@ -292,16 +302,18 @@ local parser = SLAXML:parser{
 local parse_graphml_recipes = function(xml)
 	recipes = {}
 	item_ids = {}
+	key_ids = {}
 	parse_error = nil
 	
 	parser:parse(xml,{stripWhitespace=true})
 	
-	if parse_error then return end
+	if parse_error then minetest.debug(dump(recipes)) return end
 	
 	local returns = recipes
 	
 	item_ids = nil
 	recipes = nil
+	key_ids = nil
 	return returns
 end
 
