@@ -210,7 +210,7 @@ local function on_timer(pos, elapsed)
 		if recipe then
 			output = simplecrafting_lib.count_list_add(recipe.output, recipe.returns)
 			room_for_items = simplecrafting_lib.room_for_items(inv, "output", output)
-			total_craft_time = recipe.cooktime or 1
+			total_craft_time = recipe.input["simplecrafting_lib:heat"] or 1
 			if autocraft_def.crafting_time_multiplier then
 				total_craft_time = total_craft_time * autocraft_def.crafting_time_multiplier(pos, recipe)
 			end

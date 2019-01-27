@@ -200,7 +200,7 @@ local function on_timer(pos, elapsed)
 		if recipe then
 			output = simplecrafting_lib.count_list_add(recipe.output, recipe.returns)
 			room_for_items = simplecrafting_lib.room_for_items(inv, "output", output)
-			total_cook_time = recipe.cooktime or 1
+			total_cook_time = recipe.input["simplecrafting_lib:heat"] or 1
 			if multifurnace_def.crafting_time_multiplier then
 				total_cook_time = total_cook_time * multifurnace_def.crafting_time_multiplier(pos, recipe)
 			end
@@ -227,13 +227,17 @@ local function on_timer(pos, elapsed)
 				local fuel_recipes = simplecrafting_lib.get_fuels(fuel_type, inv:get_list("fuel"))
 				local longest_burning
 				for _, fuel_recipe in pairs(fuel_recipes) do
-					if longest_burning == nil or longest_burning.burntime < fuel_recipe.burntime then
+					local recipe_burntime = 0
+					if fuel_recipe.output and fuel_recipe.output:get_name() == "simplecrafting_lib:heat" then
+						recipe_burntime = fuel_recipe.output:get_count()
+					end
+					if longest_burning == nil or longest_burning.output:get_count() < recipe_burntime then
 						longest_burning = fuel_recipe
 					end
 				end
 						
 				if longest_burning then
-					total_burn_time = longest_burning.burntime
+					total_burn_time = longest_burning.output:get_count()
 					burn_time = burn_time + total_burn_time
 					local success = true
 					if longest_burning.returns then

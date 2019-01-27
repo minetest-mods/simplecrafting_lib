@@ -170,9 +170,15 @@ simplecrafting_lib.is_fuel = function(craft_type, item)
 		for group, _ in pairs(def.groups) do
 			if fuels[group] then
 				local last_fuel_def = fuels[group][#fuels[group]]
-				if last_fuel_def.burntime > max then
+				local last_fuel_burntime
+				if last_fuel_def.output and last_fuel_def.output:get_name() == "simplecrafting_lib:heat" then
+					last_fuel_burntime = last_fuel_def.output:get_count()
+				else
+					last_fuel_burntime = 0
+				end
+				if last_fuel_burntime > max then
 					fuel_group = last_fuel_def -- track whichever is the longest-burning group
-					max = fuel_group.burntime
+					max = last_fuel_burntime
 				end
 			end
 		end

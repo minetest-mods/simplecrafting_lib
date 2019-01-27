@@ -1,5 +1,16 @@
 local log_removals = minetest.settings:get_bool("simplecrafting_lib_log_invalid_recipe_removal")
 
+local register_heat = function()
+	if minetest.registered_craftitems["simplecrafting_lib:heat"] == nil then
+		minetest.register_craftitem(":simplecrafting_lib:heat", {
+			description = "Heat",
+			groups = {simplecrafting_lib_intermediate=1, not_in_creative_inventory=1,},
+			inventory_image = "simplecrafting_lib_heat.png",
+			stack_max = 9999,
+		})		
+	end
+end
+
 local function create_recipe(legacy)
 	local items = legacy.items
 	local has_items = false
@@ -119,14 +130,25 @@ local function process_cooking_recipe(recipe)
 	local legacy = {input={}}
 	legacy.output = recipe.output
 	legacy.input[recipe.recipe] = 1
-	legacy.cooktime = recipe.cooktime or 3			
+	legacy.input["simplecrafting_lib:heat"] = recipe.cooktime or 3
+	
+	if recipe.replacements then
+		legacy.returns = {}
+		local count = {}
+		count[recipe.recipe] = 1
+		local success, err = process_replacements(recipe, count, legacy.returns)
+		if success == false then
+			return false, err
+		end
+	end
+
 	return legacy
 end
 
 local function process_fuel_recipe(recipe)
 	local legacy = {input={}}
 	legacy.input[recipe.recipe] = 1
-	legacy.burntime = recipe.burntime
+	legacy.output = ItemStack({name="simplecrafting_lib:heat", count=recipe.burntime})
 	if recipe.replacements then
 		legacy.returns = {}
 		for _,pair in pairs(recipe.replacements) do
@@ -201,6 +223,10 @@ local function register_legacy_recipe(legacy_recipe)
 		local working_recipe = table.copy(legacy_recipe)
 		local craft_type, clear_this = filter(working_recipe)
 		if craft_type then
+			if (working_recipe.input["simplecrafting_lib:heat"]) or
+				(working_recipe.output and ItemStack(working_recipe.output):get_name() == "simplecrafting_lib:heat") then
+				register_heat()
+			end
 			simplecrafting_lib.register(craft_type, working_recipe)
 		end	
 		clear_recipe = clear_this or clear_recipe		
@@ -301,7 +327,7 @@ local function import_legacy_recipes()
 					new_recipe.output = legacy_recipe.output
 					new_recipe.input[legacy_recipe.items[1]] = 1 
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {legacy_recipe.items[1]}})
-					new_recipe.cooktime = cooked.time
+					new_recipe.input["simplecrafting_lib:heat"] = cooked.time
 					if register_legacy_recipe(new_recipe) then
 						safe_clear_craft(legacy_recipe)
 						table.insert(already_cleared_processed, new_recipe)
@@ -316,7 +342,7 @@ local function import_legacy_recipes()
 			local new_recipe = {}
 			new_recipe.input = {}
 			new_recipe.input[item] = 1
-			new_recipe.burntime = fuel.time
+			new_recipe.output = ItemStack({name="simplecrafting_lib:heat", count = fuel.time})
 			for _, afteritem in pairs(afterfuel.items) do
 				if afteritem:get_count() > 0 then
 					new_recipe.returns = new_recipe.returns or {}

@@ -101,6 +101,261 @@ local save_recipes = function(param)
 	return true
 end
 
+
+-- GraphML
+---------------------------------------------------------------------------------
+
+local output_edge = '<data key="edge_type">output</data>'
+local input_edge = '<data key="edge_type">input</data>'
+local returns_edge = '<data key="edge_type">returns</data>'
+
+local item_node = '<data key="node_type">item</data>'
+local recipe_node = '<data key="node_type">recipe</data>'
+
+local graphml_header = 	'<?xml version="1.0" encoding="UTF-8"?>\n'
+	..'<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">\n'
+	..'<key id="quantity" for="edge" attr.name="quantity" attr.type="int"/>\n'
+	..'<key id="edge_type" for="edge" attr.name="edge_type" attr.type="string"/>\n'
+	..'<key id="node_type" for="node" attr.name="node_type" attr.type="string"/>\n'
+	..'<key id="craft_type" for="node" attr.name="craft_type" attr.type="string"/>\n'
+	..'<key id="recipe_extra_data" for="node" attr.name="recipe_extra_data" attr.type="string"/>\n'
+	..'<key id="item" for="node" attr.name="item" attr.type="string"/>\n'
+	..'<key id="mod" for="node" attr.name="mod" attr.type="string"/>\n'
+
+local write_data_graphml = function(file, datatype, data)
+	file:write('<data key="'..datatype..'">'..data..'</data>')
+end
+
+local nodes_written
+local write_item_graphml = function(file, craft_type, item)
+	local node_id = item .. "_" .. craft_type
+	if not nodes_written[node_id] then
+		file:write('<node id="'..node_id..'">' .. item_node)
+		write_data_graphml(file, "item", item)
+		
+		local colon_index = string.find(item, ":")
+		if colon_index ~= nil then
+			write_data_graphml(file, "mod", string.sub(item, 1, colon_index-1))
+		end
+		
+		file:write('</node>\n')
+		nodes_written[node_id] = true
+	end
+end
+
+local edge_id = 0
+local write_edge_graphml = function(file, source, target, edgetype, quantity)
+	edge_id = edge_id + 1
+	file:write('<edge id="e_'..tostring(edge_id).. '" source="' .. source .. '" target="' .. target ..'">')
+	file:write(edgetype)
+	file:write('<data key="quantity">'..tostring(quantity)..'</data>')
+	file:write('</edge>\n')
+end
+
+local write_recipe_graphml = function(file, craft_type, id, recipe)
+	local recipe_id = "recipe_"..craft_type.."_"..tostring(id)
+	
+	local extra_data = {}
+	local has_extra_data = false
+	for k, v in pairs(recipe) do
+		if k ~= "output" and k ~= "input" and k ~= "returns" then
+			extra_data[k] = v
+			has_extra_data = true
+		end
+	end
+	if has_extra_data then
+		file:write('<node id="'..recipe_id..'">'..recipe_node..
+			'<data key="craft_type">'..craft_type..'</data>'..
+			'<data key="recipe_extra_data">'..minetest.serialize(extra_data)..'</data></node>\n') -- recipe node
+	else
+		file:write('<node id="'..recipe_id..'">'..recipe_node..
+			'<data key="craft_type">'..craft_type..'</data>'..
+			'</node>\n') -- recipe node
+	end
+
+	if recipe.output then
+		local outitem = ItemStack(recipe.output)
+		write_item_graphml(file, craft_type, outitem:get_name())
+		write_edge_graphml(file, recipe_id, outitem:get_name().."_"..craft_type, output_edge, outitem:get_count())
+	end
+	
+	if recipe.input then
+		for initem, incount in pairs(recipe.input) do
+			write_item_graphml(file, craft_type, initem)
+			write_edge_graphml(file, initem.."_"..craft_type, recipe_id, input_edge, incount)
+		end
+	end
+	if recipe.returns then
+		for returnitem, returncount in pairs(recipe.returns) do
+			write_item_graphml(file, craft_type, returnitem)
+			write_edge_graphml(file, recipe_id, returnitem.."_"..craft_type, returns_edge, returncount)
+		end
+	end
+end
+
+
+local current_element = {}
+
+local recipes
+local item_ids
+local parse_error
+
+local SLAXML = dofile(minetest.get_modpath(minetest.get_current_modname()) .. "/slaxml/slaxml.lua")
+local parser = SLAXML:parser{
+	startElement = function(name,nsURI,nsPrefix) -- When "<foo" or <x:foo is seen
+		if parse_error then return end
+		if name == "node" or name == "edge" then
+			current_element = {}
+		end
+		current_element.type = name
+	end,
+	attribute = function(name,value,nsURI,nsPrefix) -- attribute found on current element
+		if parse_error then return end
+		if current_element.type == "node" then
+			if name == "id" then
+				current_element.id = value
+			end
+		elseif current_element.type == "edge" then
+			if name == "id" then
+				current_element.id = value
+			elseif name == "target" then
+				current_element.target = value
+			elseif name == "source" then
+				current_element.source = value
+			end				
+		elseif current_element.type == "data" and name == "key" then
+			current_element.key = value
+		end
+	end,
+	closeElement = function(name,nsURI) -- When "</foo>" or </x:foo> or "/>" is seen
+		if parse_error then return end
+		if name == "node" or name == "edge" then
+			if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
+			
+			if current_element.node_type == "item" then
+				if not current_element.item then parse_error = "item node " .. current_element.id .. " had no item data" return end
+
+				item_ids[current_element.id] = current_element.item
+
+			elseif current_element.node_type == "recipe" then
+				local new_recipe = {craft_type=current_element.craft_type}
+				if current_element.recipe_extra_data then
+					local extra_data = minetest.deserialize(current_element.recipe_extra_data)
+					for k, v in pairs(extra_data) do
+						new_recipe[k] = v
+					end
+				end
+				recipes[current_element.id] = new_recipe
+				
+			elseif current_element.edge_type == "input" then
+				local current_recipe = recipes[current_element.target]
+				if not current_recipe then parse_error = "input edge " .. current_element.id .. " could not find target " .. current_element.target return end
+				local item = item_ids[current_element.source]
+				if not item then parse_error = "input edge " .. current_element.id .. " could not find source " .. current_element.source return end
+				
+				current_recipe.input = current_recipe.input or {}
+				current_recipe.input[item] = current_element.quantity
+				
+			elseif current_element.edge_type == "output" then
+				local current_recipe = recipes[current_element.source]
+				if not current_recipe then parse_error = "output edge " .. current_element.id .. " could not find source " .. current_element.source return end
+				local item = item_ids[current_element.target]
+				if not item then parse_error = "output edge " .. current_element.id .. " could not find target " .. current_element.target return end
+				
+				current_recipe.output = item.." "..tostring(current_element.quantity) --ItemStack({name=item, count=current_element.quantity})
+				
+			elseif current_element.edge_type == "returns" then
+				local current_recipe = recipes[current_element.source]
+				if not current_recipe then parse_error = "returns edge " .. current_element.id .. " could not find source " .. current_element.source return end
+				local item = item_ids[current_element.target]
+				if not item then parse_error = "returns edge " .. current_element.id .. " could not find target " .. current_element.target return end
+
+				current_recipe.returns = current_recipe.returns or {}
+				current_recipe.returns[item] = current_element.quantity			
+			end
+			current_element = {}
+		end
+	end,
+	text = function(text,cdata) -- text and CDATA nodes (cdata is true for cdata nodes)
+		if parse_error then return end
+		if current_element.type == "data" then
+			if current_element.key == "quantity" then
+				local quantity = tonumber(text)
+				if not quantity then parse_error = "failed to parse quantity in " .. dump(current_element) return end	
+				current_element[current_element.key] = quantity
+			else
+				current_element[current_element.key] = text
+			end
+		end	
+	end,
+}
+local parse_graphml_recipes = function(xml)
+	recipes = {}
+	item_ids = {}
+	parse_error = nil
+	
+	parser:parse(xml,{stripWhitespace=true})
+	
+	if parse_error then return end
+	
+	local returns = recipes
+	
+	item_ids = nil
+	recipes = nil
+	return returns
+end
+
+local save_recipes_graphml = function(name)
+	local path = minetest.get_worldpath()
+	local filename = path .. "/" .. name .. ".graphml"
+	local file, err = io.open(filename, "w")
+	if err ~= nil then
+		minetest.log("error", "[simplecrafting_lib] Could not save recipes to \"" .. filename .. "\"")
+		return false
+	end
+
+	file:write(graphml_header)
+	
+	nodes_written = {}
+	for craft_type, recipe_list in pairs(simplecrafting_lib.type) do
+		file:write('<graph id="'..craft_type..'" edgedefault="directed">\n')
+		for id, recipe in pairs(recipe_list.recipes) do
+			write_recipe_graphml(file, craft_type, id, recipe)
+		end
+		file:write('</graph>\n')
+	end	
+	nodes_written = nil
+	
+	file:write('</graphml>')
+	
+	file:flush()
+	file:close()
+
+	return true
+end
+
+local read_recipes_graphml = function(name)
+	local path = minetest.get_worldpath()
+	local filename = path .. "/" .. name .. ".graphml"
+
+	local file, err = io.open(filename, "r")
+	if err ~= nil then
+		minetest.log("error", "[simplecrafting_lib] Could not read recipes from \"" .. filename .. "\"")
+		return false
+	end
+	local myxml = file:read('*all')
+	myxml = parse_graphml_recipes(myxml)
+	if parse_error then
+		minetest.log("error", "Failed to parse graphml " .. filename .. " with error: " .. parse_error)
+		parse_error = nil
+		return false
+	end		
+		
+	return myxml
+end
+
+-------------------------------------------------------------
+
 -- registers all recipes in the provided filename, which is usually a file generated by save_recipes and then perhaps modified by the developer.
 local load_recipes = function(param)
 	local path = minetest.get_worldpath()
@@ -227,6 +482,57 @@ minetest.register_chatcommand("saverecipes", {
 			minetest.chat_send_player(name, "Recipes saved", false)
 		else
 			minetest.chat_send_player(name, "Failed to save recipes", false)
+		end
+	end,
+})
+
+minetest.register_chatcommand("saverecipesgraph", {
+	params = "<file>",
+	description = "Save the current recipes to \"(world folder)/<file>.graphml\"",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
+		end
+		
+		if param == "" then
+			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
+			return
+		end
+		
+		if save_recipes_graphml(param) then
+			minetest.chat_send_player(name, "Recipes saved", false)
+		else
+			minetest.chat_send_player(name, "Failed to save recipes", false)
+		end
+	end,
+})
+
+minetest.register_chatcommand("readrecipesgraph", {
+	params = "<file>",
+	description = "Read the current recipes from \"(world folder)/<file>.graphml\"",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
+		end
+		
+		if param == "" then
+			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
+			return
+		end
+		
+		local read_recipes = read_recipes_graphml(param)		
+		if read_recipes then
+			for _, recipe in pairs(read_recipes) do
+				local craft_type = recipe.craft_type
+				recipe.craft_type = nil
+				simplecrafting_lib.register(craft_type, recipe)				
+			end
+		
+			minetest.chat_send_player(name, "Recipes read", false)
+		else
+			minetest.chat_send_player(name, "Failed to read recipes", false)
 		end
 	end,
 })
