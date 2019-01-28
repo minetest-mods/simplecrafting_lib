@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<styles>
+  <style name="Recipe Edges" scope="edge" selectionOnly="false">
+    <mapping>
+      <source origin="notApplicable"/>
+      <target name="template" type="edgeTemplate">
+        <hints/>
+      </target>
+      <conversion type="constant">
+        <constant>
+          <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:java="http://www.yworks.com/xml/yfiles-common/1.0/java" xmlns:sys="http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0" xmlns:x="http://www.yworks.com/xml/yfiles-common/markup/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml" xmlns:yed="http://www.yworks.com/xml/yed/3" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd">
+              
+            <!--Created by yEd 3.18.2-->
+              
+            <key for="port" id="d0" yfiles.type="portgraphics"/>
+              
+            <key for="port" id="d1" yfiles.type="portgeometry"/>
+              
+            <key for="port" id="d2" yfiles.type="portuserdata"/>
+              
+            <key for="node" id="d3" yfiles.type="nodegraphics"/>
+              
+            <key for="graphml" id="d4" yfiles.type="resources"/>
+              
+            <key for="edge" id="d5" yfiles.type="edgegraphics"/>
+              
+            <graph edgedefault="directed" id="G">
+                  
+              <node id="n0">
+                      
+                <data key="d3">
+                          
+                  <y:ShapeNode>
+                              
+                    <y:Geometry height="30.0" width="30.0" x="-15.0" y="-15.0"/>
+                              
+                    <y:Fill color="#CCCCFF" transparent="false"/>
+                              
+                    <y:BorderStyle color="#000000" type="line" width="1.0"/>
+                              
+                    <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.0" y="13.0"/>
+                              
+                    <y:Shape type="rectangle"/>
+                            
+                  </y:ShapeNode>
+                        
+                </data>
+                    
+              </node>
+                  
+              <node id="n1">
+                      
+                <data key="d3">
+                          
+                  <y:ShapeNode>
+                              
+                    <y:Geometry height="30.0" width="30.0" x="-15.0" y="-15.0"/>
+                              
+                    <y:Fill color="#CCCCFF" transparent="false"/>
+                              
+                    <y:BorderStyle color="#000000" type="line" width="1.0"/>
+                              
+                    <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.0" y="13.0"/>
+                              
+                    <y:Shape type="rectangle"/>
+                            
+                  </y:ShapeNode>
+                        
+                </data>
+                    
+              </node>
+                  
+              <edge id="e0" source="n0" target="n1">
+                      
+                <data key="d5">
+                          
+                  <y:BezierEdge>
+                              
+                    <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+                                  
+                      <y:Point x="25.0" y="40.0"/>
+                                  
+                      <y:Point x="25.0" y="10.0"/>
+                                
+                    </y:Path>
+                              
+                    <y:LineStyle color="#000000" type="line" width="1.0"/>
+                              
+                    <y:Arrows source="none" target="delta"/>
+                              
+                    <y:EdgeLabel alignment="center" backgroundColor="#FFFFFF" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" lineColor="#000000" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="23.0" y="23.0">
+                                  
+                      <y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
+                                
+                    </y:EdgeLabel>
+                            
+                  </y:BezierEdge>
+                        
+                </data>
+                    
+              </edge>
+                
+            </graph>
+              
+            <data key="d4">
+                  
+              <y:Resources/>
+                
+            </data>
+            
+          </graphml>
+        </constant>
+      </conversion>
+    </mapping>
+    <mapping>
+      <source name="quantity" origin="customProperty" type="int"/>
+      <target name="labelText" type="string">
+        <hints>
+          <hint type="int">0</hint>
+        </hints>
+      </target>
+      <conversion type="asIs"/>
+    </mapping>
+    <mapping>
+      <source name="edge_type" origin="customProperty" type="string"/>
+      <target name="arrowTarget" type="arrow">
+        <hints/>
+      </target>
+      <conversion type="discrete">
+        <discrete>
+          <value>returns</value>
+          <result>
+            <arrow type="white_delta"/>
+          </result>
+        </discrete>
+        <discrete>
+          <value>input</value>
+          <result>
+            <arrow type="delta"/>
+          </result>
+        </discrete>
+        <discrete>
+          <value>output</value>
+          <result>
+            <arrow type="delta"/>
+          </result>
+        </discrete>
+      </conversion>
+    </mapping>
+  </style>
+  <style name="Recipe Nodes" scope="node" selectionOnly="false">
+    <mapping>
+      <source name="node_type" origin="customProperty" type="string"/>
+      <target name="template" type="nodeTemplate">
+        <hints/>
+      </target>
+      <conversion type="discrete">
+        <discrete>
+          <value>item</value>
+          <result>
+            <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:java="http://www.yworks.com/xml/yfiles-common/1.0/java" xmlns:sys="http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0" xmlns:x="http://www.yworks.com/xml/yfiles-common/markup/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml" xmlns:yed="http://www.yworks.com/xml/yed/3" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd">
+                
+              <!--Created by yEd 3.18.2-->
+                
+              <key for="port" id="d0" yfiles.type="portgraphics"/>
+                
+              <key for="port" id="d1" yfiles.type="portgeometry"/>
+                
+              <key for="port" id="d2" yfiles.type="portuserdata"/>
+                
+              <key for="node" id="d3" yfiles.type="nodegraphics"/>
+                
+              <key for="graphml" id="d4" yfiles.type="resources"/>
+                
+              <key for="edge" id="d5" yfiles.type="edgegraphics"/>
+                
+              <graph edgedefault="directed" id="G">
+                    
+                <node id="n0">
+                        
+                  <data key="d3">
+                            
+                    <y:ShapeNode>
+                                
+                      <y:Geometry height="30.0" width="60.0" x="-30.0" y="-15.0"/>
+                                
+                      <y:Fill color="#FFCC00" transparent="false"/>
+                                
+                      <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
+                                
+                      <y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="8" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="26.125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="60.0" x="0.0" y="1.9375"/>
+                                
+                      <y:Shape type="roundrectangle"/>
+                              
+                    </y:ShapeNode>
+                          
+                  </data>
+                      
+                </node>
+                  
+              </graph>
+                
+              <data key="d4">
+                    
+                <y:Resources/>
+                  
+              </data>
+              
+            </graphml>
+          </result>
+        </discrete>
+        <discrete>
+          <value>recipe</value>
+          <result>
+            <graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:java="http://www.yworks.com/xml/yfiles-common/1.0/java" xmlns:sys="http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0" xmlns:x="http://www.yworks.com/xml/yfiles-common/markup/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml" xmlns:yed="http://www.yworks.com/xml/yed/3" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd">
+                
+              <!--Created by yEd 3.18.2-->
+                
+              <key for="port" id="d0" yfiles.type="portgraphics"/>
+                
+              <key for="port" id="d1" yfiles.type="portgeometry"/>
+                
+              <key for="port" id="d2" yfiles.type="portuserdata"/>
+                
+              <key for="node" id="d3" yfiles.type="nodegraphics"/>
+                
+              <key for="graphml" id="d4" yfiles.type="resources"/>
+                
+              <key for="edge" id="d5" yfiles.type="edgegraphics"/>
+                
+              <graph edgedefault="directed" id="G">
+                    
+                <node id="n0">
+                        
+                  <data key="d3">
+                            
+                    <y:ShapeNode>
+                                
+                      <y:Geometry height="30.0" width="30.0" x="-15.0" y="-15.0"/>
+                                
+                      <y:Fill color="#FFCC00" transparent="false"/>
+                                
+                      <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
+                                
+                      <y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="10" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="18.578125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="30.0" x="0.0" y="5.7109375"/>
+                                
+                      <y:Shape type="diamond"/>
+                              
+                    </y:ShapeNode>
+                          
+                  </data>
+                      
+                </node>
+                  
+              </graph>
+                
+              <data key="d4">
+                    
+                <y:Resources/>
+                  
+              </data>
+              
+            </graphml>
+          </result>
+        </discrete>
+      </conversion>
+    </mapping>
+    <mapping>
+      <source name="node_type" origin="customProperty" type="string"/>
+      <target name="geometryWidth" type="double">
+        <hints/>
+      </target>
+      <conversion type="discrete">
+        <discrete>
+          <value>item</value>
+          <result>60.0</result>
+        </discrete>
+        <discrete>
+          <value>recipe</value>
+          <result>30.0</result>
+        </discrete>
+      </conversion>
+    </mapping>
+    <mapping>
+      <source name="craft_type" origin="customProperty" type="string"/>
+      <target name="labelText" type="string">
+        <hints>
+          <hint type="int">0</hint>
+        </hints>
+      </target>
+      <conversion type="asIs"/>
+    </mapping>
+    <mapping>
+      <source name="item" origin="customProperty" type="string"/>
+      <target name="labelText" type="string">
+        <hints>
+          <hint type="int">0</hint>
+        </hints>
+      </target>
+      <conversion type="asIs"/>
+    </mapping>
+  </style>
+</styles>

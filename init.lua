@@ -1,7 +1,7 @@
 simplecrafting_lib = {}
 simplecrafting_lib.type = {}
 
-local modpath = minetest.get_modpath(minetest.get_current_modname()) 
+local modpath = minetest.get_modpath(minetest.get_current_modname())
 
 dofile(modpath .. "/util.lua")
 dofile(modpath .. "/register.lua")
@@ -17,5 +17,5 @@ dofile(modpath .. "/templates/autocraft.lua")
 dofile(modpath .. "/postprocessing.lua")
 
 if minetest.settings:get_bool("simplecrafting_lib_enable_developer_commands") then
-	dofile(modpath .. "/saveload.lua")
+	dofile(modpath .. "/saveload/saveload.lua")
 end
