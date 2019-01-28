@@ -1,6 +1,6 @@
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 
---local OptionParser = dofile(modpath .. "/saveload/optparse.lua")
+local OptionParser = dofile(modpath .. "/saveload/optparse.lua")
 local orderedPairs = dofile(modpath .. "/saveload/orderedpairs.lua")
 local parse_graphml_recipes = dofile(modpath .. "/saveload/readrecipegraph.lua")
 local write_graphml_recipes = dofile(modpath .. "/saveload/writerecipegraph.lua")
@@ -64,7 +64,7 @@ end
 
 -------------------------------------------------------------------------------------------
 
-local save_recipes_graphml = function(name, recipes)
+local save_recipes_graphml = function(name, craft_types)
 	local path = minetest.get_worldpath()
 	local filename = path .. "/" .. name .. ".graphml"
 	local file, err = io.open(filename, "w")
@@ -73,7 +73,15 @@ local save_recipes_graphml = function(name, recipes)
 		return false
 	end
 
-	write_graphml_recipes(file, recipes)
+	if not craft_types or table.getn(craft_types) == 0 then
+		write_graphml_recipes(file, simplecrafting_lib.type)
+	else
+		local recipes = {}
+		for _, craft_type in pairs(craft_types) do
+			recipes[craft_type] = simplecrafting_lib.type[craft_type]
+		end
+		write_graphml_recipes(file, recipes)	
+	end
 
 	return true
 end
@@ -210,46 +218,71 @@ end
 
 ---------------------------------------------------------------
 
-minetest.register_chatcommand("saverecipes", {
-	params = "<file>",
-	description = "Save the current recipes to \"(world folder)/<file>.lua\"",
-	func = function(name, param)
-		if not minetest.check_player_privs(name, {server = true}) then
-			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
-			return
-		end
-		
-		if param == "" then
-			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
-			return
-		end
-		
-		if save_recipes(param) then
-			minetest.chat_send_player(name, "Recipes saved", false)
-		else
-			minetest.chat_send_player(name, "Failed to save recipes", false)
-		end
-	end,
-})
+function split(inputstr, seperator)
+	if inputstr == nil then return {} end
+	if seperator == nil then
+		seperator = "%s"
+	end
+	local out={}
+	local i=1
+	for substring in string.gmatch(inputstr, "([^"..seperator.."]+)") do
+		out[i] = substring
+		i = i + 1
+	end
+	return out
+end
 
-minetest.register_chatcommand("saverecipesgraph", {
-	params = "<file>",
-	description = "Save the current recipes to \"(world folder)/<file>.graphml\"",
+local saveoptparse = OptionParser{usage="[options] file"}
+saveoptparse.add_option{"-h", "--help", action="store_true", dest="help", help = "displays help text"}
+saveoptparse.add_option{"-l", "--lua", action="store_true", dest="lua", help="saves recipes as \"(world folder)/<file>.lua\""}
+saveoptparse.add_option{"-g", "--graphml", action="store_true", dest="graphml", help="saves recipes as \"(world folder)/<file>.graphml\""}
+saveoptparse.add_option{"-t", "--type", action="store", dest="type", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types"}
+
+minetest.register_chatcommand("recipesave", {
+	params = saveoptparse.print_help(),
+	description = "Saves recipes to external files",
 	func = function(name, param)
 		if not minetest.check_player_privs(name, {server = true}) then
 			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
 			return
 		end
-		
-		if param == "" then
-			minetest.chat_send_player(name, "Invalid usage, filename parameter needed", false)
+	
+		local success, options, args = saveoptparse.parse_args(param)
+		if not success then
+			minetest.chat_send_player(name, options)
 			return
 		end
 		
-		if save_recipes_graphml(param, simplecrafting_lib.type) then
-			minetest.chat_send_player(name, "Recipes saved", false)
-		else
-			minetest.chat_send_player(name, "Failed to save recipes", false)
+		if options.help then
+			minetest.chat_send_player(name, saveoptparse.print_help())
+			return
+		end
+		
+		if table.getn(args) ~= 1 then
+			minetest.chat_send_player(name, "A filename argument is needed.")
+			return
+		end
+
+		if not (options.lua or options.graphml) then
+			minetest.chat_send_player(name, "Neither lua nor graphml output was selected, defaulting to lua")
+			options.lua = true
+		end
+		
+		local craft_types = split(options.type, ",")
+		if options.lua then
+			if save_recipes(args[1], craft_types) then
+				minetest.chat_send_player(name, "Lua recipes saved", false)
+			else
+				minetest.chat_send_player(name, "Failed to save lua recipes", false)
+			end
+		end
+		
+		if options.graphml then
+			if save_recipes_graphml(args[1], craft_types) then
+				minetest.chat_send_player(name, "Graphml recipes saved", false)
+			else
+				minetest.chat_send_player(name, "Failed to save graphml recipes", false)
+			end
 		end
 	end,
 })
@@ -317,19 +350,6 @@ minetest.register_chatcommand("loadrecipes", {
 		end
 	end,
 })
-
-function split(inputstr, seperator)
-	if seperator == nil then
-		seperator = "%s"
-	end
-	local out={}
-	local i=1
-	for substring in string.gmatch(inputstr, "([^"..seperator.."]+)") do
-		out[i] = substring
-		i = i + 1
-	end
-	return out
-end
 
 minetest.register_chatcommand("diffrecipes", {
 	params="<infile> <outfile>",
