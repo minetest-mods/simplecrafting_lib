@@ -84,7 +84,7 @@ local write_recipe_graphml = function(file, craft_type, id, recipe)
 	end
 end
 
-return function(file, recipes)
+return function(file, recipes, show_unused)
 	file:write(graphml_header)
 	
 	nodes_written = {}
@@ -98,17 +98,19 @@ return function(file, recipes)
 	end
 	
 	-- Write out nodes for everything that hasn't already had a node written for it, for convenience of hand-crafting new recipes
-	items_written[""] = true
-	items_written["ignore"] = true
-	items_written["unknown"] = true
-	items_written["air"] = true
-	items_written["default:cloud"] = true
-	items_written["doors:hidden"] = true
---	for item, item_def in pairs(minetest.registered_items) do
---		if not items_written[item] then
---			write_item_graphml(file, "", item)
---		end
---	end
+	if show_unused then
+		items_written[""] = true
+		items_written["ignore"] = true
+		items_written["unknown"] = true
+		items_written["air"] = true
+		items_written["default:cloud"] = true
+		items_written["doors:hidden"] = true
+		for item, item_def in pairs(minetest.registered_items) do
+			if not items_written[item] then
+				write_item_graphml(file, "", item)
+			end
+		end
+	end
 	
 	nodes_written = nil
 	items_written = nil

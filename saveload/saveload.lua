@@ -64,7 +64,7 @@ end
 
 -------------------------------------------------------------------------------------------
 
-local save_recipes_graphml = function(name, craft_types)
+local save_recipes_graphml = function(name, craft_types, show_unused)
 	local path = minetest.get_worldpath()
 	local filename = path .. "/" .. name .. ".graphml"
 	local file, err = io.open(filename, "w")
@@ -74,13 +74,13 @@ local save_recipes_graphml = function(name, craft_types)
 	end
 
 	if not craft_types or table.getn(craft_types) == 0 then
-		write_graphml_recipes(file, simplecrafting_lib.type)
+		write_graphml_recipes(file, simplecrafting_lib.type, show_unused)
 	else
 		local recipes = {}
 		for _, craft_type in pairs(craft_types) do
 			recipes[craft_type] = simplecrafting_lib.type[craft_type]
 		end
-		write_graphml_recipes(file, recipes)	
+		write_graphml_recipes(file, recipes, show_unused)	
 	end
 
 	return true
@@ -237,6 +237,7 @@ saveoptparse.add_option{"-h", "--help", action="store_true", dest="help", help =
 saveoptparse.add_option{"-l", "--lua", action="store_true", dest="lua", help="saves recipes as \"(world folder)/<file>.lua\""}
 saveoptparse.add_option{"-g", "--graphml", action="store_true", dest="graphml", help="saves recipes as \"(world folder)/<file>.graphml\""}
 saveoptparse.add_option{"-t", "--type", action="store", dest="type", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types"}
+saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output"}
 
 minetest.register_chatcommand("recipesave", {
 	params = saveoptparse.print_help(),
@@ -264,8 +265,12 @@ minetest.register_chatcommand("recipesave", {
 		end
 
 		if not (options.lua or options.graphml) then
-			minetest.chat_send_player(name, "Neither lua nor graphml output was selected, defaulting to lua")
+			minetest.chat_send_player(name, "Neither lua nor graphml output was selected, defaulting to lua.")
 			options.lua = true
+		end
+		
+		if options.unused and not options.graphml then
+			minetest.chat_send_player(name, "Unused items are only included in graphml output, which was not selected.")
 		end
 		
 		local craft_types = split(options.type, ",")
@@ -278,7 +283,7 @@ minetest.register_chatcommand("recipesave", {
 		end
 		
 		if options.graphml then
-			if save_recipes_graphml(args[1], craft_types) then
+			if save_recipes_graphml(args[1], craft_types, options.unused) then
 				minetest.chat_send_player(name, "Graphml recipes saved", false)
 			else
 				minetest.chat_send_player(name, "Failed to save graphml recipes", false)
