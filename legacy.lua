@@ -173,7 +173,7 @@ end)
 
 local function safe_clear_craft(recipe_to_clear)	
 	local parameter_recipe = {}
-	if recipe_to_clear.method == nil then
+	if recipe_to_clear.method == nil or recipe_to_clear.method == "normal" then
 		if recipe_to_clear.width == 0 then
 			parameter_recipe.type="shapeless"
 			parameter_recipe.recipe = recipe_to_clear.items
@@ -296,7 +296,7 @@ local function import_legacy_recipes()
 		local crafts = minetest.get_all_craft_recipes(item)
 		if crafts and item ~= "" then
 			for _,legacy_recipe in pairs(crafts) do
-				if legacy_recipe.method == nil then
+				if legacy_recipe.method == nil or legacy_recipe.method == "normal" then
 					-- get_all_craft_recipes output recipes omit replacements, need to find those experimentally
 					-- https://github.com/minetest/minetest/issues/4901
 					local output, decremented_input = minetest.get_craft_result(legacy_recipe)
@@ -332,6 +332,8 @@ local function import_legacy_recipes()
 						safe_clear_craft(legacy_recipe)
 						table.insert(already_cleared_processed, new_recipe)
 					end
+				else
+					minetest.log("error", "[simplecrafting_lib] Unrecognized crafting method for legacy recipe " .. dump(legacy_recipe))
 				end
 			end
 		end

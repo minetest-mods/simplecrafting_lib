@@ -242,7 +242,7 @@
                                 
                       <y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>
                                 
-                      <y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="10" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="18.578125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="30.0" x="0.0" y="5.7109375"/>
+                      <y:NodeLabel alignment="center" autoSizePolicy="node_width" fontFamily="Dialog" fontSize="10" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="18.578125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="30.0" x="0.0" y="5.7109375"/>
                                 
                       <y:Shape type="diamond"/>
                               
@@ -298,6 +298,18 @@
         </hints>
       </target>
       <conversion type="asIs"/>
+    </mapping>
+    <mapping>
+      <source name="mod" origin="customProperty" type="string"/>
+      <target name="fillColor" type="color">
+        <hints/>
+      </target>
+      <conversion type="discrete">
+        <discrete>
+          <value>group</value>
+          <result>#c0c0c0</result>
+        </discrete>
+      </conversion>
     </mapping>
   </style>
 </styles>

@@ -20,14 +20,16 @@ local write_item_graphml = function(file, craft_type, item)
 	local node_id = item .. "_" .. craft_type -- craft type is added to the id to separate graphs
 	if not nodes_written[node_id] then
 		file:write('<node id="'..node_id..'">')
-		write_data_graphml(file, "node_type", "item")
-		write_data_graphml(file, "item", item)
 		
 		local colon_index = string.find(item, ":")
-		if colon_index ~= nil then
-			write_data_graphml(file, "mod", string.sub(item, 1, colon_index-1))
+		if colon_index == nil then
+			item = "group:" .. item
+			colon_index = 6
 		end
-			
+		
+		write_data_graphml(file, "node_type", "item")
+		write_data_graphml(file, "item", item)
+		write_data_graphml(file, "mod", string.sub(item, 1, colon_index-1))
 		file:write('</node>\n')
 		nodes_written[node_id] = true
 		items_written[item] = true
