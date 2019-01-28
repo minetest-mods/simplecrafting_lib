@@ -272,17 +272,7 @@ minetest.register_chatcommand("loadrecipesgraph", {
 		if read_recipes then
 			for _, recipe in pairs(read_recipes) do
 				local craft_type = recipe.craft_type
-				recipe.craft_type = nil
-				
-				-- If there's no output and one "returns", make the returns into an output.
-				if recipe.output == nil then
-					if recipe.returns and len(recipe.returns) == 1 then
-						local item, count = next(recipe.returns)
-						recipe.output = item .. " " .. tostring(count)
-						recipe.returns  = nil
-					end
-				end
-				
+				recipe.craft_type = nil				
 				simplecrafting_lib.register(craft_type, recipe)				
 			end
 		

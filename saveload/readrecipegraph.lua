@@ -103,6 +103,30 @@ return function(xml)
 	
 	parser:parse(xml,{stripWhitespace=true})
 	
+	for _, recipe in pairs(recipes) do
+		-- If there's no output and one "returns", make the returns into an output.
+		if recipe.output == nil then
+			if recipe.returns then
+				local count = 0
+				for k, v in pairs(recipe.returns) do
+					count = count + 1
+				end
+				if count == 1 then
+					local item, count = next(recipe.returns)
+					recipe.output = item .. " " .. tostring(count)
+					recipe.returns  = nil
+				else
+					if not parse_error then
+						parse_error = ""
+					else
+						parse_error = parse_error .. "/n"
+					end
+					parse_error = parse_error .. "Recipe with no output and multiple returns detected, cannot guess output: " .. dump(recipe)
+				end
+			end
+		end
+	end
+	
 	local returns = recipes
 	
 	item_ids = nil
