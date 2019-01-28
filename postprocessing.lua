@@ -75,6 +75,20 @@ end
 
 local log_removals = minetest.settings:get_bool("simplecrafting_lib_log_invalid_recipe_removal")
 
+local recipe_to_string = function(recipe)
+	local out = "{\n"
+	for k, v in pairs(recipe) do
+		if k == "output" then
+			out = out .. "output = \"" .. ItemStack(v):to_string() .."\",\n"
+		else
+			out = out .. k .. " = " .. dump(v) .. ",\n"
+		end
+	end
+	out = out .. "}"
+
+	return out
+end
+
 local purge_uncraftable_recipes = function()
 	for item, def in pairs(minetest.registered_items) do
 		for group, _ in pairs(def.groups) do
@@ -92,9 +106,9 @@ local purge_uncraftable_recipes = function()
 			else
 				if log_removals then
 					if string.match(validation_result, ":") then
-						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to the nonexistent item " .. validation_result .. "\n"..dump(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
+						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to the nonexistent item " .. validation_result .. "\n"..recipe_to_string(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
 					else
-						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to no registered items matching the group requirement " .. validation_result .. "\n"..dump(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
+						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to no registered items matching the group requirement " .. validation_result .. "\n"..recipe_to_string(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
 					end
 				end
 				table.remove(recs, i)

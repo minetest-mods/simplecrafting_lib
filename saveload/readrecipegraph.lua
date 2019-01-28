@@ -56,6 +56,7 @@ local parser = SLAXML:parser{
 			if not current_element.id then parse_error = name .. " " .. dump(current_element) .. " did not have an id" return end
 			if not current_element.target then parse_error = name .. " " .. dump(current_element) .. " did not have a target" return end
 			if not current_element.source then parse_error = name .. " " .. dump(current_element) .. " did not have a source" return end
+			if not current_element.quantity then parse_error = name .. " " .. dump(current_element) .. " did not have a quantity" return end
 
 			local item_target = item_ids[current_element.target]
 			local item_source = item_ids[current_element.source]
