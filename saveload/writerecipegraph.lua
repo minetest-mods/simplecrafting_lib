@@ -84,7 +84,7 @@ local write_recipe_graphml = function(file, craft_type, id, recipe)
 	end
 end
 
-return function(file, recipes, show_unused)
+return function(file, recipes, recipe_filter, show_unused)
 	file:write(graphml_header)
 	
 	nodes_written = {}
@@ -92,7 +92,9 @@ return function(file, recipes, show_unused)
 	for craft_type, recipe_list in pairs(recipes) do
 		file:write('<graph id="'..craft_type..'" edgedefault="directed">\n')
 		for id, recipe in pairs(recipe_list.recipes) do
-			write_recipe_graphml(file, craft_type, id, recipe)
+			if recipe_filter.filter(recipe) then
+				write_recipe_graphml(file, craft_type, id, recipe)
+			end
 		end
 		file:write('</graph>\n')
 	end

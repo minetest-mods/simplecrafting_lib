@@ -5,6 +5,56 @@ local orderedPairs = dofile(modpath .. "/saveload/orderedpairs.lua")
 local parse_graphml_recipes = dofile(modpath .. "/saveload/readrecipegraph.lua")
 local write_graphml_recipes = dofile(modpath .. "/saveload/writerecipegraph.lua")
 
+
+-- Given a list of mods, returns a filter with indices for all registered items
+-- that belong to one of those mods and all group names that belong to at least
+-- one item in one of those mods.
+-- TODO: this doesn't handle multigroup recipe items, such as "flower,yellow"
+local create_mod_filter = function(mod_list)
+
+	local filter_obj = {}
+	if next(mod_list) == nil then
+		filter_obj.filter = function() return true end -- if there's nothing in the mod list, make a filter that always returns true
+		return filter_obj
+	end
+	
+	local mods = {}
+	for _, mod in pairs(mod_list) do
+		mods[mod] = true
+	end	
+	local all_members = {}
+	for itemname, itemdef in pairs(minetest.registered_items) do
+		local colon_index = string.find(itemname, ":")
+		if colon_index then
+			local mod = string.sub(itemname, 1, colon_index-1)
+			if mods[mod] then
+				all_members[itemname] = true
+				if itemdef.groups then
+					for group, _ in pairs(itemdef.groups) do
+						all_members[group] = true
+					end
+				end
+			end
+		end			
+	end
+	filter_obj.filter = function(recipe)
+		if recipe.input then
+			for item, _ in pairs(recipe.input) do
+				if all_members[item] then return true end
+			end
+		end
+		if recipe.output then
+			if all_members[recipe.output:get_name()] then return true end
+		end
+		if recipe.returns then
+			for item, _ in pairs(recipe.returns) do
+				if all_members[item] then return true end
+			end		
+		end
+	end
+	return filter_obj
+end
+
 -- Writing recipe dump to a .lua file
 ---------------------------------------------------------------------------------
 
@@ -34,8 +84,21 @@ local write_recipe = function(file, recipe)
 	file:write("\t},\n")
 end
 
+local write_craft_list = function(file, craft_type, recipe_list_by_out, recipe_filter)
+	file:write("-- Craft Type " .. craft_type .. "--------------------------------------------------------\n[\"" .. craft_type .. "\"] = {\n")
+	for out, recipe_list in orderedPairs(recipe_list_by_out) do
+		file:write("-- Output: " .. out .. "\n")
+		for _, recipe in ipairs(recipe_list) do
+			if recipe_filter.filter(recipe) then
+				write_recipe(file, recipe)
+			end
+		end
+	end
+	file:write("},\n")
+end
+
 -- Dumps all recipes from the existing crafting system into a file that can be used to recreate them.
-local save_recipes = function(param)
+local save_recipes = function(param, craft_types, recipe_filter)
 	local path = minetest.get_worldpath()
 	local filename = path .. "/" .. param .. ".lua"
 	local file, err = io.open(filename, "w")
@@ -45,16 +108,21 @@ local save_recipes = function(param)
 	end
 	
 	file:write("return {\n")
-	for craft_type, recipe_list in orderedPairs(simplecrafting_lib.type) do	
-		file:write("-- Craft Type " .. craft_type .. "--------------------------------------------------------\n[\"" .. craft_type .. "\"] = {\n")
-		for out, recipe_list in orderedPairs(recipe_list.recipes_by_out) do
-			file:write("-- Output: " .. out .. "\n")
-			for _, recipe in ipairs(recipe_list) do
-				write_recipe(file, recipe)
+	
+	if table.getn(craft_types) == 0 then
+		for craft_type, recipe_list in orderedPairs(simplecrafting_lib.type) do
+			write_craft_list(file, craft_type, recipe_list.recipes_by_out, recipe_filter)
+		end
+	else
+		for _, craft_type in ipairs(craft_type) do
+			if simplecrafting_lib.type[craft_type] then
+				write_craft_list(file, craft_type, simplecrafting_lib.type[craft_type].recipes_by_out, recipe_filter)
+--			else
+--				TODO: error message
 			end
 		end
-		file:write("},\n")
 	end
+	
 	file:write("}\n")
 
 	file:flush()
@@ -64,7 +132,7 @@ end
 
 -------------------------------------------------------------------------------------------
 
-local save_recipes_graphml = function(name, craft_types, show_unused)
+local save_recipes_graphml = function(name, craft_types, recipe_filter, show_unused)
 	local path = minetest.get_worldpath()
 	local filename = path .. "/" .. name .. ".graphml"
 	local file, err = io.open(filename, "w")
@@ -74,13 +142,13 @@ local save_recipes_graphml = function(name, craft_types, show_unused)
 	end
 
 	if not craft_types or table.getn(craft_types) == 0 then
-		write_graphml_recipes(file, simplecrafting_lib.type, show_unused)
+		write_graphml_recipes(file, simplecrafting_lib.type, recipe_filter, show_unused)
 	else
 		local recipes = {}
 		for _, craft_type in pairs(craft_types) do
 			recipes[craft_type] = simplecrafting_lib.type[craft_type]
 		end
-		write_graphml_recipes(file, recipes, show_unused)	
+		write_graphml_recipes(file, recipes, recipe_filter, show_unused)	
 	end
 
 	return true
@@ -236,7 +304,8 @@ local saveoptparse = OptionParser{usage="[options] file"}
 saveoptparse.add_option{"-h", "--help", action="store_true", dest="help", help = "displays help text"}
 saveoptparse.add_option{"-l", "--lua", action="store_true", dest="lua", help="saves recipes as \"(world folder)/<file>.lua\""}
 saveoptparse.add_option{"-g", "--graphml", action="store_true", dest="graphml", help="saves recipes as \"(world folder)/<file>.graphml\""}
-saveoptparse.add_option{"-t", "--type", action="store", dest="type", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types"}
+saveoptparse.add_option{"-t", "--type", action="store", dest="types", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types"}
+saveoptparse.add_option{"-m", "--mod", action="store", dest="mods", help="only recipes with these mods in them will be saved. Leave unset to save all. Use a comma-delimited list (eg, \"default,stairs\") to save multiple specific mod types"}
 saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output"}
 
 minetest.register_chatcommand("recipesave", {
@@ -273,9 +342,11 @@ minetest.register_chatcommand("recipesave", {
 			minetest.chat_send_player(name, "Unused items are only included in graphml output, which was not selected.")
 		end
 		
-		local craft_types = split(options.type, ",")
+		local craft_types = split(options.types, ",")
+		local recipe_filter = create_mod_filter(split(options.mods, ","))
+		
 		if options.lua then
-			if save_recipes(args[1], craft_types) then
+			if save_recipes(args[1], craft_types, recipe_filter) then
 				minetest.chat_send_player(name, "Lua recipes saved", false)
 			else
 				minetest.chat_send_player(name, "Failed to save lua recipes", false)
@@ -283,7 +354,7 @@ minetest.register_chatcommand("recipesave", {
 		end
 		
 		if options.graphml then
-			if save_recipes_graphml(args[1], craft_types, options.unused) then
+			if save_recipes_graphml(args[1], craft_types, recipe_filter, options.unused) then
 				minetest.chat_send_player(name, "Graphml recipes saved", false)
 			else
 				minetest.chat_send_player(name, "Failed to save graphml recipes", false)
@@ -291,6 +362,8 @@ minetest.register_chatcommand("recipesave", {
 		end
 	end,
 })
+
+-- TODO: combine the load commands too. Include an option to clear craft types being loaded.
 
 minetest.register_chatcommand("loadrecipesgraph", {
 	params = "<file>",
@@ -321,19 +394,6 @@ minetest.register_chatcommand("loadrecipesgraph", {
 	end,
 })
 
-minetest.register_chatcommand("clearrecipes", {
-	params = "",
-	description = "Clear all recipes from simplecrafting_lib",
-	func = function(name, param)
-		if not minetest.check_player_privs(name, {server = true}) then
-			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
-			return
-		end
-		simplecrafting_lib.type = {}
-		minetest.chat_send_player(name, "Recipes cleared", false)
-	end,
-})
-
 minetest.register_chatcommand("loadrecipes", {
 	params="<file>",
 	description="Clear recipes and load replacements from \"(world folder)/<file>.lua\"",
@@ -355,6 +415,21 @@ minetest.register_chatcommand("loadrecipes", {
 		end
 	end,
 })
+
+
+minetest.register_chatcommand("clearrecipes", {
+	params = "",
+	description = "Clear all recipes from simplecrafting_lib",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
+		end
+		simplecrafting_lib.type = {}
+		minetest.chat_send_player(name, "Recipes cleared", false)
+	end,
+})
+
 
 minetest.register_chatcommand("diffrecipes", {
 	params="<infile> <outfile>",
@@ -378,3 +453,5 @@ minetest.register_chatcommand("diffrecipes", {
 		end
 	end,
 })
+
+-- TODO: need a recipestats command to get general information about recipes
