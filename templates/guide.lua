@@ -331,7 +331,11 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 end)
 
 simplecrafting_lib.show_crafting_guide = function(craft_type, user)
-	minetest.show_formspec(user:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
+	if simplecrafting_lib.type[craft_type] then
+		minetest.show_formspec(user:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
+	else
+		minetest.chat_send_player(user:get_player_name(), "Unable to show crafting guide for " .. craft_type .. ", it has no recipes registered.")
+	end
 end
 
 --	defines some parameters regarding how the formspec of the guide for a given craft_type is displayed.

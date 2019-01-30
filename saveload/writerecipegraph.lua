@@ -105,8 +105,6 @@ return function(file, recipes, recipe_filter, show_unused)
 		items_written["ignore"] = true
 		items_written["unknown"] = true
 		items_written["air"] = true
-		items_written["default:cloud"] = true
-		items_written["doors:hidden"] = true
 		for item, item_def in pairs(minetest.registered_items) do
 			if not items_written[item] then
 				write_item_graphml(file, "", item)
