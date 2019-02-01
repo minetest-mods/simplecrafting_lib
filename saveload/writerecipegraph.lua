@@ -1,5 +1,7 @@
 local graphml_header = 	'<?xml version="1.0" encoding="UTF-8"?>\n'
-	..'<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">\n'
+	..'<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+	..'xmlns:y="http://www.yworks.com/xml/graphml" xmlns:yed="http://www.yworks.com/xml/yed/3" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd"'
+	..'>\n'
 	..'<key id="quantity" for="edge" attr.name="quantity" attr.type="int"/>\n'
 	..'<key id="edge_type" for="edge" attr.name="edge_type" attr.type="string"/>\n'
 	..'<key id="node_type" for="node" attr.name="node_type" attr.type="string"/>\n'
@@ -7,6 +9,8 @@ local graphml_header = 	'<?xml version="1.0" encoding="UTF-8"?>\n'
 	..'<key id="recipe_extra_data" for="node" attr.name="recipe_extra_data" attr.type="string"/>\n'
 	..'<key id="item" for="node" attr.name="item" attr.type="string"/>\n'
 	..'<key id="mod" for="node" attr.name="mod" attr.type="string"/>\n'
+	..'<key id="nodegraphics" for="node" yfiles.type="nodegraphics"/>\n' --yEd
+	..'<key id="edgegraphics" for="edge" yfiles.type="edgegraphics"/>\n' --yEd
 
 local nodes_written
 local items_written
@@ -21,15 +25,25 @@ local write_item_graphml = function(file, craft_type, item)
 	if not nodes_written[node_id] then
 		file:write('<node id="'..node_id..'">')
 		
+		local color = "#FFCC00"
 		local colon_index = string.find(item, ":")
 		if colon_index == nil then
 			item = "group:" .. item
 			colon_index = 6
+			color = "#C0C0C0"
 		end
 		
 		write_data_graphml(file, "node_type", "item")
 		write_data_graphml(file, "item", item)
 		write_data_graphml(file, "mod", string.sub(item, 1, colon_index-1))
+		
+		--yEd
+		write_data_graphml(file, "nodegraphics", '<y:ShapeNode><y:Geometry height="30.0" width="60.0"/><y:Fill color="'
+			..color
+			..'" transparent="false"/><y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>'
+			..'<y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="8" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="26.125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="60.0" xml:space="preserve">'
+			..item
+			..'</y:NodeLabel><y:Shape type="roundrectangle"/></y:ShapeNode>')		
 		file:write('</node>\n')
 		nodes_written[node_id] = true
 		items_written[item] = true
@@ -42,6 +56,18 @@ local write_edge_graphml = function(file, source, target, edgetype, quantity)
 	write_data_graphml(file, "edge_type", edgetype)
 	write_data_graphml(file, "quantity", tostring(quantity))
 	
+	local targetarrow = "delta"
+	if edgetype == "returns" then
+		targetarrow = "white_delta"
+	end
+	
+	--yEd
+	write_data_graphml(file, "edgegraphics", '<y:BezierEdge><y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/><y:LineStyle color="#000000" type="line" width="1.0"/><y:Arrows source="none" target="'
+		..targetarrow
+		..'"/><y:EdgeLabel alignment="center" backgroundColor="#FFFFFF" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" horizontalTextPosition="center" iconTextGap="4" lineColor="#000000" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" xml:space="preserve">'
+		..tostring(quantity)
+		..'<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel></y:BezierEdge>')
+		
 	file:write('</edge>\n')
 end
 
@@ -62,6 +88,14 @@ local write_recipe_graphml = function(file, craft_type, id, recipe)
 	if has_extra_data then
 		write_data_graphml(file, "recipe_extra_data", minetest.serialize(extra_data))
 	end
+	
+	--yEd
+	write_data_graphml(file, "nodegraphics", '<y:ShapeNode><y:Geometry height="30.0" width="30.0"/><y:Fill color="#FFCC00" transparent="false"/>'
+		..'<y:BorderStyle color="#000000" raised="false" type="line" width="1.0"/>'
+		..'<y:NodeLabel alignment="center" autoSizePolicy="node_width" fontFamily="Dialog" fontSize="10" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="30.0" xml:space="preserve">'
+		..craft_type
+		..'</y:NodeLabel><y:Shape type="diamond"/></y:ShapeNode>')
+	
 	file:write('</node>\n') -- recipe node
 
 	if recipe.output then
