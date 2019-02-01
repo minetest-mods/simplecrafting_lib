@@ -108,9 +108,9 @@ local function refresh_inv(meta)
 	local max_mode = meta:get_string("max_mode")
 	refresh_output(inv, max_mode == "True")
 
-	local page = meta:get_int("page")
-	local form, page = make_formspec(page, inv:get_size("output"), max_mode == "True")
-	meta:set_int("page", page)
+	local row = meta:get_int("row")
+	local form, row = make_formspec(row, inv:get_size("output"), max_mode == "True")
+	meta:set_int("row", row)
 	meta:set_string("formspec", form)
 end
 
