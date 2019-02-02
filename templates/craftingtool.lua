@@ -4,6 +4,8 @@ local S, NS = dofile(MP.."/intllib.lua")
 local modpath_default = minetest.get_modpath("default")
 local modpath_awards = minetest.get_modpath("awards")
 
+--TODO: currently, this acts as useful inventory storage space in addition to crafting. Would be nice to do something about that, perhaps making the "input" inventory illusory. Will require modification to the "craft_stack" method or perhaps a variant on it.
+
 -- table_def can have the following:
 --{
 --	show_guides = true or false,
@@ -189,7 +191,13 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		context.max_mode = not context.max_mode
 		refresh = true
 	elseif fields.show_guide and table_def.show_guides then
-		simplecrafting_lib.show_crafting_guide(craft_type, player)
+		simplecrafting_lib.show_crafting_guide(craft_type, player,
+			function()
+				minetest.after(0.1, function()
+					minetest.show_formspec(player:get_player_name(), "simplecrafting_lib:"..craft_type, context.formspec)
+				end)
+			end
+		)
 	else
 		return
 	end
@@ -206,31 +214,6 @@ return function(player)
 	minetest.show_formspec(player:get_player_name(),
 		"simplecrafting_lib:"..craft_type,
 		context.formspec)
-	--local formspec = make_formspec(row, inv:get_size(craft_type.."_output"), max_mode)
 end
 
 end
-
-----------------------------------------------------------------
-
---local craft_function = simplecrafting_lib.generate_tool_functions("table", {
---	show_guides = true,
---	alphabetize_items = true,
---	description = "Table",
---})
---
---minetest.register_craftitem("simplecrafting_lib:test_crafter", {
---	description = "Test Crafter",
---
---	inventory_image = "default_tool_steelaxe.png",
---
---	stack_max = 1,
---
---	on_secondary_use = function(itemstack, user, pointed_thing)
---		craft_function(user)
---	end,
---
---	on_use = function(itemstack, user, pointed_thing)
---		craft_function(user)
---	end,
---})

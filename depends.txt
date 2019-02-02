@@ -3,3 +3,4 @@ intllib?
 hopper?
 pipeworks?
 awards?
+wool?
