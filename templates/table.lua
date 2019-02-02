@@ -34,28 +34,22 @@ if table_def.hopper_node_name and minetest.get_modpath("hopper") and hopper ~= n
 	})
 end
 
-local function refresh_output(inv, max_mode)
-	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), max_mode, table_def.alphabetize_items)
-	inv:set_size("output", #craftable + (output_count - (#craftable%output_count)))
-	inv:set_list("output", craftable)
-end
+local function make_formspec(pos, meta, inv)
 
-local function make_formspec(row, item_count, max_mode)
-	if item_count < output_count then
-		row = 0
-	elseif (row*output_width)+output_count > item_count then
-		row = (item_count - output_count) / output_width
-	end
+	local row = meta:get_int("row")
+	local item_count = inv:get_size("output")
+	local max_mode = meta:get_string("max_mode") == "True"
+	local pos_string = pos.x .. "," .. pos.y .. "," ..pos.z
 
 	local inventory = {
 		"size[10.2,10.2]",
-		"list[context;input;0,0.5;2,5;]",
-		"list[context;output;2.2,0;"..output_width..","..output_height..";" , tostring(row*output_width), "]",
+		"list[nodemeta:"..pos_string..";input;0,0.5;2,5;]",
+		"list[nodemeta:"..pos_string..";output;2.2,0;"..output_width..","..output_height..";" , tostring(row*output_width), "]",
 		"list[current_player;main;1.1,6.25;8,1;]",
 		"list[current_player;main;1.1,7.5;8,3;8]",
-		"listring[context;output]",
+		"listring[nodemeta:"..pos_string..";output]",
 		"listring[current_player;main]",
-		"listring[context;input]",
+		"listring[nodemeta:"..pos_string..";input]",
 		"listring[current_player;main]",
 	}
 	
@@ -103,15 +97,24 @@ local function make_formspec(row, item_count, max_mode)
 	return table.concat(inventory), row
 end
 
-local function refresh_inv(meta)
+local function refresh_output(inv, max_mode)
+	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list("input"), max_mode, table_def.alphabetize_items)
+	inv:set_size("output", #craftable + (output_count - (#craftable%output_count)))
+	inv:set_list("output", craftable)
+end
+
+local function refresh_inv(pos, meta)
 	local inv = meta:get_inventory()
 	local max_mode = meta:get_string("max_mode")
 	refresh_output(inv, max_mode == "True")
-
+	
 	local row = meta:get_int("row")
-	local form, row = make_formspec(row, inv:get_size("output"), max_mode == "True")
-	meta:set_int("row", row)
-	meta:set_string("formspec", form)
+	local item_count = inv:get_size("output")
+	if item_count < output_count then
+		meta:set_int("row", 0)
+	elseif (row*output_width)+output_count > item_count then
+		meta:set_int("row", (item_count - output_count) / output_width)
+	end
 end
 
 local on_construct = function(pos)
@@ -120,7 +123,6 @@ local on_construct = function(pos)
 	inv:set_size("input", 2*5)
 	inv:set_size("output", output_count)
 	meta:set_int("row", 0)
-	meta:set_string("formspec", make_formspec(0, 0, true))
 end
 	
 local allow_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, number, player)
@@ -202,7 +204,7 @@ local on_metadata_inventory_move = function(pos, from_list, from_index, to_list,
 			awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
 		end
 	end
-	refresh_inv(meta)
+	refresh_inv(pos, meta)
 end
 	
 local on_metadata_inventory_take = function(pos, list_name, index, stack, player)
@@ -214,47 +216,20 @@ local on_metadata_inventory_take = function(pos, list_name, index, stack, player
 			awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
 		end
 	end
-	refresh_inv(meta)
+	refresh_inv(pos, meta)
 end
 	
 local on_metadata_inventory_put = function(pos, list_name, index, stack, player)
 	local meta = minetest.get_meta(pos)
-	refresh_inv(meta)
+	refresh_inv(pos, meta)
 end
-	
-local on_receive_fields = function(pos, formname, fields, sender)
+
+local on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
 	local meta = minetest.get_meta(pos)
 	local inv = meta:get_inventory()
-	local size = inv:get_size("output")
-	local row = meta:get_int("row")
-	local max_mode = meta:get_string("max_mode")
-	local refresh = false
-	if fields.next then
-		minetest.sound_play("paperflip1", {to_player=sender:get_player_name(), gain = 1.0})
-		row = row + output_height
-	elseif fields.prev  then
-		minetest.sound_play("paperflip2", {to_player=sender:get_player_name(), gain = 1.0})
-		row = row - output_height
-	elseif fields.max_mode then
-		if max_mode == "" then
-			max_mode = "True"
-		else
-			max_mode = ""
-		end
-		refresh = true
-	elseif fields.show_guide and table_def.show_guides then
-		simplecrafting_lib.show_crafting_guide(craft_type, sender)
-	else
-		return
-	end
-	if refresh then
-		refresh_output(inv, max_mode == "True")
-	end
-	
-	meta:set_string("max_mode", max_mode)
-	local form, row = make_formspec(row, size, max_mode == "True")
-	meta:set_int("row", row)
-	meta:set_string("formspec", form)
+	minetest.show_formspec(clicker:get_player_name(),
+		"simplecrafting_lib:table_"..craft_type..minetest.pos_to_string(pos),
+		make_formspec(pos, meta, inv))
 end
 	
 local can_dig = function(pos, player)
@@ -262,6 +237,54 @@ local can_dig = function(pos, player)
 	local inv = meta:get_inventory()
 	return inv:is_empty("input")
 end
+
+local prefix_length = string.len("simplecrafting_lib:table_"..craft_type)
+minetest.register_on_player_receive_fields(function(sender, formname, fields)
+	minetest.chat_send_all(formname)
+
+	if string.sub(formname, 1, prefix_length) ~= "simplecrafting_lib:table_"..craft_type then
+		return false -- not a formspec we handle
+	end
+
+	local pos = minetest.string_to_pos(string.sub(formname, prefix_length+1))
+	if pos == nil then return false end
+	
+	local meta = minetest.get_meta(pos)
+	local inv = meta:get_inventory()
+	local size = inv:get_size("output")
+	local row = meta:get_int("row")
+
+	if fields.next then
+		minetest.sound_play("paperflip1", {to_player=sender:get_player_name(), gain = 1.0})
+		row = row + output_height
+	elseif fields.prev  then
+		minetest.sound_play("paperflip2", {to_player=sender:get_player_name(), gain = 1.0})
+		row = row - output_height
+
+	elseif fields.max_mode then
+		local max_mode = meta:get_string("max_mode")
+		if max_mode == "" then
+			max_mode = "True"
+		else
+			max_mode = ""
+		end
+		meta:set_string("max_mode", max_mode)
+		refresh_output(inv, max_mode == "True")
+
+	elseif fields.show_guide and table_def.show_guides then
+		simplecrafting_lib.show_crafting_guide(craft_type, sender, function()
+			minetest.after(0.1, function()
+				minetest.show_formspec(sender:get_player_name(), formname, make_formspec(pos, meta, inv))
+			end)
+		end)
+		return true
+	elseif fields.quit then
+		return true
+	end
+	
+	minetest.show_formspec(sender:get_player_name(), formname, make_formspec(pos, meta, inv))
+	return true
+end)
 
 return {
 	allow_metadata_inventory_move = allow_metadata_inventory_move,
@@ -272,7 +295,7 @@ return {
 	on_metadata_inventory_move = on_metadata_inventory_move,
 	on_metadata_inventory_put = on_metadata_inventory_put,
 	on_metadata_inventory_take = on_metadata_inventory_take,
-	on_receive_fields = on_receive_fields,
+	on_rightclick = on_rightclick,
 	tube = tube,
 }
 end

@@ -159,8 +159,10 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 			if modpath_awards then
 				awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
 			end
+			refresh_inv(inventory, player)
+		elseif inventory_info.to_list == craft_type.."_input" then
+			refresh_inv(inventory, player)
 		end
-		refresh_inv(inventory, player)
 	end
 end)
 
