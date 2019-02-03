@@ -5,3 +5,4 @@ pipeworks?
 awards?
 wool?
 sfinv?
+unified_inventory?
