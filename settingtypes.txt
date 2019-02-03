@@ -9,3 +9,7 @@ simplecrafting_lib_log_invalid_recipe_removal (Log invalid recipe removal as err
 #/loadrecipes, /clearrecipes, /diffrecipes. The "server" priviledge is required to use
 #these commands.
 simplecrafting_lib_enable_developer_commands (Enable save/load/clear commands useful for developers) bool false
+
+#Overrides the default inventory crafting UI for sfinv and unified_crafting
+#and places all non-furnace recipes into a craft_type for it.
+simplecrafting_lib_override_default_player_crafting (Create a player craft_type by default) bool false
