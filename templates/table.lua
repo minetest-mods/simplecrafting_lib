@@ -199,6 +199,7 @@ local on_metadata_inventory_move = function(pos, from_list, from_index, to_list,
 	if from_list == "output" and to_list == "input" then
 		local inv = meta:get_inventory()
 		local stack = inv:get_stack(to_list, to_index)
+		stack:set_count(number)
 		simplecrafting_lib.craft_stack(craft_type, stack, inv, "input", inv, to_list, player)
 		if modpath_awards then
 			awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
@@ -255,9 +256,12 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 	if fields.next then
 		minetest.sound_play("paperflip1", {to_player=sender:get_player_name(), gain = 1.0})
 		row = row + output_height
+		meta:set_int("row", row)
+
 	elseif fields.prev  then
 		minetest.sound_play("paperflip2", {to_player=sender:get_player_name(), gain = 1.0})
 		row = row - output_height
+		meta:set_int("row", row)
 
 	elseif fields.max_mode then
 		local max_mode = meta:get_string("max_mode")
