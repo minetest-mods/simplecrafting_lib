@@ -3,6 +3,7 @@ local S, NS = dofile(MP.."/intllib.lua")
 
 local modpath_default = minetest.get_modpath("default")
 local modpath_awards = minetest.get_modpath("awards")
+local modpath_sfinv = minetest.get_modpath("sfinv")
 
 --TODO: currently, this acts as useful inventory storage space in addition to crafting. Would be nice to do something about that, perhaps making the "input" inventory illusory. Will require modification to the "craft_stack" method or perhaps a variant on it.
 
@@ -14,12 +15,30 @@ local modpath_awards = minetest.get_modpath("awards")
 --	append_to_formspec = string,
 --}
 
-simplecrafting_lib.player_contexts = simplecrafting_lib.player_contexts or {}
+simplecrafting_lib.register_player_craft_type = function(craft_type)
 
-simplecrafting_lib.generate_tool_functions = function(craft_type, table_def)
-
+local table_def
 if table_def == nil then
 	table_def = {}
+end
+
+local get_or_create_context = function(player)
+	local context
+	if modpath_sfinv then
+		context = sfinv.get_or_create_context(player)
+	else
+		simplecrafting_lib.player_contexts = simplecrafting_lib.player_contexts or {}
+		local name = player:get_player_name()
+		context = simplecrafting_lib.player_contexts[name]
+		if not context then
+			context = {}
+			simplecrafting_lib.player_contexts[name] = context
+		end
+	end
+	if context.simplecrafting_lib_row == nil then context.simplecrafting_lib_row = 0 end
+	if context.simplecrafting_lib_item_count == nil then context.simplecrafting_lib_item_count = 0 end
+	if context.simplecrafting_lib_max_mode == nil then context.simplecrafting_lib_max_mode = false end
+	return context
 end
 
 local output_width = 8
@@ -28,19 +47,25 @@ local output_count = output_width * output_height
 
 local function refresh_output(inv, max_mode)
 	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list(craft_type.."_input"), max_mode, table_def.alphabetize_items)
-	inv:set_size(craft_type.."_output", #craftable + (output_count - (#craftable%output_count)))
+	local output_size = #craftable + (output_count - (#craftable%output_count))
+	inv:set_size(craft_type.."_output", output_size)
 	inv:set_list(craft_type.."_output", craftable)
 end
 
-local function make_formspec(row, item_count, max_mode)
+local function make_formspec(context)
+	local row = context.simplecrafting_lib_row or 0
+	local item_count = context.simplecrafting_lib_item_count or 0
+	local max_mode = context.simplecrafting_lib_max_mode or false
+
 	if item_count < output_count then
 		row = 0
+		context.simplecrafting_lib_row = row
 	elseif (row*output_width)+output_count > item_count then
 		row = (item_count - output_count) / output_width
+		context.simplecrafting_lib_row = row
 	end
 
 	local inventory = {
-		"size[10.2,10.2]",
 		"list[current_player;"..craft_type.."_input;0,0.5;2,5;]",
 		"list[current_player;"..craft_type.."_output;2.2,0;"..output_width..","..output_height..";" , tostring(row*output_width), "]",
 		"list[current_player;main;1.1,6.25;8,1;]",
@@ -95,16 +120,6 @@ local function make_formspec(row, item_count, max_mode)
 	return table.concat(inventory), row
 end
 
-local get_or_create_context = function(player)
-	local name = player:get_player_name()
-	local context = simplecrafting_lib.player_contexts[name]
-	if not context then
-		context = {row = 0, formspec = make_formspec(0, 0, true)}
-		simplecrafting_lib.player_contexts[name] = context
-	end
-	return context
-end
-
 minetest.register_on_joinplayer(function(player)
 	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
 	inv:set_size(craft_type.."_input", 2*5)
@@ -117,17 +132,9 @@ end)
 
 local function refresh_inv(inv, player)
 	local context = get_or_create_context(player)
-	local max_mode = context.max_mode
+	local max_mode = context.simplecrafting_lib_max_mode
 	refresh_output(inv, max_mode)
-
-	local row = context.row
-	local form, row = make_formspec(row, inv:get_size(craft_type.."_output"), max_mode)
-	context.row = row
-	context.formspec = form
-	
-	minetest.show_formspec(player:get_player_name(),
-		"simplecrafting_lib:tool:"..craft_type,
-		context.formspec)
+	context.simplecrafting_lib_item_count = inv:get_size(craft_type.."_output")
 end
 
 minetest.register_allow_player_inventory_action(function(player, action, inventory, inventory_info)
@@ -152,9 +159,7 @@ end)
 
 minetest.register_on_player_inventory_action(function(player, action, inventory, inventory_info)
 	if action == "move" then
-		local from_output = inventory_info.from_list == craft_type.."_output"
-		local to_input = inventory_info.to_list == craft_type.."_input"
-		if from_output and (to_input or inventory_info.to_list == "main") then
+		if inventory_info.from_list == craft_type.."_output" and (inventory_info.to_list == craft_type.."_input" or inventory_info.to_list == "main") then
 			local stack = inventory:get_stack(inventory_info.to_list, inventory_info.to_index)
 			stack:set_count(inventory_info.count)
 			simplecrafting_lib.craft_stack(craft_type, stack, inventory, craft_type.."_input", inventory, inventory_info.to_list, player)
@@ -162,30 +167,20 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 				awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
 			end
 		end
-		if from_output or to_input or inventory_info.from_list == craft_type.."_input" then
-			refresh_inv(inventory, player)
-		end
+		refresh_inv(inventory, player)
 	end
 end)
 
--- splits a string into an array of substrings based on a delimiter
-local function split(str, delimiter)
-    local result = {}
-    for match in (str..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match)
-    end
-    return result
-end
-
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-	if string.sub(formname, 1, 24) ~= "simplecrafting_lib:tool:" then return false end
-	if string.sub(formname, 25) ~= craft_type then return false end
+	minetest.chat_send_all(formname)
+	if string.sub(formname, 1, 25) ~= "simplecrafting_lib:player:" then return false end
+	if string.sub(formname, 26) ~= craft_type then return false end
 	
 	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
 	local context = get_or_create_context(player)
 	
 	local size = inv:get_size(craft_type.."_output")
-	local row = context.row
+	local row = context.simplecrafting_lib_row
 	local refresh = false
 	if fields.next then
 		minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
@@ -194,16 +189,16 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
 		row = row - output_height
 	elseif fields.max_mode then
-		context.max_mode = not context.max_mode
+		context.simplecrafting_lib_max_mode = not context.simplecrafting_lib_max_mode
 		refresh = true
-	elseif fields.show_guide and table_def.show_guides then
-		simplecrafting_lib.show_crafting_guide(craft_type, player,
-			function()
-				minetest.after(0.1, function()
-					minetest.show_formspec(player:get_player_name(), formname, context.formspec)
-				end)
-			end
-		)
+--	elseif fields.show_guide and table_def.show_guides then
+--		simplecrafting_lib.show_crafting_guide(craft_type, player,
+--			function()
+--				minetest.after(0.1, function()
+--					minetest.show_formspec(player:get_player_name(), "simplecrafting_lib:"..craft_type, context.formspec)
+--				end)
+--			end
+--		)
 	else
 		return
 	end
@@ -215,11 +210,13 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	end
 end)
 
-return function(player)
-	local context = get_or_create_context(player)
-	minetest.show_formspec(player:get_player_name(),
-		"simplecrafting_lib:"..craft_type,
-		context.formspec)
+if modpath_sfinv then
+	sfinv.override_page("sfinv:crafting", {
+		title = "Crafting",
+		get = function(self, player, context)
+			return sfinv.make_formspec(player, context, make_formspec(context), false)
+		end
+	})
 end
 
 end

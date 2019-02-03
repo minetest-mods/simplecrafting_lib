@@ -14,6 +14,7 @@ dofile(modpath .. "/templates/table.lua")
 dofile(modpath .. "/templates/multifurnace.lua")
 dofile(modpath .. "/templates/autocraft.lua")
 dofile(modpath .. "/templates/craftingtool.lua")
+dofile(modpath .. "/templates/player.lua")
 
 dofile(modpath .. "/postprocessing.lua")
 
