@@ -5,19 +5,15 @@ local modpath_default = minetest.get_modpath("default")
 local modpath_awards = minetest.get_modpath("awards")
 local modpath_sfinv = minetest.get_modpath("sfinv")
 
---TODO: currently, this acts as useful inventory storage space in addition to crafting. Would be nice to do something about that, perhaps making the "input" inventory illusory. Will require modification to the "craft_stack" method or perhaps a variant on it.
-
 -- table_def can have the following:
 --{
---	show_guides = true or false,
 --	alphabetize_items = true or false,
 --	description = string,
 --	append_to_formspec = string,
 --}
 
-simplecrafting_lib.register_player_craft_type = function(craft_type)
+simplecrafting_lib.register_player_craft_type = function(craft_type, table_def)
 
-local table_def
 if table_def == nil then
 	table_def = {}
 end
@@ -66,6 +62,7 @@ local function make_formspec(context)
 	end
 
 	local inventory = {
+		"size[10.2,10.2]",
 		"list[current_player;"..craft_type.."_input;0,0.5;2,5;]",
 		"list[current_player;"..craft_type.."_output;2.2,0;"..output_width..","..output_height..";" , tostring(row*output_width), "]",
 		"list[current_player;main;1.1,6.25;8,1;]",
@@ -107,10 +104,6 @@ local function make_formspec(context)
 		inventory[#inventory+1] = "button[9.3,8.7;1,0.75;max_mode;"..S("Max\nOutput").."]"
 	else
 		inventory[#inventory+1] = "button[9.3,8.7;1,0.75;max_mode;"..S("Min\nOutput").."]"
-	end
-	
-	if table_def.show_guides then
-		inventory[#inventory+1] = "button[9.3,9.7;1,0.75;show_guide;"..S("Show\nGuide").."]"
 	end
 	
 	if table_def.append_to_formspec then
@@ -171,51 +164,35 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 	end
 end)
 
-minetest.register_on_player_receive_fields(function(player, formname, fields)
-	minetest.chat_send_all(formname)
-	if string.sub(formname, 1, 25) ~= "simplecrafting_lib:player:" then return false end
-	if string.sub(formname, 26) ~= craft_type then return false end
-	
-	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
-	local context = get_or_create_context(player)
-	
-	local size = inv:get_size(craft_type.."_output")
-	local row = context.simplecrafting_lib_row
-	local refresh = false
-	if fields.next then
-		minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
-		row = row + output_height
-	elseif fields.prev  then
-		minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
-		row = row - output_height
-	elseif fields.max_mode then
-		context.simplecrafting_lib_max_mode = not context.simplecrafting_lib_max_mode
-		refresh = true
---	elseif fields.show_guide and table_def.show_guides then
---		simplecrafting_lib.show_crafting_guide(craft_type, player,
---			function()
---				minetest.after(0.1, function()
---					minetest.show_formspec(player:get_player_name(), "simplecrafting_lib:"..craft_type, context.formspec)
---				end)
---			end
---		)
-	else
-		return
-	end
-
-	context.row = row
-	
-	if refresh then
-		refresh_inv(inv, player)
-	end
-end)
-
 if modpath_sfinv then
 	sfinv.override_page("sfinv:crafting", {
 		title = "Crafting",
 		get = function(self, player, context)
-			return sfinv.make_formspec(player, context, make_formspec(context), false)
-		end
+			return sfinv.make_formspec(player, context, make_formspec(context), false, "size[10.2,10.2]")
+		end,
+		on_player_receive_fields = function(self, player, context, fields)
+			local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
+			local size = inv:get_size(craft_type.."_output")
+			local row = context.simplecrafting_lib_row
+			local refresh = false
+			if fields.next then
+				minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
+				row = row + output_height
+			elseif fields.prev  then
+				minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
+				row = row - output_height
+			elseif fields.max_mode then
+				context.simplecrafting_lib_max_mode = not context.simplecrafting_lib_max_mode
+				refresh = true
+			else
+				return
+			end
+			context.row = row
+			if refresh then
+				refresh_inv(inv, player)
+				return true
+			end
+		end,
 	})
 end
 

@@ -507,4 +507,30 @@ minetest.register_chatcommand("recipecompare", {
 	end,
 })
 
+minetest.register_chatcommand("recipestats", {
+	params="",
+	description="Outputs stats about registered recipes",
+	func = function(name, param)
+		if not minetest.check_player_privs(name, {server = true}) then
+			minetest.chat_send_player(name, "You need the \"server\" priviledge to use this command.", false)
+			return
+		end
+		
+		for craft_type, recipe_lists in pairs(simplecrafting_lib.type) do
+		
+			minetest.chat_send_player(name, "recipe type: "..craft_type)
+			minetest.chat_send_player(name, tostring(table.getn(recipe_lists.recipes)) .. " recipes")
+			local max_inputs = 0
+			for _, recipe in pairs(recipe_lists.recipes) do
+				local itemcount = 0
+				for item, count in pairs(recipe.input) do
+					itemcount = itemcount + 1
+				end
+				max_inputs = math.max(max_inputs, itemcount)
+			end
+			minetest.chat_send_player(name, "Largest number of input types: " .. tostring(max_inputs))
+		end	
+	end,
+})
+
 -- TODO: need a recipestats command to get general information about recipes

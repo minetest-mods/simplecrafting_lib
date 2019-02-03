@@ -168,15 +168,6 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 	end
 end)
 
--- splits a string into an array of substrings based on a delimiter
-local function split(str, delimiter)
-    local result = {}
-    for match in (str..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match)
-    end
-    return result
-end
-
 minetest.register_on_player_receive_fields(function(player, formname, fields)
 	if string.sub(formname, 1, 24) ~= "simplecrafting_lib:tool:" then return false end
 	if string.sub(formname, 25) ~= craft_type then return false end
