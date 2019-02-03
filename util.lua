@@ -325,7 +325,7 @@ simplecrafting_lib.get_crafting_result = function(craft_type, input_list, reques
 	local input_count = itemlist_to_countlist(input_list)
 	local request_name = request_stack:get_name()
 	local request_count = request_stack:get_count()
-		
+
 	local recipes = simplecrafting_lib.type[craft_type].recipes_by_out[request_name]
 	local smallest_remainder = math.huge
 	local smallest_remainder_output_count = 0

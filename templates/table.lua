@@ -240,8 +240,6 @@ end
 
 local prefix_length = string.len("simplecrafting_lib:table_"..craft_type)
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	minetest.chat_send_all(formname)
-
 	if string.sub(formname, 1, prefix_length) ~= "simplecrafting_lib:table_"..craft_type then
 		return false -- not a formspec we handle
 	end

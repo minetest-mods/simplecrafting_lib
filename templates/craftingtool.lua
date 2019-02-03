@@ -147,7 +147,6 @@ minetest.register_allow_player_inventory_action(function(player, action, invento
 		if inventory_info.to_list == "main" then
 			return inventory_info.count
 		end
-		return 0
 	end
 end)
 
@@ -155,21 +154,15 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 	if action == "move" then
 		if inventory_info.from_list == craft_type.."_output" and (inventory_info.to_list == craft_type.."_input" or inventory_info.to_list == "main") then
 			local stack = inventory:get_stack(inventory_info.to_list, inventory_info.to_index)
+			stack:set_count(inventory_info.count)
 			simplecrafting_lib.craft_stack(craft_type, stack, inventory, craft_type.."_input", inventory, inventory_info.to_list, player)
 			if modpath_awards then
 				awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
 			end
-			refresh_inv(inventory, player)
-		elseif inventory_info.to_list == craft_type.."_input" then
-			refresh_inv(inventory, player)
 		end
+		refresh_inv(inventory, player)
 	end
 end)
-
---* `minetest.register_on_player_receive_fields(func(player, formname, fields))`
---    * Called when a button is pressed in player's inventory form
---    * Newest functions are called first
---    * If function returns `true`, remaining functions are not called
 
 minetest.register_on_player_receive_fields(function(player, formname, fields)
 	local colon_index = string.find(formname, ":")
