@@ -281,6 +281,12 @@ elseif modpath_sfinv then
 		end,
 	})
 	
+	simplecrafting_lib.set_crafting_guide_def(craft_type, {
+		output_width = 10,
+		output_height = 6,
+		recipes_per_page = 3,
+	})
+	
 	sfinv.register_page("simplecrafting_lib:guide_"..craft_type, {
 		title = "Guide",
 		get = function(self, player, context)
