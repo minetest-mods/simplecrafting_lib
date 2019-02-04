@@ -280,6 +280,21 @@ elseif modpath_sfinv then
 			end
 		end,
 	})
+	
+	sfinv.register_page("simplecrafting_lib:guide_"..craft_type, {
+		title = "Guide",
+		get = function(self, player, context)
+			local formspec, size = simplecrafting_lib.make_guide_formspec(craft_type, player:get_player_name())
+			return sfinv.make_formspec(player, context, formspec, false, "size[10.2,10.2]")		
+		end,
+		on_player_receive_fields = function(self, player, context, fields)
+			if simplecrafting_lib.handle_guide_receive_fields(craft_type, player, fields) then
+				sfinv.set_player_inventory_formspec(player, context)
+				return true
+			end		
+		end,
+	})
+	
 end
 
 end

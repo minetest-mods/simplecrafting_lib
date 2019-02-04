@@ -120,7 +120,7 @@ local function get_playerdata(craft_type, player_name)
 	return simplecrafting_lib.guide.playerdata[craft_type][player_name]
 end
 
-local function make_formspec(craft_type, player_name)
+simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	local guide_def = get_guide_def(craft_type)
 	local width = guide_def.output_width or default_width
 	local height = guide_def.output_height or default_height
@@ -136,8 +136,10 @@ local function make_formspec(craft_type, player_name)
 		displace_y = 0.5
 	end
 	
+	local size = "size[" .. width .. "," .. height + recipes_per_page + 0.7 + displace_y .."]"
+
 	local formspec = {
-		"size[" .. width .. "," .. height + recipes_per_page + 0.7 + displace_y .."]",
+		size,
 	}
 
 	if description then
@@ -282,15 +284,10 @@ local function make_formspec(craft_type, player_name)
 	if guide_def.append_to_formspec then
 		table.insert(formspec, guide_def.append_to_formspec)
 	end
-	
-	return table.concat(formspec)
+	return table.concat(formspec), size
 end
 
-minetest.register_on_player_receive_fields(function(player, formname, fields)
-	if string.sub(formname, 1, 30) ~= "simplecrafting_lib:craftguide_" then return false end
-
-	local craft_type = string.sub(formname, 31)
-
+simplecrafting_lib.handle_guide_receive_fields = function(craft_type, player, fields)
 	local guide_def = get_guide_def(craft_type)
 	local width = guide_def.output_width or default_width
 	local height = guide_def.output_height or default_height
@@ -326,14 +323,22 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			if playerdata.on_exit then
 				playerdata.on_exit()
 			end
-			return true
+			return false
 		end
 	end
 	
-	if stay_in_formspec then
+	return stay_in_formspec
+end
+
+minetest.register_on_player_receive_fields(function(player, formname, fields)
+	if string.sub(formname, 1, 30) ~= "simplecrafting_lib:craftguide_" then return false end
+
+	local craft_type = string.sub(formname, 31)
+	
+	if simplecrafting_lib.handle_guide_receive_fields(craft_type, player, fields) then
 		minetest.show_formspec(player:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type,player:get_player_name()))
-		return true
-	end	
+	end
+	return true
 end)
 
 simplecrafting_lib.show_crafting_guide = function(craft_type, user, on_exit)
