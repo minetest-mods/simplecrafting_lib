@@ -367,7 +367,7 @@ end
 --		wield_image = image to be used when wielding this item. Defaults to inventory image.
 --		groups = groups this item will belong to. Defaults to {book = 1}
 --		stack_max = maximum stack size. Defaults to 1.
---		wield_scale = scale of weild_image, defaults to nil (same as standard craftitem def)
+--		wield_scale = scale of wield_image, defaults to nil (same as standard craftitem def)
 --		copy_item_to_book = an item name string (eg, "workshops:smelter"). If the default mod is installed, a recipe will be generated that combines a default:book with copy_item_to_book and returns this guide and copy_item_to_book. In this manner the player can only get a handy portable reference guide if they are already in possession of the thing that the guide is used with. If copy_item_to_book is not defined then no crafting recipe is generated for this guide.
 --	}
 

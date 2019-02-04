@@ -262,7 +262,6 @@ if modpath_unified_inventory then
 		local context = get_or_create_context(player)
 	
 		if handle_receive_fields(player, fields, context) then
-			minetest.chat_send_all(unified_inventory.current_page[player_name])
 			unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
 			return true
 		end
