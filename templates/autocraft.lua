@@ -259,6 +259,7 @@ local function on_timer(pos, elapsed)
 	meta:set_float("craft_time", craft_time)	
 	meta:set_float("total_craft_time", total_craft_time)
 
+	refresh_products(meta)
 	refresh_formspec(pos)
 end
 
