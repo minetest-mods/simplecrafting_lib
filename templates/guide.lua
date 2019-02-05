@@ -334,7 +334,10 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 	local craft_type = string.sub(formname, 31)
 	
 	if simplecrafting_lib.handle_guide_receive_fields(craft_type, player, fields) then
-		minetest.show_formspec(player:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type,player:get_player_name()))
+		minetest.show_formspec(player:get_player_name(),
+			"simplecrafting_lib:craftguide_"..craft_type,
+			simplecrafting_lib.make_guide_formspec(craft_type,player:get_player_name())
+		)
 	end
 	return true
 end)
@@ -342,7 +345,10 @@ end)
 simplecrafting_lib.show_crafting_guide = function(craft_type, user, on_exit)
 	if simplecrafting_lib.type[craft_type] then
 		get_playerdata(craft_type, user:get_player_name()).on_exit = on_exit
-		minetest.show_formspec(user:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
+		minetest.show_formspec(user:get_player_name(),
+			"simplecrafting_lib:craftguide_"..craft_type,
+			simplecrafting_lib.make_guide_formspec(craft_type, user:get_player_name())
+		)
 	else
 		minetest.chat_send_player(user:get_player_name(), "Unable to show crafting guide for " .. craft_type .. ", it has no recipes registered.")
 	end

@@ -208,7 +208,7 @@ local function on_timer(pos, elapsed)
 	if target_item ~= "" then
 		recipe = simplecrafting_lib.get_crafting_result(craft_type, inv:get_list("input"), ItemStack({name=target_item, count=1}))
 		if recipe then
-			output = simplecrafting_lib.count_list_add(recipe.output, recipe.returns)
+			output = simplecrafting_lib.count_list_add({[recipe.output:get_name()]=recipe.output:get_count()}, recipe.returns)
 			room_for_items = simplecrafting_lib.room_for_items(inv, "output", output)
 			total_craft_time = recipe.input["simplecrafting_lib:heat"] or 1
 			if autocraft_def.crafting_time_multiplier then
@@ -234,11 +234,7 @@ local function on_timer(pos, elapsed)
 			if craft_time >= total_craft_time then
 				-- produce product
 				if count_mode then
-					local output_produced = 0
-					for _, count in pairs(recipe.output) do
-						output_produced = output_produced + count
-					end
-					product_count = product_count - output_produced
+					product_count = product_count - recipe.output:get_count()
 					meta:set_int("product_count", math.max(product_count, 0))
 				end
 				simplecrafting_lib.add_items(inv, "output", output)
