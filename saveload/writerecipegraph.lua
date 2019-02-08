@@ -16,6 +16,40 @@ local nodes_written
 local items_written
 local edge_id = 0
 
+local write_new_color_file = false
+local last_assigned_hue = math.random()
+local last_assigned_saturation = math.random()
+local golden_ratio_conjugate = 0.618033988749895 -- for spreading out the random colours more evenly, reducing clustering
+
+local mod_color_map
+local path = minetest.get_worldpath()
+local color_filename = path .. "/simplecrafting_mod_colors.lua"
+local color_file = loadfile(color_filename)
+if color_file ~= nil then
+	mod_color_map = color_file()
+else
+	mod_color_map = {}
+end
+
+-- HSV values in [0..1[
+-- returns {r, g, b} values from 0 to 255
+local hsv_to_rgb = function(h, s, v)
+	local h_i = math.floor(h*6)
+	local f = h*6 - h_i
+	local p = v * (1 - s)
+	local q = v * (1 - f*s)
+	local t = v * (1 - (1 - f) * s)
+	local r, g, b
+	if h_i==0 then r, g, b = v, t, p
+	elseif h_i==1 then r, g, b = q, v, p
+	elseif h_i==2 then r, g, b = p, v, t
+	elseif h_i==3 then r, g, b = p, q, v
+	elseif h_i==4 then r, g, b = t, p, v
+	elseif h_i==5 then r, g, b = v, p, q
+	end
+	return {math.floor(r*255), math.floor(g*255), math.floor(b*255)}
+end
+
 local write_data_graphml = function(file, datatype, data)
 	file:write('<data key="'..datatype..'">'..data..'</data>')
 end
@@ -25,17 +59,33 @@ local write_item_graphml = function(file, craft_type, item)
 	if not nodes_written[node_id] then
 		file:write('<node id="'..node_id..'">')
 		
-		local color = "#FFCC00"
+		local color
+		local mod
 		local colon_index = string.find(item, ":")
 		if colon_index == nil then
 			item = "group:" .. item
 			colon_index = 6
 			color = "#C0C0C0"
+			mod = "group"
+		else
+			mod = string.sub(item, 1, colon_index-1)
+			if not mod_color_map[mod] then
+				last_assigned_hue = last_assigned_hue + golden_ratio_conjugate
+				last_assigned_hue = last_assigned_hue % 1
+				last_assigned_saturation = last_assigned_saturation + golden_ratio_conjugate
+				last_assigned_saturation = last_assigned_saturation % 1
+				local color_vec = hsv_to_rgb(last_assigned_hue, last_assigned_saturation/2 + 0.5, 1)
+				color = "#"..string.format('%02X', color_vec[1])..string.format('%02X', color_vec[2])..string.format('%02X', color_vec[3])
+				mod_color_map[mod] = color
+				write_new_color_file = true
+			else
+				color = mod_color_map[mod]
+			end			
 		end
 		
 		write_data_graphml(file, "node_type", "item")
 		write_data_graphml(file, "item", item)
-		write_data_graphml(file, "mod", string.sub(item, 1, colon_index-1))
+		write_data_graphml(file, "mod", mod)
 		
 		--yEd
 		write_data_graphml(file, "nodegraphics", '<y:ShapeNode><y:Geometry height="30.0" width="60.0"/><y:Fill color="'
@@ -114,6 +164,15 @@ local write_recipe_graphml = function(file, craft_type, id, recipe)
 		for returnitem, returncount in pairs(recipe.returns) do
 			write_item_graphml(file, craft_type, returnitem)
 			write_edge_graphml(file, recipe_id, returnitem.."_"..craft_type, "returns", returncount)
+		end
+	end
+	
+	if write_new_color_file then
+		local color_file, err = io.open(color_filename, "w")
+		if err == nil then
+			color_file:write("return "..dump(mod_color_map))
+			color_file:flush()
+			color_file:close()		
 		end
 	end
 end
