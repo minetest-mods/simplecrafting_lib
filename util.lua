@@ -250,13 +250,7 @@ simplecrafting_lib.get_craftable_items = function(craft_type, item_list, max_cra
 			count = max - max % chosen_recipe[item].output:get_count()
 		end
 		stack:set_count(count)
-		if chosen_recipe[item].pre_craft then
-			-- allow the pre_craft method to modify the output stack
-			local new_stack = chosen_recipe[item].pre_craft(stack, item_list)
-			if new_stack ~= nil then
-				stack = new_stack
-			end
-		end
+		simplecrafting_lib.execute_pre_craft(craft_type, chosen_recipe[item], stack, item_list)
 		table.insert(craftable_stacks, stack)
 	end
 	if alphabetize then
@@ -363,4 +357,22 @@ simplecrafting_lib.get_crafting_result = function(craft_type, input_list, reques
 		return smallest_remainder_recipe
 	end
 	return nil
+end
+
+simplecrafting_lib.register_pre_craft = function(callback)
+	table.insert(simplecrafting_lib.pre_craft, callback)
+end
+simplecrafting_lib.register_post_craft = function(callback)
+	table.insert(simplecrafting_lib.post_craft, callback)
+end
+
+simplecrafting_lib.execute_pre_craft = function(craft_type, recipe, output_stack, source_item_list)
+	for k, callback in ipairs(simplecrafting_lib.pre_craft) do
+		callback(craft_type, recipe, output_stack, source_item_list)
+	end
+end
+simplecrafting_lib.execute_post_craft = function(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
+	for k, callback in ipairs(simplecrafting_lib.post_craft) do
+		callback(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
+	end
 end

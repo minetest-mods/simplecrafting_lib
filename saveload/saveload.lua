@@ -64,24 +64,28 @@ end
 local write_recipe = function(file, recipe)
 	file:write("\t{\n")
 	for key, val in orderedPairs(recipe) do
-		file:write("\t\t"..key.." = ")
-		if key == "output" then
-			file:write("\t\"" .. ItemStack(val):to_string() .."\",\n")
-		elseif type(val) == "table" then
-			file:write("\t{")
-			for kk, vv in orderedPairs(val) do
-				if type(vv) == "string" then
-					file:write("[\"" .. kk .. "\"] = \"" .. tostring(vv) .. "\", ")
-				else
-					file:write("[\"" .. kk .. "\"] = " .. tostring(vv) .. ", ")
-				end
-			end
-			file:write("},\n")
-		elseif type(val) == "string" then
-			file:write("\t\"" .. tostring(val) .. "\",\n")
+		if type(val) == "function" then
+			minetest.log("error", "[simplecrafting_lib] recipe write: " .. key .. "'s value is a function")
 		else
-			file:write("\t" .. tostring(val) .. ",\n")
-		end			
+			file:write("\t\t"..key.." = ")
+			if key == "output" then
+				file:write("\t\"" .. ItemStack(val):to_string() .."\",\n")
+			elseif type(val) == "table" then
+				file:write("\t{")
+				for kk, vv in orderedPairs(val) do
+					if type(vv) == "string" then
+						file:write("[\"" .. kk .. "\"] = \"" .. tostring(vv) .. "\", ")
+					else
+						file:write("[\"" .. kk .. "\"] = " .. tostring(vv) .. ", ")
+					end
+				end
+				file:write("},\n")
+			elseif type(val) == "string" then
+				file:write("\t\"" .. tostring(val) .. "\",\n")
+			else
+				file:write("\t" .. tostring(val) .. ",\n")
+			end	
+		end		
 	end
 	file:write("\t},\n")
 end
@@ -116,7 +120,7 @@ local save_recipes = function(param, craft_types, recipe_filter)
 			write_craft_list(file, craft_type, recipe_list.recipes_by_out, recipe_filter)
 		end
 	else
-		for _, craft_type in ipairs(craft_type) do
+		for _, craft_type in ipairs(craft_types) do
 			if simplecrafting_lib.type[craft_type] then
 				write_craft_list(file, craft_type, simplecrafting_lib.type[craft_type].recipes_by_out, recipe_filter)
 --			else
@@ -147,7 +151,7 @@ local save_recipes_graphml = function(name, craft_types, recipe_filter, show_unu
 		write_graphml_recipes(file, simplecrafting_lib.type, recipe_filter, show_unused)
 	else
 		local recipes = {}
-		for _, craft_type in pairs(craft_types) do
+		for _, craft_type in ipairs(craft_types) do
 			recipes[craft_type] = simplecrafting_lib.type[craft_type]
 		end
 		write_graphml_recipes(file, recipes, recipe_filter, show_unused)	

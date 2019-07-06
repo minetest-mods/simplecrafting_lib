@@ -30,17 +30,15 @@ simplecrafting_lib.craft_stack = function(crafting_type, request_stack, source_i
 				minetest.log("action", craft_result.output:to_string() ..  "was crafted somewhere by someone.")
 			end
 
-			-- subtract the amount of output that the player's getting anyway (from having taken it)
-			craft_result.output:set_count(craft_result.output:get_count() - request_stack:get_count())
-			
-			local total_output = simplecrafting_lib.count_list_add({[craft_result.output:get_name()]=craft_result.output:get_count()}, craft_result.returns)
+			local total_output = simplecrafting_lib.count_list_add(
+				-- subtract the amount of output that the player's getting anyway (due to having taken it from the inventory of outputs)
+				{[craft_result.output:get_name()]=craft_result.output:get_count() - request_stack:get_count()},
+				craft_result.returns)
 			
 			-- stuff the output in the target inventory, or the player's inventory if it doesn't fit, finally dropping anything that doesn't fit at the player's location
 			local leftover = simplecrafting_lib.add_items(destination_inv, destination_listname, total_output)
 			
-			if craft_result.post_craft then
-				craft_result.post_craft(request_stack, source_inv, source_listname, destination_inv, destination_listname)
-			end
+			simplecrafting_lib.execute_post_craft(crafting_type, craft_result, request_stack, source_inv, source_listname, destination_inv, destination_listname)
 			
 			if player then
 				leftover = simplecrafting_lib.add_items(player:get_inventory(), "main", leftover)

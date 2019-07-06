@@ -127,7 +127,9 @@ local write_recipe_graphml = function(file, craft_type, id, recipe)
 	local extra_data = {}
 	local has_extra_data = false
 	for k, v in pairs(recipe) do
-		if k ~= "output" and k ~= "input" and k ~= "returns" then
+		if type(v) == "function" then
+			minetest.log("error", "[simplecrafting_lib] recipe write: " .. key .. "'s value is a function")
+		elseif k ~= "output" and k ~= "input" and k ~= "returns" then
 			extra_data[k] = v
 			has_extra_data = true
 		end

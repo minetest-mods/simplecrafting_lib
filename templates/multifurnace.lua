@@ -268,9 +268,7 @@ local function on_timer(pos, elapsed)
 				end
 				simplecrafting_lib.add_items(inv, "output", output)
 				simplecrafting_lib.remove_items(inv, "input", recipe.input)
-				if recipe.post_craft then
-					recipe.post_craft(recipe.output, inv, "input", inv, "output")
-				end
+				simplecrafting_lib.execute_post_craft(craft_type, recipe, recipe.output, inv, "input", inv, "output")
 				cook_time = cook_time - total_cook_time
 				minetest.get_node_timer(pos):start(1)
 				break
