@@ -250,6 +250,13 @@ simplecrafting_lib.get_craftable_items = function(craft_type, item_list, max_cra
 			count = max - max % chosen_recipe[item].output:get_count()
 		end
 		stack:set_count(count)
+		if chosen_recipe[item].pre_craft then
+			-- allow the pre_craft method to modify the output stack
+			local new_stack = chosen_recipe[item].pre_craft(stack, item_list)
+			if new_stack ~= nil then
+				stack = new_stack
+			end
+		end
 		table.insert(craftable_stacks, stack)
 	end
 	if alphabetize then

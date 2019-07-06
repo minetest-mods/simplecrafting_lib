@@ -50,6 +50,48 @@ example parameters:
 
 The recipe def can have any other properties the user wishes to add, these examples only show the ones that are used by the crafting methods in this mod.
 
+### `pre_craft` and `post_craft` callbacks
+
+There are two optional callback functions that can be added to a simplecrafting_lib recipe that are useful in certain unusual circumstances; `pre_craft` and `post_craft`.
+
+`pre_craft = function(output_stack, source_item_list)` is called whenever the recipe is evaluated (for example, to populate the output list of a crafting interface). It is intended to allow the output ItemStack to be modified programmatically, for example to add ItemStack metadata to the output. It should return the new output stack. It is provided with the source itemlist that the crafting system will be drawing inputs from, which may include items other than those that are part of the recipe's inputs. Don't modify the source item list.
+
+`post_craft` is called after the crafting operation has been executed. It is given the following parameters:
+	
+* `output_stack` - a copy of the ItemStack that was just crafted.
+* `source_inv, source_listname` - the inventory that the source materials were taken from
+* `destination_inv, destination_listname` - the inventory that the output was placed into. The actual crafted instance of `output_stack` should be in here, though it may have been merged with another stack so the count may be different.
+
+Here's an example of how to use these callbacks to copy the metadata of a written book crafted using an existing written book and a blank book as inputs:
+
+	{
+		input = {
+			["default:book"] = 1,
+			["default:book_written"] = 1,
+		},
+		output = "default:book_written",
+		pre_craft = function(output_stack, source_item_list)
+			--find the first written book in the source inventory
+			for k, source_item in ipairs(source_item_list) do
+				if source_item:get_name() == "default:book_written" then
+					-- the output book should be given the same metadata as the source book
+					local copymeta = source_item:get_meta():to_table()
+					output_stack:get_meta():from_table(copymeta)
+					return output_stack
+				end
+			end
+		end,
+		post_craft = function(output_stack, source_inv, source_listname, destination_inv, destination_listname)
+			-- At this point the default:book and default:book_written have been consumed from the source inventory
+			-- and a single copy of the default:book_written has been placed by the player into the destination inventory.
+			-- add an additional copy of the default:book_written into the destination inventory so that the player will end
+			-- up with two of them.
+			-- Note that default:book_written has a max_stack of 1, otherwise we could have got by with just the pre_craft
+			-- call above producing an output stack of count 2.
+			destination_inv:add_item(destination_listname, output_stack)
+		end,
+	})
+
 ## `simplecrafting_lib.register_reversible(craft_type, forward_def)`
 
 A convenience method that registers the provided crafting recipe and also automatically creates and registers a "reverse" craft of the same type.

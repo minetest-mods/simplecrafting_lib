@@ -29,6 +29,24 @@ if minetest.settings:get_bool("simplecrafting_lib_override_default_player_crafti
 		elseif legacy_recipe.output and legacy_recipe.output:get_name() == "simplecrafting_lib:heat" then
 			return nil, false
 		else
+			if legacy_recipe.output:get_name() == "default:book_written" then
+				legacy_recipe.pre_craft = function(output_stack, source_item_list)
+					--find the first written book in the source inventory
+					for k, source_item in ipairs(source_item_list) do
+						if source_item:get_name() == "default:book_written" then
+							-- the output book will have the same metadata as the source book
+							local copymeta = source_item:get_meta():to_table()
+							output_stack:get_meta():from_table(copymeta)
+							return output_stack
+						end
+					end
+				end
+				legacy_recipe.post_craft = function(output_stack, source_inv, source_listname, destination_inv, destination_listname)
+					-- add an additional copy of the book into the destination inventory
+					destination_inv:add_item(destination_listname, output_stack)
+				end
+			end
+		
 			return "player", true
 		end
 	end)

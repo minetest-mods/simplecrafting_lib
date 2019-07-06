@@ -161,7 +161,7 @@ end
 
 local already_cleared_processed = {} -- contains recipes suitable for re-registering
 -- once we're done initializing, throw these tables away. They're not needed after that.
-minetest.after(0, function()
+minetest.after(10, function()
 	already_cleared_processed = nil
 end)
 
@@ -170,6 +170,7 @@ end)
 
 -- https://github.com/minetest/minetest/issues/5962
 -- https://github.com/minetest/minetest/issues/5790
+-- https://github.com/minetest/minetest/issues/7429
 
 local function safe_clear_craft(recipe_to_clear)	
 	local parameter_recipe = {}
@@ -208,11 +209,17 @@ local function safe_clear_craft(recipe_to_clear)
 	end
 
 	-- https://github.com/minetest/minetest/issues/6513
-	local success, err = pcall(function() minetest.clear_craft(parameter_recipe) end)
+	local success, err = pcall(function()
+		if not minetest.clear_craft(parameter_recipe) then
+			minetest.log("warning", "[simplecrafting_lib] failed to clear recipe " .. dump(recipe_to_clear) .. "\nas parameter\n" .. dump(parameter_recipe))
+		end
+	end)
 	if not success and err ~= "No crafting specified for input" then
-		minetest.log("error", "[simplecrafting_lib] minetest.clear_craft failed with error \"" ..err.. "\" while attempting to clear craft " ..dump(parameter_recipe))
+		minetest.log("error", "[simplecrafting_lib] minetest.clear_craft failed with error \"" ..err.. "\" while attempting to clear craft " ..dump(recipe_to_clear))
+		return false
 	elseif success == true and err == false then
-		minetest.log("warning", "[simplecrafting_lib] minetest.clear_craft wasn't able to find inputs for " .. dump(parameter_recipe))
+		minetest.log("warning", "[simplecrafting_lib] minetest.clear_craft wasn't able to find inputs for " .. dump(recipe_to_clear))
+		return false
 	end
 	return true
 end
@@ -319,7 +326,9 @@ local function import_legacy_recipes()
 					end
 					local new_recipe = create_recipe(legacy_recipe)
 					if register_legacy_recipe(new_recipe) then
-						safe_clear_craft(legacy_recipe)
+						if not safe_clear_craft(legacy_recipe) then
+							minetest.log("warning", "[simplecrafting_lib] minetest.clear_craft wasn't able to find inputs for " .. dump(legacy_recipe) .. " for output " .. item)
+						end
 						table.insert(already_cleared_processed, new_recipe)
 					end
 				elseif legacy_recipe.method == "cooking" then
@@ -329,7 +338,9 @@ local function import_legacy_recipes()
 					local cooked = minetest.get_craft_result({method = "cooking", width = 1, items = {legacy_recipe.items[1]}})
 					new_recipe.input["simplecrafting_lib:heat"] = cooked.time
 					if register_legacy_recipe(new_recipe) then
-						safe_clear_craft(legacy_recipe)
+						if not safe_clear_craft(legacy_recipe) then
+							minetest.log("warning", "[simplecrafting_lib] minetest.clear_craft wasn't able to find inputs for " .. dump(legacy_recipe) .. " for cooking output " .. item)
+						end
 						table.insert(already_cleared_processed, new_recipe)
 					end
 				else
