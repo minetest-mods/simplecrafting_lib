@@ -9,60 +9,49 @@ You can continue to use minetest.register_craft to register crafts as normal, th
 Alternately, use the "simplecrafting_lib.register" method to register recipes for the new
 system exclusively. Examples are given below:
 
-	-- Crafting Table
-
-	simplecrafting_lib.register("table",{
+	simplecrafting_lib.register("table", {
 		input = {
 			["group:stone"] = 1,
-			["default:lava_source"] = 1,
+			["bucket:lava_bucket"] = 1,
 		},
-		output = {
-			["default:obsidian"] = 2,
-		},
+		output = "default:obsidian 2",
+	
 		-- Items which the crafting recipe produces, but is not
-		-- formally used to make, e.g. returning an empty bucket
-		-- from a recipe using a water bucket
+		-- formally used to make.
 		returns = {
-			["default:stone"] = 1,
+			["bucket:bucket"] = 1,
 		},
 	})
-
-	-- Furnace
-
-	simplecrafting_lib.register("furnace",{
+	
+	simplecrafting_lib.register("furnace", {
 		input = {
-			["default:stone"] = 1,
+			["farming:flour"] = 1,
+			["simplecrafting_lib:heat"] = 5,
 		},
-		output = {
-			["default:obsidian"] = 2,
-		},
-		cooktime = 5.6,
+		output = "farming:bread",
 	})
-
-	-- Fuel
-
-	simplecrafting_lib.register("fuel",{
-		-- Group names are allowed
+	
+	simplecrafting_lib.register("fuel", {
+		-- Group names are allowed when defining fuel inputs.
 		-- If there is not an item specific recipe then it will take the
 		-- definition of its longest burning group
 		input = {
-			["default:tree"] = 1
+			["group:tree"] = 1,
 		},
-		burntime = 25.4,
+		output = "simplecrafting_lib:heat 40",
 	})
 
-The following example code used in a mod that depends on simplecrafting_lib to import existing recipes from Minetest's native crafting system. It could also choose to place the recipes into categories based on other properties of the recipe - for example, it could place "cooking" recipes involving ore into a different crafting type than "cooking" recipes involving food items. Note also that you can modify legacy_recipe in this method and that modification will carry through to the registered recipe.
+As a simple example, the following code will register a filter that imports all "normal" crafting recipes into a craft_type called "table", and removes them from the legacy crafting system in the process, but leaves "cooking" and "fuel" recipes alone:
 
-	simplecrafting_lib.register_recipe_import_filter(function(legacy_method, legacy_recipe)
-		if legacy_method == "normal" then
+	simplecrafting_lib.register_recipe_import_filter(function(legacy_recipe)
+		if legacy_recipe.input["simplecrafting_lib:heat"] then
+			return nil, false
+		elseif legacy_recipe.output and legacy_recipe.output:get_name() == "simplecrafting_lib:heat" then
+			return nil, false
+		else
 			return "table", true
-		elseif legacy_method == "cooking" then
-			return "furnace", true
-		elseif legacy_method == "fuel" then
-			return "fuel", true
 		end
 	end)
-	simplecrafting_lib.import_legacy_recipes()
 
 Note that clearing large numbers of recipes from the native crafting system can take a long time on startup, see [issue #5790 on Minetest](https://github.com/minetest/minetest/issues/5790).
 

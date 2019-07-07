@@ -33,9 +33,9 @@ example parameters:
 	simplecrafting_lib.register("furnace", {
 		input = {
 			["farming:flour"] = 1,
+			["simplecrafting_lib:heat"] = 5,
 		},
 		output = "farming:bread",
-		cooktime = 5.0,
 	})
 	
 	simplecrafting_lib.register("fuel", {
@@ -45,8 +45,9 @@ example parameters:
 		input = {
 			["group:tree"] = 1,
 		},
-		burntime = 40.0,
+		output = "simplecrafting_lib:heat 40",
 	})
+
 
 The recipe def can have any other properties the user wishes to add, these examples only show the ones that are used by the crafting methods in this mod.
 
@@ -119,10 +120,14 @@ The filter function should return two values: `craft_type` (a string) and `clear
 As a simple example, the following code will register a filter that imports all "normal" crafting recipes into a craft_type called "table", and removes them from the legacy crafting system in the process, but leaves "cooking" and "fuel" recipes alone:
 
 	simplecrafting_lib.register_recipe_import_filter(function(legacy_recipe)
-		if legacy_recipe.burntime == nil and legacy_recipe.cooktime == nil then
+		if legacy_recipe.input["simplecrafting_lib:heat"] then
+			return nil, false
+		elseif legacy_recipe.output and legacy_recipe.output:get_name() == "simplecrafting_lib:heat" then
+			return nil, false
+		else
 			return "table", true
 		end
-	end
+	end)
 
 # Simple Methods for User Crafting
 
