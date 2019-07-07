@@ -1,8 +1,6 @@
-Note: this is a utility mod that is intended for use by other mods, it does not do anything if installed by itself.
+This mod adds a new crafting system, either in parallel to the default grid-based crafting system or as complete replacement to it. The new crafting system doesn't care about the arrangement of raw materials, only the relative proportions of them. Effectively, every recipe is now "shapeless".
 
-This mod adds a new crafting system, either in parallel to the default grid-based crafting system or as complete replacement to it.
-
-The new crafting system doesn't care about the arrangement of raw materials, only the relative proportions of them. Effectively, every recipe is now "shapeless".
+By default, this mod has no effect on its own - it's intended as an API that allows it to be used by other mods, for example creating specialized crafting tables with particular lists of recipes available. However, if you set the "simplecrafting_lib_override_default_player_crafting" configuration variable to "true" it will replace the player's inventory crafting interface with one derived from this system.
 
 You can continue to use minetest.register_craft to register crafts as normal, this mod hooks into it and can reinterpret recipes registered via it to use with the new crafting system as well.
 
