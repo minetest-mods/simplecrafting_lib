@@ -117,7 +117,7 @@ local function make_formspec(context)
 	end
 	
 	local pages = false
-	local page_button_y = controls_y + 0.8
+	local page_button_y = controls_y + 0.6
 	if item_count > ((row/output_height)+1) * output_count then
 		inventory[#inventory+1] = "button["..controls_x..","..page_button_y..";1,0.75;next;»]"..
 									"tooltip[next;"..F(S("Next page of crafting products")).."]"
@@ -161,6 +161,13 @@ local function refresh_inv(inv, player)
 	local max_mode = context.simplecrafting_lib_max_mode
 	refresh_output(inv, max_mode)
 	context.simplecrafting_lib_item_count = inv:get_size(craft_type.."_output")
+
+	if modpath_unified_inventory then
+		local player_name = player:get_player_name()
+		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
+	elseif modpath_sfinv then
+		sfinv.set_player_inventory_formspec(player, context)
+	end
 end
 
 minetest.register_allow_player_inventory_action(function(player, action, inventory, inventory_info)
