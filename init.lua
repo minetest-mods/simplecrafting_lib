@@ -61,11 +61,9 @@ if minetest.settings:get_bool("simplecrafting_lib_override_default_player_crafti
 		end)		
 		simplecrafting_lib.register_post_craft(function(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
 			-- screen for the recipes we care about
-			minetest.chat_send_all(craft_type)
 			if craft_type ~= "player" or recipe.output == nil or recipe.output:get_name() ~= "default:book_written" then
 				return
 			end
-			minetest.chat_send_all("uhhu")
 			-- add an additional copy of the book into the destination inventory
 			destination_inv:add_item(destination_listname, output_stack)
 		end)
