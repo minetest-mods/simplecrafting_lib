@@ -33,7 +33,12 @@ local output_height = table_def.output_height or 6
 local controls_x = table_def.controls_x or 9.3
 local controls_y = table_def.controls_y or 6.5
 
+local input_count = input_width * input_height
+local output_count = output_width * output_height
+
 local show_player_inventory = true
+-- Unified inventory has strict limitations on the size of the crafting interface, and
+-- has a hard-coded player inventory display
 if modpath_unified_inventory then
 	input_width = 2
 	input_height = 4
@@ -43,6 +48,9 @@ if modpath_unified_inventory then
 	controls_y = 0
 	show_player_inventory = false
 end
+
+-- This is to vertically align the input and output inventories,
+-- keeping them centered relative to each other.
 local y_displace_input = 0
 local y_displace_output = 0
 if input_height < output_height then
@@ -50,9 +58,6 @@ if input_height < output_height then
 elseif input_height > output_height then
 	y_displace_output = (input_height-output_height)/2
 end
-
-local input_count = input_width * input_height
-local output_count = output_width * output_height
 
 local get_or_create_context = function(player)
 	local context
@@ -69,15 +74,20 @@ local get_or_create_context = function(player)
 			simplecrafting_lib.player_contexts[name] = context
 		end
 	end
-	if context.simplecrafting_lib_row == nil then context.simplecrafting_lib_row = 0 end
-	if context.simplecrafting_lib_item_count == nil then context.simplecrafting_lib_item_count = 0 end
+	if context.simplecrafting_lib_row == nil then context.simplecrafting_lib_row = 0 end -- the currently selected output page
+	if context.simplecrafting_lib_item_count == nil then
+		context.simplecrafting_lib_item_count = minetest.get_inventory({type="player", name=player:get_player_name()}):get_size(craft_type.."_output")
+	end
 	if context.simplecrafting_lib_max_mode == nil then context.simplecrafting_lib_max_mode = false end
 	return context
 end
 
+-- Updates the output inventory to reflect the current input inventory
 local function refresh_output(inv, max_mode)
 	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list(craft_type.."_input"), max_mode, table_def.alphabetize_items)
-	local output_size = #craftable + (output_count - (#craftable%output_count))
+	-- Output size is the number of multiples of output_count that we can fit the craftable outputs into,
+	-- with a minimum of one multuple so there's an empty page if there's no recipes to craft
+	local output_size = math.max(math.ceil(#craftable / output_count), 1) * output_count
 	inv:set_size(craft_type.."_output", output_size)
 	inv:set_list(craft_type.."_output", craftable)
 end
@@ -146,16 +156,6 @@ local function make_formspec(context)
 	return table.concat(inventory)
 end
 
-minetest.register_on_joinplayer(function(player)
-	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
-	inv:set_size(craft_type.."_input", input_count)
-	inv:set_size(craft_type.."_output", output_count)
-end)
-
-minetest.register_on_leaveplayer(function(player)
-	simplecrafting_lib.player_contexts[player:get_player_name()] = nil
-end)
-
 local function refresh_inv(inv, player)
 	local context = get_or_create_context(player)
 	local max_mode = context.simplecrafting_lib_max_mode
@@ -169,6 +169,16 @@ local function refresh_inv(inv, player)
 		sfinv.set_player_inventory_formspec(player, context)
 	end
 end
+
+minetest.register_on_joinplayer(function(player)
+	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
+	inv:set_size(craft_type.."_input", input_count)
+	refresh_inv(inv, player)
+end)
+
+minetest.register_on_leaveplayer(function(player)
+	simplecrafting_lib.player_contexts[player:get_player_name()] = nil
+end)
 
 minetest.register_allow_player_inventory_action(function(player, action, inventory, inventory_info)
 	if action == "move" then
