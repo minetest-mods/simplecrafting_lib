@@ -1,6 +1,8 @@
 local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
+-- TODO: support to put a guide formspec inside a tab that's part of a larger set of formspecs
+
 simplecrafting_lib.guide = {}
 simplecrafting_lib.guide.outputs = {}
 simplecrafting_lib.guide.playerdata = {}
@@ -25,6 +27,7 @@ if minetest.get_modpath("default") then
 	simplecrafting_lib.guide.groups["tree"] = "default:tree"
 	simplecrafting_lib.guide.groups["stone"] = "default:stone"
 	simplecrafting_lib.guide.groups["sand"] = "default:sand"
+	simplecrafting_lib.guide.groups["soil"] = "default:dirt"
 end
 if minetest.get_modpath("wool") then
 	simplecrafting_lib.guide.groups["wool"] = "wool:white"
@@ -117,7 +120,7 @@ local function get_playerdata(craft_type, player_name)
 	return simplecrafting_lib.guide.playerdata[craft_type][player_name]
 end
 
-local function make_formspec(craft_type, player_name)
+simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	local guide_def = get_guide_def(craft_type)
 	local width = guide_def.output_width or default_width
 	local height = guide_def.output_height or default_height
@@ -133,8 +136,10 @@ local function make_formspec(craft_type, player_name)
 		displace_y = 0.5
 	end
 	
+	local size = "size[" .. width .. "," .. height + recipes_per_page + 0.7 + displace_y .."]"
+
 	local formspec = {
-		"size[" .. width .. "," .. height + recipes_per_page + 0.7 + displace_y .."]",
+		size,
 	}
 
 	if description then
@@ -142,9 +147,7 @@ local function make_formspec(craft_type, player_name)
 	end
 	
 	if minetest.get_modpath("default") then
-		table.insert(formspec, default.gui_bg)
-		table.insert(formspec, default.gui_bg_img)
-		table.insert(formspec, default.gui_slots)
+		table.insert(formspec, default.gui_bg .. default.gui_bg_img .. default.gui_slots)
 	end
 
 	local x = 0
@@ -175,9 +178,9 @@ local function make_formspec(craft_type, player_name)
 	end
 
 	if #outputs > buttons_per_page then
-		table.insert(formspec, "button[" .. x .. "," .. y + height + displace_y .. ";1,1;previous_output;"..S("Prev").."]")
-		table.insert(formspec, "button[" .. x + 1 .. "," .. y + height + displace_y .. ";1,1;next_output;"..S("Next").."]")
-		table.insert(formspec, "label[" .. x + 2 .. "," .. y + height + displace_y .. ";".. S("Product\npage @1", playerdata.output_page + 1) .."]")
+		table.insert(formspec, "button[" .. x .. "," .. y + height + displace_y .. ";1,1;previous_output;"..S("Prev").."]"
+				.."button[" .. x + 1 .. "," .. y + height + displace_y .. ";1,1;next_output;"..S("Next").."]"
+				.."label[" .. x + 2 .. "," .. y + height + displace_y .. ";".. S("Product\npage @1", playerdata.output_page + 1) .."]")
 	end
 
 	local recipes
@@ -199,9 +202,9 @@ local function make_formspec(craft_type, player_name)
 	end
 	
 	if #recipes > recipes_per_page then
-		table.insert(formspec, "label[" .. x + width - 3 .. "," .. y + height + displace_y .. ";".. S("Recipe\npage @1", playerdata.input_page + 1) .."]")
-		table.insert(formspec, "button[" .. x + width - 2 .. "," .. y + height + displace_y .. ";1,1;previous_input;"..S("Prev").."]")
-		table.insert(formspec, "button[" .. x + width - 1 .. "," .. y + height + displace_y .. ";1,1;"..next_input..";"..S("Next").."]")
+		table.insert(formspec, "label[" .. x + width - 3 .. "," .. y + height + displace_y .. ";".. S("Recipe\npage @1", playerdata.input_page + 1) .."]"
+				.."button[" .. x + width - 2 .. "," .. y + height + displace_y .. ";1,1;previous_input;"..S("Prev").."]"
+				.."button[" .. x + width - 1 .. "," .. y + height + displace_y .. ";1,1;"..next_input..";"..S("Next").."]")
 	end
 	
 	local x_out = x
@@ -221,18 +224,18 @@ local function make_formspec(craft_type, player_name)
 				if itemdef then
 					itemdesc = itemdef.description
 				end				
-				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..input..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..input..";recipe_button_"..recipe_button_count..";\n\n      "..count.."]"
+						.."tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			elseif not string.match(input, ",") then
 				local itemdesc = "Group: "..input
-				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
-				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..groups[input]..";recipe_button_"..recipe_button_count..";\n  G\n        "..count.."]"
+					.."tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			else
 				-- it's one of those weird multi-group items, like dyes.
 				local multimatch = find_multi_group(input)
 				local itemdesc = "Groups: "..input
-				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";recipe_button_"..recipe_button_count..";\n  G\n      "..count.."]")
-				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..multimatch..";recipe_button_"..recipe_button_count..";\n  G\n        "..count.."]"
+					.."tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 			end
 			recipe_button_count = recipe_button_count + 1
 			x_out = x_out + 1
@@ -240,13 +243,15 @@ local function make_formspec(craft_type, player_name)
 
 		-------------------------------- Outputs
 		x_out = width - 1
-		for output, count in pairs(recipe.output) do
-			local itemdesc = minetest.registered_items[output].description -- we know this item exists otherwise a recipe wouldn't have been found
-			table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-			table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
-			recipe_button_count = recipe_button_count + 1
-			x_out = x_out - 1
-		end
+
+		local output_name = recipe.output:get_name()
+		local output_count = recipe.output:get_count()
+		local itemdesc = minetest.registered_items[output_name].description -- we know this item exists otherwise a recipe wouldn't have been found
+		table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..output_name..";recipe_button_"..recipe_button_count..";\n\n      "..output_count.."]"
+			.."tooltip[recipe_button_"..recipe_button_count..";"..output_count.." "..itemdesc.."]")
+		recipe_button_count = recipe_button_count + 1
+		x_out = x_out - 1
+
 		if recipe.returns then
 			for returns, count in pairs(recipe.returns) do
 				local itemdef = minetest.registered_items[returns]
@@ -254,8 +259,8 @@ local function make_formspec(craft_type, player_name)
 				if itemdef then
 					itemdesc = itemdef.description
 				end	
-				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..returns..";recipe_button_"..recipe_button_count..";\n\n    "..count.."]")
-				table.insert(recipe_formspec, "tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
+				table.insert(recipe_formspec, "item_image_button["..x_out..","..y_out..";1,1;"..returns..";recipe_button_"..recipe_button_count..";\n\n      "..count.."]"
+					.."tooltip[recipe_button_"..recipe_button_count..";"..count.." "..itemdesc.."]")
 				recipe_button_count = recipe_button_count + 1
 				x_out = x_out - 1
 			end
@@ -277,15 +282,10 @@ local function make_formspec(craft_type, player_name)
 	if guide_def.append_to_formspec then
 		table.insert(formspec, guide_def.append_to_formspec)
 	end
-	
-	return table.concat(formspec)
+	return table.concat(formspec), size
 end
 
-minetest.register_on_player_receive_fields(function(player, formname, fields)
-	if string.sub(formname, 1, 30) ~= "simplecrafting_lib:craftguide_" then return false end
-
-	local craft_type = string.sub(formname, 31)
-
+simplecrafting_lib.handle_guide_receive_fields = function(craft_type, player, fields)
 	local guide_def = get_guide_def(craft_type)
 	local width = guide_def.output_width or default_width
 	local height = guide_def.output_height or default_height
@@ -317,19 +317,41 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 			playerdata.selection = tonumber(string.sub(field, 9))
 			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
-		elseif field == "exit" then
-			return true
+		elseif field == "quit" then
+			if playerdata.on_exit then
+				playerdata.on_exit()
+			end
+			return false
 		end
 	end
 	
-	if stay_in_formspec then
-		minetest.show_formspec(player:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type,player:get_player_name()))
-		return true
-	end	
+	return stay_in_formspec
+end
+
+minetest.register_on_player_receive_fields(function(player, formname, fields)
+	if string.sub(formname, 1, 30) ~= "simplecrafting_lib:craftguide_" then return false end
+
+	local craft_type = string.sub(formname, 31)
+	
+	if simplecrafting_lib.handle_guide_receive_fields(craft_type, player, fields) then
+		minetest.show_formspec(player:get_player_name(),
+			"simplecrafting_lib:craftguide_"..craft_type,
+			simplecrafting_lib.make_guide_formspec(craft_type,player:get_player_name())
+		)
+	end
+	return true
 end)
 
-simplecrafting_lib.show_crafting_guide = function(craft_type, user)
-	minetest.show_formspec(user:get_player_name(), "simplecrafting_lib:craftguide_"..craft_type, make_formspec(craft_type, user:get_player_name()))
+simplecrafting_lib.show_crafting_guide = function(craft_type, user, on_exit)
+	if simplecrafting_lib.type[craft_type] then
+		get_playerdata(craft_type, user:get_player_name()).on_exit = on_exit
+		minetest.show_formspec(user:get_player_name(),
+			"simplecrafting_lib:craftguide_"..craft_type,
+			simplecrafting_lib.make_guide_formspec(craft_type, user:get_player_name())
+		)
+	else
+		minetest.chat_send_player(user:get_player_name(), "Unable to show crafting guide for " .. craft_type .. ", it has no recipes registered.")
+	end
 end
 
 --	defines some parameters regarding how the formspec of the guide for a given craft_type is displayed.
@@ -354,7 +376,7 @@ end
 --		wield_image = image to be used when wielding this item. Defaults to inventory image.
 --		groups = groups this item will belong to. Defaults to {book = 1}
 --		stack_max = maximum stack size. Defaults to 1.
---		wield_scale = scale of weild_image, defaults to nil (same as standard craftitem def)
+--		wield_scale = scale of wield_image, defaults to nil (same as standard craftitem def)
 --		copy_item_to_book = an item name string (eg, "workshops:smelter"). If the default mod is installed, a recipe will be generated that combines a default:book with copy_item_to_book and returns this guide and copy_item_to_book. In this manner the player can only get a handy portable reference guide if they are already in possession of the thing that the guide is used with. If copy_item_to_book is not defined then no crafting recipe is generated for this guide.
 --	}
 

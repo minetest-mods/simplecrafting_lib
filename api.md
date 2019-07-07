@@ -21,9 +21,7 @@ example parameters:
 			["group:stone"] = 1,
 			["bucket:lava_bucket"] = 1,
 		},
-		output = {
-			["default:obsidian"] = 2,
-		},
+		output = "default:obsidian 2",
 	
 		-- Items which the crafting recipe produces, but is not
 		-- formally used to make.
@@ -36,9 +34,7 @@ example parameters:
 		input = {
 			["farming:flour"] = 1,
 		},
-		output = {
-			["farming:bread"] = 1,
-		},
+		output = "farming:bread",
 		cooktime = 5.0,
 	})
 	
@@ -49,12 +45,52 @@ example parameters:
 		input = {
 			["group:tree"] = 1,
 		},
-		output = {
-		},
 		burntime = 40.0,
 	})
 
 The recipe def can have any other properties the user wishes to add, these examples only show the ones that are used by the crafting methods in this mod.
+
+### `simplecrafting_lib.register_pre_craft` and `simplecrafting_lib.register_post_craft` callbacks
+
+There are two optional callback functions that can be added to a simplecrafting_lib recipe that are useful in certain unusual circumstances; `pre_craft` and `post_craft`.
+
+pre_craft is a callback with the signature `function(craft_type, recipe, output_stack, source_item_list)`. It is called whenever the recipe is evaluated (for example, to populate the output list of a crafting interface). It is intended to allow the output ItemStack to be modified programmatically, for example to add ItemStack metadata to the output. It should modify the output_stack accordingly. It is provided with the source itemlist that the crafting system will be drawing inputs from, which may include items other than those that are part of the recipe's inputs. Don't modify the source item list.
+
+post_craft is a callback with the signature `function(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)`
+
+It is called after the crafting operation has been executed.
+	
+* `output_stack` - a copy of the ItemStack that was just crafted.
+* `source_inv, source_listname` - the inventory that the source materials were taken from
+* `destination_inv, destination_listname` - the inventory that the output was placed into. The actual crafted instance of `output_stack` should already be in here, though it may have been merged with another stack so the count may be different.
+
+Here's an example of how to use these callbacks to copy the metadata of a written book crafted using an existing written book and a blank book as inputs:
+
+	simplecrafting_lib.register_pre_craft(function(craft_type, recipe, output_stack, source_item_list)
+		-- screen for the recipes we care about. Note that you can't simply compare `recipe` to the
+		-- registered recipe, since pre_craft may be called on a modified copy of the registered original
+		if craft_type ~= "player" or recipe.output == nil or recipe.output:get_name() ~= "default:book_written" then
+			return
+		end
+		-- find the first written book in the source inventory
+		for k, source_item in ipairs(source_item_list) do
+			if source_item:get_name() == "default:book_written" then
+				-- the output book will have the same metadata as the source book
+				local copymeta = source_item:get_meta():to_table()
+				output_stack:get_meta():from_table(copymeta)
+				return
+			end
+		end
+	end)
+	
+	simplecrafting_lib.register_post_craft(function(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
+		-- screen for the recipes we care about
+		if craft_type ~= "player" or recipe.output == nil or recipe.output:get_name() ~= "default:book_written" then
+			return
+		end
+		-- add an additional copy of the book into the destination inventory
+		destination_inv:add_item(destination_listname, output_stack)
+	end)
 
 ## `simplecrafting_lib.register_reversible(craft_type, forward_def)`
 
@@ -74,28 +110,19 @@ These two methods will allow recipes to be imported into simplecrafting_lib from
 
 registers a filter function used by `import_legacy_recipes`. The mod using simplecrafting_lib will need to define this filter function. The filter function's signature must be of the form:  
 
-		function(legacy_method, recipe)
+		function(recipe)
 
-* `legacy_method` parameter will be either **"normal"**, **"cooking"**, or **"fuel"**
 * `recipe` will be in the format described above for `simplecrafting_lib.register`. This method can modify the `recipe` parameter in the course of execution and those modifications will be reflected in the final registered version.
 
 The filter function should return two values: `craft_type` (a string) and `clear_recipe` (a bool). If `craft_type` is **nil** then the recipe won't be imported. If `clear_recipe` is **true** then the recipe will be removed from the native crafting system.
 
 As a simple example, the following code will register a filter that imports all "normal" crafting recipes into a craft_type called "table", and removes them from the legacy crafting system in the process, but leaves "cooking" and "fuel" recipes alone:
 
-	simplecrafting_lib.register_recipe_import_filter(function(legacy_method, legacy_recipe)
-		if legacy_method == "normal" then
+	simplecrafting_lib.register_recipe_import_filter(function(legacy_recipe)
+		if legacy_recipe.burntime == nil and legacy_recipe.cooktime == nil then
 			return "table", true
 		end
 	end
-
-## `simplecrafting_lib.import_legacy_recipes()`
-
-When run this will cause recipes added via `minetest.register_craft` to be added to this crafting system. You should include a call to `import_legacy_recipes` after all `register_recipe_import_filter` calls have been made.
-
-See `simplecrafting_lib.register_recipe_import_filter(filter_function)` for details on how to register a filter that will cause recipes to be imported
-
-Note that a reference to the original version of `minetest.register_craft` is kept at `simplecrafting_lib.minetest_register_craft`. If you wish to register a recipe via the legacy method without it being processed by simplecrafting_lib (for example, to bypass a recipe import filter) you can use this as a way to access it.
 
 # Simple Methods for User Crafting
 

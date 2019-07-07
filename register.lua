@@ -32,9 +32,7 @@ local function reduce_recipe(def)
 		table.insert(list, count)
 	end
 	if def.output then
-		for _, count in pairs(def.output) do
-			table.insert(list, count)
-		end
+		table.insert(list, ItemStack(def.output):get_count())
 	end
 	if def.returns then
 		for _, count in pairs(def.returns) do
@@ -47,9 +45,7 @@ local function reduce_recipe(def)
 			def.input[item] = count/gcd
 		end
 		if def.output then
-			for item, count in pairs(def.output) do
-				def.output[item] = count/gcd
-			end
+			def.output:set_count(def.output:get_count()/gcd)
 		end
 		if def.returns then
 			for item, count in pairs(def.returns) do
@@ -79,7 +75,8 @@ local function strip_groups(def)
 end
 
 -- Deep equals, used to check for duplicate recipes during registration
-local function deep_equals(test1, test2)
+local deep_equals
+deep_equals = function(test1, test2)
 	if test1 == test2 then
 		return true
 	end
@@ -89,7 +86,8 @@ local function deep_equals(test1, test2)
 	local value2
 	for key, value1 in pairs(test1) do
 		value2 = test2[key]
-		if value1 ~= value2 and not deep_equals(value1, test2[key]) then
+		
+		if deep_equals(value1, value2) == false then
 			return false
 		end
 	end
@@ -104,10 +102,38 @@ end
 --------------------------------------------------------------------------------------------------------------------
 -- Public API
 
+simplecrafting_lib.recipe_equals = function(recipe1, recipe2)
+	for key, value1 in pairs(recipe1) do
+		local value2 = recipe2[key]
+		
+		-- Special handling of output ItemStack
+		if key == "output" then
+			if type(value1) == "userdata" then
+				value1 = value1:to_string()
+			end
+			if type(value2) == "userdata" then
+				value2 = value2:to_string()
+			end
+			if value1 ~= value2 then
+				return false
+			end
+		else
+			if not deep_equals(value1, value2) then
+				return false
+			end
+		end			
+	end
+	for key, _ in pairs(recipe2) do
+		if recipe1[key] == nil then
+			return false
+		end
+	end
+	
+	return true
+end
+
 simplecrafting_lib.register = function(craft_type, def)
 	def.input = def.input or {}
-	def.output = def.output or {}
-	def.returns = def.returns or {}
 
 	reduce_recipe(def)
 	strip_groups(def)
@@ -117,21 +143,27 @@ simplecrafting_lib.register = function(craft_type, def)
 	-- Check if this recipe has already been registered. Many different old-style recipes
 	-- can reduce down to equivalent recipes in this system, so this is a useful step
 	-- to keep things tidy and efficient.
-	for _, existing_recipe in pairs(crafting_info.recipes) do
-		if deep_equals(def, existing_recipe) then
-			return false
+	local output_name
+	if def.output then
+		def.output = ItemStack(def.output)
+		output_name = def.output:get_name()
+	else
+		output_name = "none" -- special value for recipes with no output. Shouldn't conflict with group:none since output can't be a group
+	end
+	local existing_recipes = crafting_info.recipes_by_out[output_name]
+	if existing_recipes ~= nil then
+		for _, existing_recipe in pairs(existing_recipes) do
+			if simplecrafting_lib.recipe_equals(def, existing_recipe) then
+				return nil
+			end
 		end
 	end
 
 	table.insert(crafting_info.recipes, def)
 	
-	if def.output then
-		local recipes_by_out = crafting_info.recipes_by_out
-		for item, _ in pairs(def.output) do
-			recipes_by_out[item] = recipes_by_out[item] or {} 
-			recipes_by_out[item][#recipes_by_out[item]+1] = def
-		end
-	end
+	local recipes_by_out = crafting_info.recipes_by_out
+	recipes_by_out[output_name] = recipes_by_out[output_name] or {} 
+	recipes_by_out[output_name][#recipes_by_out[output_name]+1] = def
 
 	local recipes_by_in = crafting_info.recipes_by_in
 	for item, _ in pairs(def.input) do
@@ -139,7 +171,7 @@ simplecrafting_lib.register = function(craft_type, def)
 		recipes_by_in[item][#recipes_by_in[item]+1] = def
 	end
 	
-	return true
+	return def
 end
 
 -- Registers the provided crafting recipe, and also
@@ -151,12 +183,12 @@ end
 -- player in the reverse craft.
 -- Don't use a recipe that has a "group:" input with this, because obviously that
 -- can't be turned into an output. The mod will assert if you try to do this.
-simplecrafting_lib.register_reversible = function(typeof, forward_def)
+simplecrafting_lib.register_reversible = function(craft_type, forward_def)
 	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
-	simplecrafting_lib.register(typeof, forward_def)
+	simplecrafting_lib.register(craft_type, forward_def)
 
 	local forward_in = reverse_def.input
-	reverse_def.input = simplecrafting_lib.count_list_add(reverse_def.output, reverse_def.returns)
+	reverse_def.input = simplecrafting_lib.count_list_add({[reverse_def.output:get_name()] = reverse_def.output:get_count()}, reverse_def.returns)
 	
 	local most_common_in_name = ""
 	local most_common_in_count = 0
@@ -167,9 +199,14 @@ simplecrafting_lib.register_reversible = function(typeof, forward_def)
 			most_common_in_count = count
 		end
 	end
-	reverse_def.output = {[most_common_in_name]=most_common_in_count}
+	local reverse_output = ItemStack()
+	reverse_output:set_name(most_common_in_name)
+	reverse_output:set_count(most_common_in_count)
+	reverse_def.output = reverse_output
 	forward_in[most_common_in_name] = nil
-	reverse_def.returns = forward_in
+	if next(forward_in) ~= nil then -- if there are any items left, they become returns
+		reverse_def.returns = forward_in
+	end
 	
-	simplecrafting_lib.register(typeof, reverse_def)
+	simplecrafting_lib.register(craft_type, reverse_def)
 end

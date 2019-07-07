@@ -58,10 +58,9 @@ local function validate_inputs_and_outputs(recipe)
 		end
 	end
 	if recipe.output then
-		for item, count in pairs(recipe.output) do
-			if not minetest.registered_items[item] then
-				return item
-			end
+		local output_name = ItemStack(recipe.output):get_name()
+		if not minetest.registered_items[output_name] then
+			return output_name
 		end
 	end
 	if recipe.returns then
@@ -75,6 +74,20 @@ local function validate_inputs_and_outputs(recipe)
 end
 
 local log_removals = minetest.settings:get_bool("simplecrafting_lib_log_invalid_recipe_removal")
+
+local recipe_to_string = function(recipe)
+	local out = "{\n"
+	for k, v in pairs(recipe) do
+		if k == "output" then
+			out = out .. "output = \"" .. ItemStack(v):to_string() .."\",\n"
+		else
+			out = out .. k .. " = " .. dump(v) .. ",\n"
+		end
+	end
+	out = out .. "}"
+
+	return out
+end
 
 local purge_uncraftable_recipes = function()
 	for item, def in pairs(minetest.registered_items) do
@@ -93,9 +106,9 @@ local purge_uncraftable_recipes = function()
 			else
 				if log_removals then
 					if string.match(validation_result, ":") then
-						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to the nonexistent item " .. validation_result .. "\n"..dump(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
+						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to the nonexistent item " .. validation_result .. "\n"..recipe_to_string(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
 					else
-						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to no registered items matching the group requirement " .. validation_result .. "\n"..dump(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
+						minetest.log("error", "[simplecrafting_lib] Uncraftable recipe purged due to no registered items matching the group requirement " .. validation_result .. "\n"..recipe_to_string(recs[i]) .. "\nThis could be due to an error in the mod that defined this recipe, rather than an error in simplecrafting_lib itself.")
 					end
 				end
 				table.remove(recs, i)
@@ -109,7 +122,14 @@ local purge_uncraftable_recipes = function()
 				else
 					table.remove(outs, i)
 				end
-			end		
+			end
+			if #outs == 0 then
+				if log_removals then
+					minetest.log("error", "[simplecrafting_lib] All recipes that had an output of " .. output
+						.. " have been purged as uncraftable, this item can not be made by the player.")
+				end
+				simplecrafting_lib.type[craft_type].recipes_by_out[output] = nil
+			end
 		end
 		for input, ins in pairs(simplecrafting_lib.type[craft_type].recipes_by_in) do
 			i = 1
@@ -119,7 +139,10 @@ local purge_uncraftable_recipes = function()
 				else
 					table.remove(ins, i)
 				end
-			end		
+			end
+			if #ins == 0 then
+				simplecrafting_lib.type[craft_type].recipes_by_in[input] = nil				
+			end
 		end
 	end
 	
@@ -147,7 +170,8 @@ local operative_recipe = function(recipe)
 	local has_an_effect = false
 	for in_item, in_count in pairs(recipe.input) do
 		local out_count = recipe.output[in_item] or 0
-		local returns_count = recipe.returns[in_item] or 0
+		local returns_count = 0
+		if recipe.returns then returns_count = recipe.returns[in_item] or 0 end
 		if out_count + returns_count ~= in_count then
 			has_an_effect = true
 			break
@@ -200,8 +224,10 @@ local disintermediate = function(craft_type, contents)
 								for item, count in pairs(working_recipe.output) do
 									working_recipe.output[item] = count * inverse
 								end
-								for item, count in pairs(working_recipe.returns) do
-									working_recipe.returns[item] = count * inverse
+								if working_recipe.returns then
+									for item, count in pairs(working_recipe.returns) do
+										working_recipe.returns[item] = count * inverse
+									end
 								end
 								
 							end
@@ -223,12 +249,15 @@ local disintermediate = function(craft_type, contents)
 									end
 								end
 							end
-							for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
-								if not working_recipe.returns[new_returns_item] then
-									working_recipe.returns[new_returns_item] = new_returns_count * multiplier
-								else
-									working_recipe.returns[new_returns_item] = working_recipe.returns[new_returns_item] + new_returns_count * multiplier
-								end						
+							if recipe_producing_in_item.returns then
+								for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
+									working_recipe.returns = working_recipe.returns or {}
+									if not working_recipe.returns[new_returns_item] then
+										working_recipe.returns[new_returns_item] = new_returns_count * multiplier
+									else
+										working_recipe.returns[new_returns_item] = working_recipe.returns[new_returns_item] + new_returns_count * multiplier
+									end						
+								end
 							end
 						
 							if operative_recipe(working_recipe) then

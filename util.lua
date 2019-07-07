@@ -54,6 +54,9 @@ end
 local function get_craft_count(input_list, recipe)
 	-- Recipe without groups (most common node in group instead)
 	local work_recipe = table.copy(recipe)
+	if recipe.output then
+		work_recipe.output = ItemStack(recipe.output)
+	end
 	work_recipe.input = {}
 	local required_input = work_recipe.input
 	for item, count in pairs(recipe.input) do
@@ -167,9 +170,15 @@ simplecrafting_lib.is_fuel = function(craft_type, item)
 		for group, _ in pairs(def.groups) do
 			if fuels[group] then
 				local last_fuel_def = fuels[group][#fuels[group]]
-				if last_fuel_def.burntime > max then
+				local last_fuel_burntime
+				if last_fuel_def.output and last_fuel_def.output:get_name() == "simplecrafting_lib:heat" then
+					last_fuel_burntime = last_fuel_def.output:get_count()
+				else
+					last_fuel_burntime = 0
+				end
+				if last_fuel_burntime > max then
 					fuel_group = last_fuel_def -- track whichever is the longest-burning group
-					max = fuel_group.burntime
+					max = last_fuel_burntime
 				end
 			end
 		end
@@ -222,14 +231,14 @@ simplecrafting_lib.get_craftable_items = function(craft_type, item_list, max_cra
 		local number, recipe = get_craft_count(count_list, recipes[i])
 		if number > 0 then
 			if not max_craftable then number = 1 end
-			for item, count in pairs(recipe.output) do
-				if craftable_count_list[item] and count*number > craftable_count_list[item] then
-					craftable_count_list[item] = count*number
-					chosen_recipe[item] = recipe
-				elseif not craftable_count_list[item] and count*number > 0 then
-					craftable_count_list[item] = count*number
-					chosen_recipe[item] = recipe
-				end
+			local output_name = recipe.output:get_name()
+			local output_count = recipe.output:get_count()
+			if craftable_count_list[output_name] and output_count*number > craftable_count_list[output_name] then
+				craftable_count_list[output_name] = output_count*number
+				chosen_recipe[output_name] = recipe
+			elseif not craftable_count_list[output_name] and output_count*number > 0 then
+				craftable_count_list[output_name] = output_count*number
+				chosen_recipe[output_name] = recipe
 			end
 		end
 	end
@@ -238,9 +247,10 @@ simplecrafting_lib.get_craftable_items = function(craft_type, item_list, max_cra
 		local stack = ItemStack(item)
 		local max = stack:get_stack_max()
 		if count > max then
-			count = max - max % chosen_recipe[item].output[item]
+			count = max - max % chosen_recipe[item].output:get_count()
 		end
 		stack:set_count(count)
+		simplecrafting_lib.execute_pre_craft(craft_type, chosen_recipe[item], stack, item_list)
 		table.insert(craftable_stacks, stack)
 	end
 	if alphabetize then
@@ -292,6 +302,7 @@ simplecrafting_lib.count_list_add = function(list1, list2)
 	for item, count in pairs(list1) do
 		out_list[item] = count
 	end
+	if list2 == nil then return out_list end
 	for item, count in pairs(list2) do
 		if type(count) == "table" then
 			-- item is actually a group name, it has a set of items associated with it.
@@ -311,19 +322,19 @@ end
 -- quantity of ouput items in the crafted stack. Note that the output could
 -- actually be larger than crafted_stack if an exactly matching recipe can't be found.
 -- returns nil if crafting is impossible with the given source inventory
-simplecrafting_lib.get_crafting_result = function(crafting_type, input_list, request_stack)
+simplecrafting_lib.get_crafting_result = function(craft_type, input_list, request_stack)
 	local input_count = itemlist_to_countlist(input_list)
 	local request_name = request_stack:get_name()
 	local request_count = request_stack:get_count()
-		
-	local recipes = simplecrafting_lib.type[crafting_type].recipes_by_out[request_name]
+
+	local recipes = simplecrafting_lib.type[craft_type].recipes_by_out[request_name]
 	local smallest_remainder = math.huge
 	local smallest_remainder_output_count = 0
 	local smallest_remainder_recipe = nil
 	for i = 1, #recipes do
 		local number, recipe = get_craft_count(input_count, recipes[i])
 		if number > 0 then
-			local output_count = recipe.output[request_name]
+			local output_count = recipe.output:get_count()
 			if (request_count % output_count) <= smallest_remainder and output_count > smallest_remainder_output_count then
 				smallest_remainder = request_count % output_count
 				smallest_remainder_output_count = output_count
@@ -333,13 +344,11 @@ simplecrafting_lib.get_crafting_result = function(crafting_type, input_list, req
 	end
 
 	if smallest_remainder_recipe then
-		local multiple = math.ceil(request_count / smallest_remainder_recipe.output[request_name])
+		local multiple = math.ceil(request_count / smallest_remainder_recipe.output:get_count())
 		for input_item, quantity in pairs(smallest_remainder_recipe.input) do
 			smallest_remainder_recipe.input[input_item] = multiple * quantity
 		end
-		for output_item, quantity in pairs(smallest_remainder_recipe.output) do
-			smallest_remainder_recipe.output[output_item] = multiple * quantity
-		end
+		smallest_remainder_recipe.output:set_count(smallest_remainder_recipe.output:get_count() * multiple)
 		if smallest_remainder_recipe.returns then
 			for returned_item, quantity in pairs(smallest_remainder_recipe.returns) do
 				smallest_remainder_recipe.returns[returned_item] = multiple * quantity
@@ -348,4 +357,22 @@ simplecrafting_lib.get_crafting_result = function(crafting_type, input_list, req
 		return smallest_remainder_recipe
 	end
 	return nil
+end
+
+simplecrafting_lib.register_pre_craft = function(callback)
+	table.insert(simplecrafting_lib.pre_craft, callback)
+end
+simplecrafting_lib.register_post_craft = function(callback)
+	table.insert(simplecrafting_lib.post_craft, callback)
+end
+
+simplecrafting_lib.execute_pre_craft = function(craft_type, recipe, output_stack, source_item_list)
+	for k, callback in ipairs(simplecrafting_lib.pre_craft) do
+		callback(craft_type, recipe, output_stack, source_item_list)
+	end
+end
+simplecrafting_lib.execute_post_craft = function(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
+	for k, callback in ipairs(simplecrafting_lib.post_craft) do
+		callback(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
+	end
 end
