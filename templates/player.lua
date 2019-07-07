@@ -75,8 +75,8 @@ local get_or_create_context = function(player)
 		end
 	end
 	if context.simplecrafting_lib_row == nil then context.simplecrafting_lib_row = 0 end -- the currently selected output page
-	if context.simplecrafting_lib_item_count == nil then
-		context.simplecrafting_lib_item_count = minetest.get_inventory({type="player", name=player:get_player_name()}):get_size(craft_type.."_output")
+	if context.simplecrafting_lib_output_inventory_size == nil then
+		context.simplecrafting_lib_output_inventory_size = minetest.get_inventory({type="player", name=player:get_player_name()}):get_size(craft_type.."_output")
 	end
 	if context.simplecrafting_lib_max_mode == nil then context.simplecrafting_lib_max_mode = false end
 	return context
@@ -94,7 +94,7 @@ end
 
 local function make_formspec(context)
 	local row = context.simplecrafting_lib_row or 0
-	local item_count = context.simplecrafting_lib_item_count or 0
+	local item_count = context.simplecrafting_lib_output_inventory_size or 0
 	local max_mode = context.simplecrafting_lib_max_mode or false
 
 	if item_count < output_count then
@@ -160,7 +160,7 @@ local function refresh_inv(inv, player)
 	local context = get_or_create_context(player)
 	local max_mode = context.simplecrafting_lib_max_mode
 	refresh_output(inv, max_mode)
-	context.simplecrafting_lib_item_count = inv:get_size(craft_type.."_output")
+	context.simplecrafting_lib_output_inventory_size = inv:get_size(craft_type.."_output")
 
 	if modpath_unified_inventory then
 		local player_name = player:get_player_name()
