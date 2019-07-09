@@ -95,9 +95,13 @@ end
 local write_craft_list = function(file, craft_type, recipe_list_by_out, recipe_filter)
 	file:write("-- Craft Type " .. craft_type .. "--------------------------------------------------------\n[\"" .. craft_type .. "\"] = {\n")
 	for out, recipe_list in orderedPairs(recipe_list_by_out) do
-		file:write("-- Output: " .. out .. "\n")
+		local output_comment_written = false
 		for _, recipe in ipairs(recipe_list) do
 			if recipe_filter.filter(recipe) then
+				if not output_comment_written then
+					file:write("-- Output: " .. out .. "\n")
+					output_comment_written = true
+				end
 				write_recipe(file, recipe)
 			end
 		end
@@ -327,11 +331,11 @@ end
 local saveoptparse = OptionParser{usage="[options] file"}
 saveoptparse.add_option{"-h", "--help", action="store_true", dest="help", help = "displays help text"}
 saveoptparse.add_option{"-l", "--lua", action="store_true", dest="lua", help="saves recipes as \"(world folder)/<file>.lua\""}
-saveoptparse.add_option{"-v", "--gv", action="store_true", dest="gv", help="saves recipes as \"(world folder)/<file>.gv\""}
+saveoptparse.add_option{"-d", "--dot", action="store_true", dest="dot", help="saves recipes as \"(world folder)/<file>.gv\""}
 saveoptparse.add_option{"-g", "--graphml", action="store_true", dest="graphml", help="saves recipes as \"(world folder)/<file>.graphml\""}
 saveoptparse.add_option{"-t", "--type", action="store", dest="types", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types."}
 saveoptparse.add_option{"-m", "--mod", action="store", dest="mods", help="only recipes with these mods in them will be saved. Leave unset to save all. Use a comma-delimited list with no spaces (eg, \"default,stairs\") to save multiple specific mod types."}
-saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output (no effect with lua or graphviz output)."}
+saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output (no effect with lua or dot output)."}
 
 minetest.register_chatcommand("recipesave", {
 	params = saveoptparse.print_help(),
@@ -358,8 +362,8 @@ minetest.register_chatcommand("recipesave", {
 			return
 		end
 
-		if not (options.lua or options.graphml or options.gv) then
-			minetest.chat_send_player(name, "Neither lua nor graphml nor graphviz output was selected, defaulting to lua.")
+		if not (options.lua or options.graphml or options.dot) then
+			minetest.chat_send_player(name, "Neither lua nor graphml nor DOT output was selected, defaulting to lua.")
 			options.lua = true
 		end
 		
@@ -372,7 +376,7 @@ minetest.register_chatcommand("recipesave", {
 		
 		if options.lua then
 			if save_recipes(args[1], craft_types, recipe_filter) then
-				minetest.chat_send_player(name, "Lua recipes saved", false)
+				minetest.chat_send_player(name, "Lua recipes saved to "..args[1]..".lua", false)
 			else
 				minetest.chat_send_player(name, "Failed to save lua recipes", false)
 			end
@@ -380,17 +384,17 @@ minetest.register_chatcommand("recipesave", {
 		
 		if options.graphml then
 			if save_recipes_graphml(args[1], craft_types, recipe_filter, options.unused) then
-				minetest.chat_send_player(name, "Graphml recipes saved", false)
+				minetest.chat_send_player(name, "Graphml recipes saved to " .. args[1]..".graphml", false)
 			else
 				minetest.chat_send_player(name, "Failed to save graphml recipes", false)
 			end
 		end
 		
-		if options.gv then
+		if options.dot then
 			if save_recipes_gv(args[1], craft_types, recipe_filter) then
-				minetest.chat_send_player(name, "Graphviz recipes saved", false)
+				minetest.chat_send_player(name, "DOT recipes saved to " .. args[1]..".gv", false)
 			else
-				minetest.chat_send_player(name, "Failed to save graphviz recipes", false)
+				minetest.chat_send_player(name, "Failed to save DOT recipes", false)
 			end
 		end
 	end,
