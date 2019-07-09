@@ -331,7 +331,7 @@ saveoptparse.add_option{"-v", "--gv", action="store_true", dest="gv", help="save
 saveoptparse.add_option{"-g", "--graphml", action="store_true", dest="graphml", help="saves recipes as \"(world folder)/<file>.graphml\""}
 saveoptparse.add_option{"-t", "--type", action="store", dest="types", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types."}
 saveoptparse.add_option{"-m", "--mod", action="store", dest="mods", help="only recipes with these mods in them will be saved. Leave unset to save all. Use a comma-delimited list with no spaces (eg, \"default,stairs\") to save multiple specific mod types."}
-saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output (no effect with lua or graphvis output)."}
+saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output (no effect with lua or graphviz output)."}
 
 minetest.register_chatcommand("recipesave", {
 	params = saveoptparse.print_help(),
@@ -359,7 +359,7 @@ minetest.register_chatcommand("recipesave", {
 		end
 
 		if not (options.lua or options.graphml or options.gv) then
-			minetest.chat_send_player(name, "Neither lua nor graphml nor graphvis output was selected, defaulting to lua.")
+			minetest.chat_send_player(name, "Neither lua nor graphml nor graphviz output was selected, defaulting to lua.")
 			options.lua = true
 		end
 		
@@ -388,9 +388,9 @@ minetest.register_chatcommand("recipesave", {
 		
 		if options.gv then
 			if save_recipes_gv(args[1], craft_types, recipe_filter) then
-				minetest.chat_send_player(name, "Graphvis recipes saved", false)
+				minetest.chat_send_player(name, "Graphviz recipes saved", false)
 			else
-				minetest.chat_send_player(name, "Failed to save graphvis recipes", false)
+				minetest.chat_send_player(name, "Failed to save graphviz recipes", false)
 			end
 		end
 	end,

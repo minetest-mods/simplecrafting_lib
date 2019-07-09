@@ -1,3 +1,5 @@
+-- Graphviz export
+
 local write_item_gv = function(file, item, node_lines, nodes_written)
 	local itemtag = item:gsub(":", "_"):gsub(",","_")
 	if nodes_written[itemtag] then
