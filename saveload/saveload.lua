@@ -1,10 +1,12 @@
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 
+dofile(modpath .. "/saveload/keycolors.lua")
+
 local OptionParser = dofile(modpath .. "/saveload/optparse.lua")
 local orderedPairs = dofile(modpath .. "/saveload/orderedpairs.lua")
 local parse_graphml_recipes = dofile(modpath .. "/saveload/readrecipegraph.lua")
 local write_graphml_recipes = dofile(modpath .. "/saveload/writerecipegraph.lua")
-
+local write_gv_recipes = dofile(modpath .. "/saveload/writerecipegv.lua")
 
 -- Given a list of mods, returns a filter with indices for all registered items
 -- that belong to one of those mods and all group names that belong to at least
@@ -138,9 +140,9 @@ end
 
 -------------------------------------------------------------------------------------------
 
-local save_recipes_graphml = function(name, craft_types, recipe_filter, show_unused)
+local save_recipes_graph = function(name, craft_types, recipe_filter, show_unused, save_function, extension)
 	local path = minetest.get_worldpath()
-	local filename = path .. "/" .. name .. ".graphml"
+	local filename = path .. "/" .. name .. "." .. extension
 	local file, err = io.open(filename, "w")
 	if err ~= nil then
 		minetest.log("error", "[simplecrafting_lib] Could not save recipes to \"" .. filename .. "\"")
@@ -148,16 +150,22 @@ local save_recipes_graphml = function(name, craft_types, recipe_filter, show_unu
 	end
 
 	if not craft_types or table.getn(craft_types) == 0 then
-		write_graphml_recipes(file, simplecrafting_lib.type, recipe_filter, show_unused)
+		save_function(file, simplecrafting_lib.type, recipe_filter, show_unused)
 	else
 		local recipes = {}
 		for _, craft_type in ipairs(craft_types) do
 			recipes[craft_type] = simplecrafting_lib.type[craft_type]
 		end
-		write_graphml_recipes(file, recipes, recipe_filter, show_unused)	
+		save_function(file, recipes, recipe_filter, show_unused)	
 	end
 
 	return true
+end
+
+-------------------------------------------------------------------------------------------
+
+local save_recipes_graphml = function(name, craft_types, recipe_filter, show_unused)
+	return save_recipes_graph(name, craft_types, recipe_filter, show_unused, write_graphml_recipes, "graphml")
 end
 
 local read_recipes_graphml = function(name)
@@ -178,6 +186,12 @@ local read_recipes_graphml = function(name)
 	end		
 		
 	return myxml
+end
+
+-------------------------------------------------------------
+
+local save_recipes_gv = function(name, craft_types, recipe_filter)
+	return save_recipes_graph(name, craft_types, recipe_filter, false, write_gv_recipes, "gv")
 end
 
 -------------------------------------------------------------
@@ -313,10 +327,11 @@ end
 local saveoptparse = OptionParser{usage="[options] file"}
 saveoptparse.add_option{"-h", "--help", action="store_true", dest="help", help = "displays help text"}
 saveoptparse.add_option{"-l", "--lua", action="store_true", dest="lua", help="saves recipes as \"(world folder)/<file>.lua\""}
+saveoptparse.add_option{"-v", "--gv", action="store_true", dest="gv", help="saves recipes as \"(world folder)/<file>.gv\""}
 saveoptparse.add_option{"-g", "--graphml", action="store_true", dest="graphml", help="saves recipes as \"(world folder)/<file>.graphml\""}
 saveoptparse.add_option{"-t", "--type", action="store", dest="types", help="craft_type to save. Leave unset to save all. Use a comma-delimited list (eg, \"table,furnace\") to save multiple specific craft types."}
 saveoptparse.add_option{"-m", "--mod", action="store", dest="mods", help="only recipes with these mods in them will be saved. Leave unset to save all. Use a comma-delimited list with no spaces (eg, \"default,stairs\") to save multiple specific mod types."}
-saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output (no effect with lua output)."}
+saveoptparse.add_option{"-u", "--unused", action="store_true", dest="unused", help="Include all registered unused items in graphml output (no effect with lua or graphvis output)."}
 
 minetest.register_chatcommand("recipesave", {
 	params = saveoptparse.print_help(),
@@ -343,8 +358,8 @@ minetest.register_chatcommand("recipesave", {
 			return
 		end
 
-		if not (options.lua or options.graphml) then
-			minetest.chat_send_player(name, "Neither lua nor graphml output was selected, defaulting to lua.")
+		if not (options.lua or options.graphml or options.gv) then
+			minetest.chat_send_player(name, "Neither lua nor graphml nor graphvis output was selected, defaulting to lua.")
 			options.lua = true
 		end
 		
@@ -368,6 +383,14 @@ minetest.register_chatcommand("recipesave", {
 				minetest.chat_send_player(name, "Graphml recipes saved", false)
 			else
 				minetest.chat_send_player(name, "Failed to save graphml recipes", false)
+			end
+		end
+		
+		if options.gv then
+			if save_recipes_gv(args[1], craft_types, recipe_filter) then
+				minetest.chat_send_player(name, "Graphvis recipes saved", false)
+			else
+				minetest.chat_send_player(name, "Failed to save graphvis recipes", false)
 			end
 		end
 	end,

@@ -16,40 +16,6 @@ local nodes_written
 local items_written
 local edge_id = 0
 
-local write_new_color_file = false
-local last_assigned_hue = math.random()
-local last_assigned_saturation = math.random()
-local golden_ratio_conjugate = 0.618033988749895 -- for spreading out the random colours more evenly, reducing clustering
-
-local mod_color_map
-local path = minetest.get_worldpath()
-local color_filename = path .. "/simplecrafting_mod_colors.lua"
-local color_file = loadfile(color_filename)
-if color_file ~= nil then
-	mod_color_map = color_file()
-else
-	mod_color_map = {}
-end
-
--- HSV values in [0..1[
--- returns {r, g, b} values from 0 to 255
-local hsv_to_rgb = function(h, s, v)
-	local h_i = math.floor(h*6)
-	local f = h*6 - h_i
-	local p = v * (1 - s)
-	local q = v * (1 - f*s)
-	local t = v * (1 - (1 - f) * s)
-	local r, g, b
-	if h_i==0 then r, g, b = v, t, p
-	elseif h_i==1 then r, g, b = q, v, p
-	elseif h_i==2 then r, g, b = p, v, t
-	elseif h_i==3 then r, g, b = p, q, v
-	elseif h_i==4 then r, g, b = t, p, v
-	elseif h_i==5 then r, g, b = v, p, q
-	end
-	return {math.floor(r*255), math.floor(g*255), math.floor(b*255)}
-end
-
 local write_data_graphml = function(file, datatype, data)
 	file:write('<data key="'..datatype..'">'..data..'</data>')
 end
@@ -69,18 +35,7 @@ local write_item_graphml = function(file, craft_type, item)
 			mod = "group"
 		else
 			mod = string.sub(item, 1, colon_index-1)
-			if not mod_color_map[mod] then
-				last_assigned_hue = last_assigned_hue + golden_ratio_conjugate
-				last_assigned_hue = last_assigned_hue % 1
-				last_assigned_saturation = last_assigned_saturation + golden_ratio_conjugate
-				last_assigned_saturation = last_assigned_saturation % 1
-				local color_vec = hsv_to_rgb(last_assigned_hue, last_assigned_saturation/2 + 0.5, 1)
-				color = "#"..string.format('%02X', color_vec[1])..string.format('%02X', color_vec[2])..string.format('%02X', color_vec[3])
-				mod_color_map[mod] = color
-				write_new_color_file = true
-			else
-				color = mod_color_map[mod]
-			end			
+			color = simplecrafting_lib.get_key_color(mod)
 		end
 		
 		write_data_graphml(file, "node_type", "item")
@@ -107,13 +62,15 @@ local write_edge_graphml = function(file, source, target, edgetype, quantity)
 	write_data_graphml(file, "quantity", tostring(quantity))
 	
 	local targetarrow = "delta"
+	local linecolor = "#000000"
 	if edgetype == "returns" then
 		targetarrow = "white_delta"
+		linecolor = "#888888"
 	end
 	
 	--yEd
-	write_data_graphml(file, "edgegraphics", '<y:PolyLineEdge><y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/><y:LineStyle color="#000000" type="line" width="1.0"/><y:Arrows source="none" target="'
-		..targetarrow
+	write_data_graphml(file, "edgegraphics", '<y:PolyLineEdge><y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/><y:LineStyle color="'..linecolor
+		..'" type="line" width="1.0"/><y:Arrows source="none" target="'..targetarrow
 		..'"/><y:EdgeLabel alignment="center" backgroundColor="#FFFFFF" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" horizontalTextPosition="center" iconTextGap="4" lineColor="#000000" modelName="centered" modelPosition="center" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" xml:space="preserve">'
 		..tostring(quantity)
 		..'<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel><y:BendStyle smoothed="true"/></y:PolyLineEdge>')
@@ -169,14 +126,7 @@ local write_recipe_graphml = function(file, craft_type, id, recipe)
 		end
 	end
 	
-	if write_new_color_file then
-		local color_file, err = io.open(color_filename, "w")
-		if err == nil then
-			color_file:write("return "..dump(mod_color_map))
-			color_file:flush()
-			color_file:close()		
-		end
-	end
+	simplecrafting_lib.save_key_colors()
 end
 
 return function(file, recipes, recipe_filter, show_unused)
