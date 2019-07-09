@@ -157,6 +157,8 @@ local function deep_copy(recipe_in)
 	for index, value in pairs(recipe_in) do
 		if type(value) == "table" then
 			recipe_out[index] = deep_copy(value)
+		elseif type(value) == "userdata" and index == "output" then
+			recipe_out[index] = ItemStack(value)
 		else
 			recipe_out[index] = value
 		end
@@ -182,11 +184,11 @@ local operative_recipe = function(recipe)
 	end
 
 	local new_output
-	for out_item, out_count in pairs(recipe.output) do
-		if not recipe.input[out_item] or recipe.input[out_item] < out_count then
-			-- produces something that's not in the input, or produces more of the input item than there was intially.
-			return true
-		end	
+	local out_item = recipe.output:get_name()
+	local out_count = recipe.output:get_count()
+	if not recipe.input[out_item] or recipe.input[out_item] < out_count then
+		-- produces something that's not in the input, or produces more of the input item than there was intially.
+		return true
 	end	
 	return false
 end
@@ -203,9 +205,9 @@ local disintermediate = function(craft_type, contents)
 					-- find a recipe whose output divides evenly into the input
 					for _, recipe_producing_in_item in pairs(contents.recipes_by_out[in_item]) do
 						if not recipe_producing_in_item.do_not_use_for_disintermediation and
-								(in_count % recipe_producing_in_item.output[in_item] == 0 or recipe_producing_in_item.output[in_item] % in_count == 0) then
+								(in_count % recipe_producing_in_item.output:get_count() == 0 or recipe_producing_in_item.output:get_count() % in_count == 0) then
 								
-							local multiplier = in_count / recipe_producing_in_item.output[in_item]
+							local multiplier = in_count / recipe_producing_in_item.output:get_count()
 
 							local working_recipe = deep_copy(recipe)
 							working_recipe.input[in_item] = nil -- clear the input from the working recipe (soon to be our newly created disintermediated recipe)
@@ -221,9 +223,7 @@ local disintermediate = function(craft_type, contents)
 								for item, count in pairs(working_recipe.input) do
 									working_recipe.input[item] = count * inverse
 								end
-								for item, count in pairs(working_recipe.output) do
-									working_recipe.output[item] = count * inverse
-								end
+								working_recipe.output:set_count(working_recipe.output:get_count() * inverse)
 								if working_recipe.returns then
 									for item, count in pairs(working_recipe.returns) do
 										working_recipe.returns[item] = count * inverse
@@ -240,15 +240,17 @@ local disintermediate = function(craft_type, contents)
 									working_recipe.input[new_in_item] = working_recipe.input[new_in_item] + new_in_count * multiplier
 								end						
 							end
-							for new_out_item, new_out_count in pairs(recipe_producing_in_item.output) do
-								if new_out_item ~= in_item then -- this output is what's replacing the input we deleted, so don't add it.
-									if not working_recipe.output[new_out_item] then
-										working_recipe.output[new_out_item] = new_out_count * multiplier
-									else
-										working_recipe.output[new_out_item] = working_recipe.output[new_out_item] + new_out_count * multiplier
-									end
+							
+							local new_out_item = recipe_producing_in_item.output:get_name()
+							local new_out_count = recipe_producing_in_item.output:get_count()
+							if new_out_item ~= in_item then -- this output is what's replacing the input we deleted, so don't add it.
+								if not working_recipe.output:get_name() == new_out_item then
+									working_recipe.output = ItemStack(new_out_item .. " " .. tostring(new_out_count * multiplier))
+								else
+									working_recipe.output:set_count(working_recipe.output:get_count() + new_out_count * multiplier)
 								end
 							end
+							
 							if recipe_producing_in_item.returns then
 								for new_returns_item, new_returns_count in pairs(recipe_producing_in_item.returns) do
 									working_recipe.returns = working_recipe.returns or {}
