@@ -1,3 +1,9 @@
+local registered_callbacks = {}
+
+simplecrafting_lib.register_postprocessing_callback = function(callback)
+	table.insert(registered_callbacks, callback)
+end
+
 ----------------------------------------------------------------------------------------
 -- Run-once code, post server initialization, that purges all uncraftable recipes from the
 -- crafting system data.
@@ -308,6 +314,11 @@ local postprocess = function()
 			cycles = cycles - 1
 		end	
 	end
+	
+	for _, callback in ipairs(registered_callbacks) do
+		callback()
+	end
+	registered_callbacks = nil
 end
 
 minetest.after(0, postprocess)

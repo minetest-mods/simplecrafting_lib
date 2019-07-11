@@ -1,9 +1,6 @@
 simplecrafting_lib = {}
 simplecrafting_lib.type = {}
 
-simplecrafting_lib.pre_craft = {}
-simplecrafting_lib.post_craft = {}
-
 local modpath = minetest.get_modpath(minetest.get_current_modname())
 
 dofile(modpath .. "/util.lua")
@@ -36,7 +33,7 @@ if minetest.settings:get_bool("simplecrafting_lib_override_default_player_crafti
 		end
 	end)
 	
-	minetest.after(1, function()
+	simplecrafting_lib.register_postprocessing_callback(function()
 		-- Wait until all mods are loaded, in case default mod is loaded after simplecrafting_lib.
 		if minetest.registered_craftitems["default:book_written"] == nil then
 			-- If default:book_written doesn't exist, don't register these callbacks.
@@ -70,4 +67,15 @@ if minetest.settings:get_bool("simplecrafting_lib_override_default_player_crafti
 	end)
 
 	simplecrafting_lib.register_player_craft_type("player")
+	
+	simplecrafting_lib.guide.guide_def["player"] = {
+		-- This matches the filtering done by the "craftguide" mod
+		is_recipe_included = function(recipe, player_name)
+			if minetest.get_item_group(recipe.output:get_name(), "not_in_creative_inventory") > 0 or
+				minetest.get_item_group(recipe.output:get_name(), "not_in_craft_guide") > 0 then
+				return false
+			end
+			return true
+		end,
+	}
 end

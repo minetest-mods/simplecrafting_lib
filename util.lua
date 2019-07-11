@@ -359,20 +359,23 @@ simplecrafting_lib.get_crafting_result = function(craft_type, input_list, reques
 	return nil
 end
 
+local pre_craft = {}
+local post_craft = {}
+
 simplecrafting_lib.register_pre_craft = function(callback)
-	table.insert(simplecrafting_lib.pre_craft, callback)
+	table.insert(pre_craft, callback)
 end
 simplecrafting_lib.register_post_craft = function(callback)
-	table.insert(simplecrafting_lib.post_craft, callback)
+	table.insert(post_craft, callback)
 end
 
 simplecrafting_lib.execute_pre_craft = function(craft_type, recipe, output_stack, source_item_list)
-	for k, callback in ipairs(simplecrafting_lib.pre_craft) do
+	for k, callback in ipairs(pre_craft) do
 		callback(craft_type, recipe, output_stack, source_item_list)
 	end
 end
 simplecrafting_lib.execute_post_craft = function(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
-	for k, callback in ipairs(simplecrafting_lib.post_craft) do
+	for k, callback in ipairs(post_craft) do
 		callback(craft_type, recipe, output_stack, source_inv, source_listname, destination_inv, destination_listname)
 	end
 end

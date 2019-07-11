@@ -162,11 +162,15 @@ Defines some parameters regarding how the formspec of the guide for a given craf
 		output_height = 6,
 		recipes_per_page = 4,
 		append_to_formspec = string,
+		is_recipe_included = function(recipe, player_name),
+		do_not_cache = nil,
 	}
 
 * `output_width` and `output_height` define the dimensions of the grid of output buttons to click on.
 * `recipes_per_page` defines how many rows are dedicated to displaying recipes at the bottom.
 * `append to formspec` is a string that gets appended to the guide's formspec, and can be used to set colors and background images or add other decorative elements.
+* `is_recipe_included` is a function that takes a recipe and returns true to include this recipe in the guide. If it is not defined then all recipes are included
+* `do_not_cache` should be set to true if `is_recipe_included` is defined and is in any way "dynamic" in determining whether a recipe is included. If it is not set to true then the list of recipes that this crafting guide will show will only be calculated once per server session and won't change after that.
 	
 ## `simplecrafting_lib.set_description(craft_type, description)`
 

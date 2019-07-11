@@ -95,17 +95,36 @@ local function compare_items_by_desc(item1, item2)
 	return def1.description < def2.description
 end
 
-local function get_output_list(craft_type)
-	if simplecrafting_lib.guide.outputs[craft_type] then return simplecrafting_lib.guide.outputs[craft_type] end
-	simplecrafting_lib.guide.outputs[craft_type] = {}
-	local outputs = simplecrafting_lib.guide.outputs[craft_type]
-	for item, _ in pairs(simplecrafting_lib.type[craft_type].recipes_by_out) do
-		if minetest.get_item_group(item, "not_in_craft_guide") == 0 then
-			table.insert(outputs, item)
+-- 
+local function get_output_list(craft_type, player_name)
+	local guide_def = get_guide_def(craft_type)
+	local is_recipe_included = guide_def.is_recipe_included
+	local use_cache = not (guide_def.do_not_cache and is_recipe_included)
+	-- get cached list if this has been called before
+	if use_cache and simplecrafting_lib.guide.outputs[craft_type] then
+		return simplecrafting_lib.guide.outputs[craft_type]
+	end
+
+	local outputs = {}
+	for item, recipes in pairs(simplecrafting_lib.type[craft_type].recipes_by_out) do
+		-- if the item is not excluded from the crafting guide entirely by group membership
+		for _, recipe in ipairs(recipes) do
+			-- and there is no is_recipe_included callback, or at least one recipe passes the is_recipe_included callback
+			if (not is_recipe_included) or (not is_recipe_included(recipe, player_name)) then
+				-- then this output is included in this guide
+				table.insert(outputs, item)
+				break
+			end
 		end
 	end
+
 	-- TODO: sorting option
 	table.sort(outputs)
+
+	if use_cache then
+		simplecrafting_lib.guide.outputs[craft_type] = outputs
+	end
+
 	return outputs
 end
 
@@ -125,9 +144,10 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	local width = guide_def.output_width or default_width
 	local height = guide_def.output_height or default_height
 	local recipes_per_page = guide_def.recipes_per_page or default_recipes_per_page
+	local is_recipe_included = guide_def.is_recipe_included
 
 	local groups = simplecrafting_lib.guide.groups
-	local outputs = get_output_list(craft_type)
+	local outputs = get_output_list(craft_type, player_name)
 	local playerdata = get_playerdata(craft_type, player_name)
 
 	local description = simplecrafting_lib.get_crafting_info(craft_type).description
@@ -185,7 +205,16 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 
 	local recipes
 	if playerdata.selection > 0 then
-		recipes = simplecrafting_lib.type[craft_type].recipes_by_out[outputs[playerdata.selection]]
+		if is_recipe_included then
+			recipes = {}
+			for _, recipe in ipairs(simplecrafting_lib.type[craft_type].recipes_by_out[outputs[playerdata.selection]]) do
+				if is_recipe_included(recipe) then
+					table.insert(recipes, recipe)
+				end
+			end
+		else
+			recipes = simplecrafting_lib.type[craft_type].recipes_by_out[outputs[playerdata.selection]]
+		end
 	end
 
 	if recipes == nil then
@@ -361,6 +390,8 @@ end
 --		output_height = 6
 --		recipes_per_page = 4
 --		append_to_formspec = string
+--		is_recipe_included = function(recipe, player_name) -- return true to include this recipe in the guide, if not defined then all recipes are included
+--		do_not_cache = should be set to true if `is_recipe_included` is defined and is in any way "dynamic" in determining whether a recipe is included. If it is not set to true then the list of recipes that this crafting guide will show will only be calculated once per server session and won't change after that.
 --	}
 
 simplecrafting_lib.set_crafting_guide_def = function(craft_type, guide_def)
