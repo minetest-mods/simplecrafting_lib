@@ -110,7 +110,7 @@ local function get_output_list(craft_type, player_name)
 		-- if the item is not excluded from the crafting guide entirely by group membership
 		for _, recipe in ipairs(recipes) do
 			-- and there is no is_recipe_included callback, or at least one recipe passes the is_recipe_included callback
-			if (not is_recipe_included) or (not is_recipe_included(recipe, player_name)) then
+			if (is_recipe_included == nil) or (is_recipe_included(recipe, player_name)) then
 				-- then this output is included in this guide
 				table.insert(outputs, item)
 				break

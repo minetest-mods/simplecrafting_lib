@@ -33,6 +33,8 @@ local output_height = table_def.output_height or 6
 local controls_x = table_def.controls_x or 9.3
 local controls_y = table_def.controls_y or 6.5
 
+local input_list_name = craft_type .. "_input"
+
 local input_count = input_width * input_height
 local output_count = output_width * output_height
 
@@ -59,6 +61,9 @@ elseif input_height > output_height then
 	y_displace_output = (input_height-output_height)/2
 end
 
+-- pre-declare this so that get_or_create_context can reference it
+local refresh_inv
+
 local get_or_create_context = function(player)
 	local context
 	if modpath_sfinv then
@@ -75,27 +80,68 @@ local get_or_create_context = function(player)
 		end
 	end
 	if context.simplecrafting_lib_row == nil then context.simplecrafting_lib_row = 0 end -- the currently selected output page
-	if context.simplecrafting_lib_output_inventory_size == nil then
-		context.simplecrafting_lib_output_inventory_size = minetest.get_inventory({type="player", name=player:get_player_name()}):get_size(craft_type.."_output")
+	
+	-- Create a detached inventory to hold prospective crafting outputs
+	if context.simplecrafting_lib_output_inventory_name == nil then
+		local player_name = player:get_player_name()
+		context.simplecrafting_lib_output_inventory_name = "simplecrafting_" .. craft_type .. "_" .. player_name
+
+		local player_inv = minetest.get_inventory({type="player", name=player_name})
+	
+		context.simplecrafting_lib_output_inventory = minetest.create_detached_inventory(context.simplecrafting_lib_output_inventory_name, {
+			allow_move = function(inv, from_list, from_index, to_list, to_index, count, player)
+				return 0
+			end,
+			allow_put = function(inv, listname, index, stack, player)
+				return 0
+			end,
+			allow_take = function(inv, listname, index, stack, player)
+				return -1
+			end,
+			on_move = function(inv, from_list, from_index, to_list, to_index, count, player)
+			end,
+			on_take = function(inv, listname, index, stack, player)
+				if stack and stack:get_count() > 0 then
+					if listname == "main" then
+						simplecrafting_lib.craft_stack(craft_type, stack, player_inv, input_list_name, player_inv, input_list_name, player)
+						if modpath_awards then
+							awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
+						end
+					end
+					refresh_inv(player_inv, player)
+					return stack:get_count()
+				end
+			end,
+		}, player_name)
 	end
 	if context.simplecrafting_lib_max_mode == nil then context.simplecrafting_lib_max_mode = false end
 	return context
 end
 
--- Updates the output inventory to reflect the current input inventory
-local function refresh_output(inv, max_mode)
-	local craftable = simplecrafting_lib.get_craftable_items(craft_type, inv:get_list(craft_type.."_input"), max_mode, table_def.alphabetize_items)
+refresh_inv = function(player_inv, player)
+	local context = get_or_create_context(player)
+	local max_mode = context.simplecrafting_lib_max_mode
+
+	local craftable = simplecrafting_lib.get_craftable_items(craft_type, player_inv:get_list(input_list_name), max_mode, table_def.alphabetize_items)
 	-- Output size is the number of multiples of output_count that we can fit the craftable outputs into,
 	-- with a minimum of one multuple so there's an empty page if there's no recipes to craft
 	local output_size = math.max(math.ceil(#craftable / output_count), 1) * output_count
-	inv:set_size(craft_type.."_output", output_size)
-	inv:set_list(craft_type.."_output", craftable)
+	context.simplecrafting_lib_output_inventory:set_size("main", output_size)
+	context.simplecrafting_lib_output_inventory:set_list("main", craftable)
+	
+	if modpath_unified_inventory then
+		local player_name = player:get_player_name()
+		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
+	elseif modpath_sfinv then
+		sfinv.set_player_inventory_formspec(player, context)
+	end
 end
 
-local function make_formspec(context)
+local make_formspec = function(context)
 	local row = context.simplecrafting_lib_row or 0
-	local item_count = context.simplecrafting_lib_output_inventory_size or 0
+	local item_count = context.simplecrafting_lib_output_inventory:get_size("main")
 	local max_mode = context.simplecrafting_lib_max_mode or false
+	local output_inventory = context.simplecrafting_lib_output_inventory_name
 
 	if item_count < output_count then
 		row = 0
@@ -106,16 +152,16 @@ local function make_formspec(context)
 	end
 	
 	local inventory = {
-		"list[current_player;"..craft_type.."_input;0,"..y_displace_input..";"..input_width..","..input_height..";]"..
-		"list[current_player;"..craft_type.."_output;"..tostring(input_width+0.2)..","..y_displace_output..";"..output_width..","..output_height..";" , tostring(row*output_width), "]",
+		"list[current_player;"..input_list_name..";0,"..y_displace_input..";"..input_width..","..input_height..";]"..
+		"list[detached:"..output_inventory..";main;"..tostring(input_width+0.2)..","..y_displace_output..";"..output_width..","..output_height..";"..tostring(row*output_width), "]",
 	}
 	if show_player_inventory then
 		inventory[#inventory+1] = "list[current_player;main;1.1,"..tostring(output_height+0.25)..";8,1;]"..
 									"list[current_player;main;1.1,"..tostring(output_height+1.5)..";8,3;8]"
 	end
-	inventory[#inventory+1] = "listring[current_player;"..craft_type.."_output]"..
+	inventory[#inventory+1] = "listring[detached:"..output_inventory..";main]"..
 								"listring[current_player;main]"..
-								"listring[current_player;"..craft_type.."_input]"..
+								"listring[current_player;"..input_list_name.."]"..
 								"listring[current_player;main]"
 	
 	if table_def.description then
@@ -156,37 +202,22 @@ local function make_formspec(context)
 	return table.concat(inventory)
 end
 
-local function refresh_inv(inv, player)
-	local context = get_or_create_context(player)
-	local max_mode = context.simplecrafting_lib_max_mode
-	refresh_output(inv, max_mode)
-	context.simplecrafting_lib_output_inventory_size = inv:get_size(craft_type.."_output")
-
-	if modpath_unified_inventory then
-		local player_name = player:get_player_name()
-		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
-	elseif modpath_sfinv then
-		sfinv.set_player_inventory_formspec(player, context)
-	end
-end
-
 minetest.register_on_joinplayer(function(player)
-	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
-	inv:set_size(craft_type.."_input", input_count)
-	refresh_inv(inv, player)
+	local player_inv = minetest.get_inventory({type="player", name=player:get_player_name()})
+	player_inv:set_size(input_list_name, input_count)
+	refresh_inv(player_inv, player)
 end)
 
 minetest.register_on_leaveplayer(function(player)
-	simplecrafting_lib.player_contexts[player:get_player_name()] = nil
+	local player_name = player:get_player_name()
+	simplecrafting_lib.player_contexts[player_name] = nil
+	minetest.remove_detached_inventory("simplecrafting_" .. craft_type .. "_" .. player_name)
 end)
 
 minetest.register_allow_player_inventory_action(function(player, action, inventory, inventory_info)
 	if action == "move" then
-		if inventory_info.to_list == craft_type.."_output" then
-			return 0
-		end
-		if inventory_info.to_list == craft_type.."_input" then
-			if inventory_info.from_list == craft_type.."_input" then
+		if inventory_info.to_list == input_list_name then
+			if inventory_info.from_list == input_list_name then
 				return inventory_info.count
 			end
 			local stack = inventory:get_stack(inventory_info.from_list, inventory_info.from_index)
@@ -201,21 +232,13 @@ minetest.register_allow_player_inventory_action(function(player, action, invento
 end)
 
 minetest.register_on_player_inventory_action(function(player, action, inventory, inventory_info)
-	if action == "move" then
-		if inventory_info.from_list == craft_type.."_output" and (inventory_info.to_list == craft_type.."_input" or inventory_info.to_list == "main") then
-			local stack = inventory:get_stack(inventory_info.to_list, inventory_info.to_index)
-			stack:set_count(inventory_info.count)
-			simplecrafting_lib.craft_stack(craft_type, stack, inventory, craft_type.."_input", inventory, inventory_info.to_list, player)
-			if modpath_awards then
-				awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
-			end
-		end
+	if inventory_info.to_list == input_list_name or inventory_info.from_list == input_list_name then
+		local context = get_or_create_context(player)
 		refresh_inv(inventory, player)
-	end
+	end	
 end)
-
+  
 local handle_receive_fields = function(player, fields, context)
-	local inv = minetest.get_inventory({type="player", name=player:get_player_name()})
 	local row = context.simplecrafting_lib_row
 	local refresh = false
 	if fields.next then
@@ -232,7 +255,8 @@ local handle_receive_fields = function(player, fields, context)
 	end
 	context.simplecrafting_lib_row = row
 	if refresh then
-		refresh_inv(inv, player)
+		local player_inv = minetest.get_inventory({type="player", name=player:get_player_name()})
+		refresh_inv(player_inv, player)
 	end
 	return true
 end
