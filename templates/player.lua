@@ -65,29 +65,29 @@ end
 local refresh_inv
 
 local get_or_create_context = function(player)
+	local player_name = player:get_player_name()
 	local context
+
 	if modpath_sfinv then
 		context = sfinv.get_or_create_context(player)
 --	elseif modpath_unified_inventory then
 --		context = unified_inventory.get_per_player_formspec(player:get_player_name())
 	else
 		simplecrafting_lib.player_contexts = simplecrafting_lib.player_contexts or {}
-		local name = player:get_player_name()
-		context = simplecrafting_lib.player_contexts[name]
+		context = simplecrafting_lib.player_contexts[player_name]
 		if not context then
 			context = {}
-			simplecrafting_lib.player_contexts[name] = context
+			simplecrafting_lib.player_contexts[player_name] = context
 		end
 	end
 	if context.simplecrafting_lib_row == nil then context.simplecrafting_lib_row = 0 end -- the currently selected output page
 	
 	-- Create a detached inventory to hold prospective crafting outputs
 	if context.simplecrafting_lib_output_inventory_name == nil then
-		local player_name = player:get_player_name()
 		context.simplecrafting_lib_output_inventory_name = "simplecrafting_" .. craft_type .. "_" .. player_name
+	end
 
-		local player_inv = minetest.get_inventory({type="player", name=player_name})
-	
+	if context.simplecrafting_lib_output_inventory == nil then
 		context.simplecrafting_lib_output_inventory = minetest.create_detached_inventory(context.simplecrafting_lib_output_inventory_name, {
 			allow_move = function(inv, from_list, from_index, to_list, to_index, count, player)
 				return 0
@@ -102,6 +102,7 @@ local get_or_create_context = function(player)
 			end,
 			on_take = function(inv, listname, index, stack, player)
 				if stack and stack:get_count() > 0 then
+					local player_inv = minetest.get_inventory({type="player", name=player_name})
 					if listname == "main" then
 						simplecrafting_lib.craft_stack(craft_type, stack, player_inv, input_list_name, player_inv, input_list_name, player)
 						if modpath_awards then
@@ -113,6 +114,9 @@ local get_or_create_context = function(player)
 				end
 			end,
 		}, player_name)
+		if context.simplecrafting_lib_output_inventory == nil then
+			minetest.log("error", "[simplecrafting_lib] get_or_create_context failed to create a detached inventory to hold crafting outputs")
+		end
 	end
 	if context.simplecrafting_lib_max_mode == nil then context.simplecrafting_lib_max_mode = false end
 	return context
@@ -137,9 +141,15 @@ refresh_inv = function(player_inv, player)
 	end
 end
 
-local make_formspec = function(context)
+local make_formspec = function(player)
+	local context = get_or_create_context(player)
 	local row = context.simplecrafting_lib_row or 0
-	local item_count = context.simplecrafting_lib_output_inventory:get_size("main")
+	local item_count
+	if context.simplecrafting_lib_output_inventory then
+		item_count = context.simplecrafting_lib_output_inventory:get_size("main")
+	else
+		item_count = output_count
+	end
 	local max_mode = context.simplecrafting_lib_max_mode or false
 	local output_inventory = context.simplecrafting_lib_output_inventory_name
 
@@ -276,7 +286,7 @@ if modpath_unified_inventory then
 
 	unified_inventory.register_page("craft", {
 		get_formspec = function(player, perplayer_formspec)
-			local formspec = make_formspec(get_or_create_context(player)) .. background			
+			local formspec = make_formspec(player) .. background			
 
 			if unified_inventory.trash_enabled or unified_inventory.is_creative(player_name) or minetest.get_player_privs(player_name).give then
 				formspec = formspec.."label["..controls_x..","..tostring(controls_y+2.8)..";" .. F(S("Trash:")) .. "]"
@@ -312,7 +322,7 @@ elseif modpath_sfinv then
 	sfinv.override_page("sfinv:crafting", {
 		title = "Crafting",
 		get = function(self, player, context)
-			return sfinv.make_formspec(player, context, make_formspec(context), false, "size[10.2,10.2]")
+			return sfinv.make_formspec(player, context, make_formspec(player), false, "size[10.2,10.2]")
 		end,
 		on_player_receive_fields = function(self, player, context, fields)
 			if handle_receive_fields(player, fields, context) then
