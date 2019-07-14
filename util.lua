@@ -270,6 +270,7 @@ simplecrafting_lib.is_possible_input = function(craft_type, item_name)
 	
 	-- Now for the group checks. :(
 	local item_def = minetest.registered_items[item_name]
+	if not item_def then return false end -- undefined item
 	local groups = item_def.groups or {}
 	for _, recipe in pairs(info.recipes) do
 		--the multi-group flower/dye type inputs are complicated to check for

@@ -234,6 +234,7 @@ minetest.register_allow_player_inventory_action(function(player, action, invento
 			if simplecrafting_lib.is_possible_input(craft_type, stack:get_name()) then
 				return inventory_info.count
 			end
+			return 0
 		end
 		if inventory_info.to_list == "main" then
 			return inventory_info.count
