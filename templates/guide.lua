@@ -94,9 +94,7 @@ local function compare_items_by_desc(item1, item2)
 	return def1.description < def2.description
 end
 
--- 
 local function get_output_list(craft_type, player_name, search_filter)
-	minetest.chat_send_all("search filter " .. search_filter)
 	local guide_def = get_guide_def(craft_type)
 	local is_recipe_included = guide_def.is_recipe_included
 
