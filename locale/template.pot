@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-02-03 21:20-0700\n"
+"POT-Creation-Date: 2019-07-14 12:44-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,14 +33,14 @@ msgstr ""
 
 #: templates\autocraft.lua:134
 #: templates\craftingtool.lua:68
-#: templates\player.lua:123
+#: templates\player.lua:189
 #: templates\table.lua:70
 msgid "Next page of crafting products"
 msgstr ""
 
 #: templates\autocraft.lua:140
 #: templates\craftingtool.lua:74
-#: templates\player.lua:129
+#: templates\player.lua:195
 #: templates\table.lua:76
 msgid "Previous page of crafting products"
 msgstr ""
@@ -48,7 +48,7 @@ msgstr ""
 #: templates\autocraft.lua:144
 #: templates\craftingtool.lua:78
 #: templates\multifurnace.lua:143
-#: templates\player.lua:133
+#: templates\player.lua:199
 #: templates\table.lua:80
 msgid "Page @1"
 msgstr ""
@@ -62,18 +62,18 @@ msgid ""
 "Guide"
 msgstr ""
 
-#: templates\autocraft.lua:443
-#: templates\multifurnace.lua:494
+#: templates\autocraft.lua:441
+#: templates\multifurnace.lua:491
 msgid "@1% done crafting @2"
 msgstr ""
 
-#: templates\autocraft.lua:447
-#: templates\multifurnace.lua:498
+#: templates\autocraft.lua:445
+#: templates\multifurnace.lua:495
 msgid "@1 remaining to do"
 msgstr ""
 
 #: templates\craftingtool.lua:82
-#: templates\player.lua:137
+#: templates\player.lua:203
 #: templates\table.lua:84
 msgid ""
 "Max\n"
@@ -81,40 +81,42 @@ msgid ""
 msgstr ""
 
 #: templates\craftingtool.lua:84
-#: templates\player.lua:139
+#: templates\player.lua:205
 #: templates\table.lua:86
 msgid ""
 "Min\n"
 "Output"
 msgstr ""
 
-#: templates\guide.lua:181
-#: templates\guide.lua:206
-msgid "Prev"
+#: templates\guide.lua:192
+msgid "Enter substring to search item identifiers for"
 msgstr ""
 
-#: templates\guide.lua:182
-#: templates\guide.lua:207
-msgid "Next"
+#: templates\guide.lua:193
+msgid "Apply search to outputs"
 msgstr ""
 
-#: templates\guide.lua:183
-msgid ""
-"Product\n"
-"page @1"
+#: templates\guide.lua:202
+msgid "Next page of outputs"
 msgstr ""
 
-#: templates\guide.lua:205
-msgid ""
-"Recipe\n"
-"page @1"
+#: templates\guide.lua:203
+msgid "Previous page of outputs"
 msgstr ""
 
-#: templates\guide.lua:380
-#: templates\guide.lua:382
+#: templates\guide.lua:252
+msgid "Next page of recipes for this output"
+msgstr ""
+
+#: templates\guide.lua:253
+msgid "Previous page of recipes for this output"
+msgstr ""
+
+#: templates\guide.lua:454
+#: templates\guide.lua:456
 msgid "@1 Recipes"
 msgstr ""
 
-#: templates\player.lua:241
+#: templates\player.lua:292
 msgid "Trash:"
 msgstr ""
