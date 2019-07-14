@@ -4,7 +4,6 @@ local S, NS = dofile(MP.."/intllib.lua")
 -- TODO: support to put a guide formspec inside a tab that's part of a larger set of formspecs
 
 simplecrafting_lib.guide = {}
-simplecrafting_lib.guide.outputs = {}
 simplecrafting_lib.guide.playerdata = {}
 simplecrafting_lib.guide.groups = {}
 simplecrafting_lib.guide.guide_def = {}
@@ -96,21 +95,19 @@ local function compare_items_by_desc(item1, item2)
 end
 
 -- 
-local function get_output_list(craft_type, player_name)
+local function get_output_list(craft_type, player_name, search_filter)
+	minetest.chat_send_all("search filter " .. search_filter)
 	local guide_def = get_guide_def(craft_type)
 	local is_recipe_included = guide_def.is_recipe_included
-	local use_cache = not (guide_def.do_not_cache and is_recipe_included)
-	-- get cached list if this has been called before
-	if use_cache and simplecrafting_lib.guide.outputs[craft_type] then
-		return simplecrafting_lib.guide.outputs[craft_type]
-	end
 
 	local outputs = {}
 	for item, recipes in pairs(simplecrafting_lib.type[craft_type].recipes_by_out) do
 		-- if the item is not excluded from the crafting guide entirely by group membership
 		for _, recipe in ipairs(recipes) do
 			-- and there is no is_recipe_included callback, or at least one recipe passes the is_recipe_included callback
-			if (is_recipe_included == nil) or (is_recipe_included(recipe, player_name)) then
+			if ((is_recipe_included == nil) or (is_recipe_included(recipe, player_name)))
+				and (search_filter == "" or string.find(item, search_filter))
+			then
 				-- then this output is included in this guide
 				table.insert(outputs, item)
 				break
@@ -120,10 +117,6 @@ local function get_output_list(craft_type, player_name)
 
 	-- TODO: sorting option
 	table.sort(outputs)
-
-	if use_cache then
-		simplecrafting_lib.guide.outputs[craft_type] = outputs
-	end
 
 	return outputs
 end
@@ -135,7 +128,7 @@ local function get_playerdata(craft_type, player_name)
 	if simplecrafting_lib.guide.playerdata[craft_type][player_name] then
 		return simplecrafting_lib.guide.playerdata[craft_type][player_name]
 	end
-	simplecrafting_lib.guide.playerdata[craft_type][player_name] = {["input_page"] = 0, ["output_page"] = 0, ["selection"] = 0}
+	simplecrafting_lib.guide.playerdata[craft_type][player_name] = {["input_page"] = 0, ["output_page"] = 0, ["selection"] = 0, ["search"] = ""}
 	return simplecrafting_lib.guide.playerdata[craft_type][player_name]
 end
 
@@ -147,8 +140,8 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	local is_recipe_included = guide_def.is_recipe_included
 
 	local groups = simplecrafting_lib.guide.groups
-	local outputs = get_output_list(craft_type, player_name)
 	local playerdata = get_playerdata(craft_type, player_name)
+	local outputs = get_output_list(craft_type, player_name, playerdata.search)
 
 	local description = simplecrafting_lib.get_crafting_info(craft_type).description
 	local displace_y = 0
@@ -163,6 +156,7 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	}
 
 	if description then
+		-- title of the page
 		table.insert(formspec, "label[" .. width/2-0.5 .. ",0;"..description.."]")
 	end
 	
@@ -170,41 +164,59 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 		table.insert(formspec, default.gui_bg .. default.gui_bg_img .. default.gui_slots)
 	end
 
-	local x = 0
-	local y = 0
-	
 	local buttons_per_page = width*height
 
+	-- products that this craft guide can show recipes for
 	for i = 1, buttons_per_page do
 		local current_item_index = i + playerdata.output_page * buttons_per_page
 		local current_item = outputs[current_item_index]
 		if current_item then
 			table.insert(formspec, "item_image_button[" ..
-				x + (i-1)%width .. "," .. y + math.floor((i-1)/width) + displace_y ..
+				(i-1)%width .. "," .. math.floor((i-1)/width) + displace_y ..
 				";1,1;" .. current_item .. ";product_" .. current_item_index ..
 				";]")
 		else
 			table.insert(formspec, "item_image_button[" ..
-				x + (i-1)%width .. "," .. y + math.floor((i-1)/width) + displace_y ..
+				(i-1)%width .. "," .. math.floor((i-1)/width) + displace_y ..
 				";1,1;;;]")
 		end
 	end
 
+	local middle_buttons_height = height + displace_y
+
+	-- search bar
+	table.insert(formspec,
+		"field_close_on_enter[search_filter;false]"
+		.."field[".. 0.3 ..",".. middle_buttons_height+0.25 ..";2.5,1;search_filter;;"..minetest.formspec_escape(playerdata.search).."]"
+		.."image_button[".. 2.5 ..",".. middle_buttons_height ..";0.8,0.8;crafting_guide_search.png;apply_search;]"
+		.."tooltip[search_filter;"..S("Enter substring to search item identifiers for").."]"
+		.."tooltip[apply_search;"..S("Apply search to outputs").."]"
+	)
+
+	-- If there are more possible outputs that can be displayed at once, show next/previous buttons for the output list
+	if #outputs > buttons_per_page then
+		table.insert(formspec,
+			"image_button[".. 3.3 ..",".. middle_buttons_height ..";0.8,0.8;simplecrafting_lib_prev.png;previous_output;]"
+			.."label[" .. 3.95 .. "," .. middle_buttons_height .. ";".. playerdata.output_page + 1 .."]"
+			.."image_button[".. 4.1 ..",".. middle_buttons_height ..";0.8,0.8;simplecrafting_lib_next.png;next_output;]"
+			.."tooltip[next_output;"..S("Next page of outputs").."]"
+			.."tooltip[previous_output;"..S("Previous page of outputs").."]"
+		)
+	end
+
 	if playerdata.selection == 0 then
-		table.insert(formspec,  "item_image[" .. x + width/2-0.5 .. "," .. y + height + displace_y .. ";1,1;]")
+		-- No output selected
+		table.insert(formspec,  "item_image[" .. 5 .. "," .. middle_buttons_height .. ";1,1;]")
 	else
-		table.insert(formspec, "item_image[" .. x + width/2-0.5 .. "," .. y + height + displace_y .. ";1,1;" ..
+		-- Output selected, show an image of it
+		table.insert(formspec, "item_image[" .. 5 .. "," .. middle_buttons_height .. ";1,1;" ..
 			outputs[playerdata.selection] .. "]")
 	end
 
-	if #outputs > buttons_per_page then
-		table.insert(formspec, "button[" .. x .. "," .. y + height + displace_y .. ";1,1;previous_output;"..S("Prev").."]"
-				.."button[" .. x + 1 .. "," .. y + height + displace_y .. ";1,1;next_output;"..S("Next").."]"
-				.."label[" .. x + 2 .. "," .. y + height + displace_y .. ";".. S("Product\npage @1", playerdata.output_page + 1) .."]")
-	end
-
+	-- Everything below here is for displaying recipes for the selected output
 	local recipes
 	if playerdata.selection > 0 then
+		-- Get a list of the recipes we'll want to display
 		if is_recipe_included then
 			recipes = {}
 			for _, recipe in ipairs(simplecrafting_lib.type[craft_type].recipes_by_out[outputs[playerdata.selection]]) do
@@ -218,6 +230,7 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	end
 
 	if recipes == nil then
+		-- No recipes to display.
 		return table.concat(formspec)
 	end
 
@@ -231,13 +244,18 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 	end
 	
 	if #recipes > recipes_per_page then
-		table.insert(formspec, "label[" .. x + width - 3 .. "," .. y + height + displace_y .. ";".. S("Recipe\npage @1", playerdata.input_page + 1) .."]"
-				.."button[" .. x + width - 2 .. "," .. y + height + displace_y .. ";1,1;previous_input;"..S("Prev").."]"
-				.."button[" .. x + width - 1 .. "," .. y + height + displace_y .. ";1,1;"..next_input..";"..S("Next").."]")
+	
+		table.insert(formspec,
+			"image_button[".. width-1.6 ..",".. middle_buttons_height ..";0.8,0.8;simplecrafting_lib_prev.png;previous_input;]"
+			.."label[" .. width-0.95 .. "," .. middle_buttons_height .. ";".. playerdata.input_page + 1 .."]"
+			.."image_button[".. width-0.8 ..",".. middle_buttons_height ..";0.8,0.8;simplecrafting_lib_next.png;next_input;]"
+			.."tooltip[next_input;"..S("Next page of recipes for this output").."]"
+			.."tooltip[previous_input;"..S("Previous page of recipes for this output").."]"
+		)
 	end
 	
-	local x_out = x
-	local y_out = y + height + 1 + displace_y
+	local x_out = 0
+	local y_out = middle_buttons_height + 1
 	local recipe_button_count = 1
 	for i = 1, recipes_per_page do
 		local recipe = recipes[i + playerdata.input_page * recipes_per_page]
@@ -301,7 +319,7 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 			table.insert(recipe_formspec, "label["..x_out..","..y_out..";=>]")
 		end
 
-		x_out = x
+		x_out = 0
 		y_out = y_out + 1
 		for _, button in pairs(recipe_formspec) do
 			table.insert(formspec, button)
@@ -318,34 +336,51 @@ simplecrafting_lib.handle_guide_receive_fields = function(craft_type, player, fi
 	local guide_def = get_guide_def(craft_type)
 	local width = guide_def.output_width or default_width
 	local height = guide_def.output_height or default_height
-	
-	local playerdata = get_playerdata(craft_type, player:get_player_name())
-	local outputs = get_output_list(craft_type)
+	local player_name = player:get_player_name()
+	local playerdata = get_playerdata(craft_type, player_name)
+	local outputs = get_output_list(craft_type, player_name, playerdata.search)
 	
 	local stay_in_formspec = false
-	
-	for field, _ in pairs(fields) do
+
+	for field, value in pairs(fields) do
 		if field == "previous_output" and playerdata.output_page > 0 then
 			playerdata.output_page = playerdata.output_page - 1
 			minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
+			
 		elseif field == "next_output" and playerdata.output_page < #outputs/(width*height)-1 then
 			playerdata.output_page = playerdata.output_page + 1
 			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
+			
 		elseif field == "previous_input" and playerdata.input_page > 0 then
 			playerdata.input_page = playerdata.input_page - 1
 			minetest.sound_play("paperflip2", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
+			
 		elseif field == "next_input" then -- we don't know how many recipes there are, let make_formspec sanitize this
 			playerdata.input_page = playerdata.input_page + 1
 			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
+			
 		elseif string.sub(field, 1, 8) == "product_" then
 			playerdata.input_page = 0
 			playerdata.selection = tonumber(string.sub(field, 9))
 			minetest.sound_play("paperflip1", {to_player=player:get_player_name(), gain = 1.0})
 			stay_in_formspec = true
+			
+		elseif field == "search_filter" then
+			value = string.lower(value)
+			if playerdata.search ~= value then
+				playerdata.search = string.lower(value)
+				playerdata.output_page = 0
+				playerdata.input_page = 0
+				playerdata.selection = 0
+			end
+					
+		elseif field == "apply_search" then
+			stay_in_formspec = true
+			
 		elseif field == "quit" then
 			if playerdata.on_exit then
 				playerdata.on_exit()
@@ -391,7 +426,6 @@ end
 --		recipes_per_page = 4
 --		append_to_formspec = string
 --		is_recipe_included = function(recipe, player_name) -- return true to include this recipe in the guide, if not defined then all recipes are included
---		do_not_cache = should be set to true if `is_recipe_included` is defined and is in any way "dynamic" in determining whether a recipe is included. If it is not set to true then the list of recipes that this crafting guide will show will only be calculated once per server session and won't change after that.
 --	}
 
 simplecrafting_lib.set_crafting_guide_def = function(craft_type, guide_def)
