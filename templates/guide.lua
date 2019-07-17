@@ -46,7 +46,7 @@ local function initialize_group_examples()
 		end
 	end
 end
-minetest.after(0, initialize_group_examples) -- run once after server has loaded all other mods
+simplecrafting_lib.register_postprocessing_callback(initialize_group_examples) -- run once after server has loaded all other mods
 
 -- splits a string into an array of substrings based on a delimiter
 local function split(str, delimiter)

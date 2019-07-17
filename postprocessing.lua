@@ -95,6 +95,55 @@ local recipe_to_string = function(recipe)
 	return out
 end
 
+local merge_item_count = function(list, alias, item_to_merge)
+	local existing_count = list[alias] or 0 -- in case a recipe mixes various items that all alias to the same item
+	list[alias] = item_to_merge + existing_count
+end
+
+local merge_sublists = function(list, alias, item_to_merge)
+	local existing_list = list[alias] or {}
+	for _, recipe in ipairs(item_to_merge) do
+		table.insert(existing_list, recipe)
+	end
+	list[alias] = existing_list	
+end
+
+local resolve_aliases_in_list = function(aliases, list, action_to_perform)
+	if list == nil then return end
+	local items_to_remove = {}
+	for item, value in pairs(list) do
+		if item:find(":") then -- only apply this test to non-group items
+			local alias = aliases[item]
+			if alias then
+				table.insert(items_to_remove, item)
+				action_to_perform(list, alias, value)
+			end
+		end
+	end
+	for _, item in ipairs(items_to_remove) do
+		list[item] = nil
+	end
+end
+
+local resolve_aliases = function()
+	local aliases = minetest.registered_aliases
+	for craft_type, recs in pairs(simplecrafting_lib.type) do
+		for _, recipe in ipairs(recs.recipes) do
+			resolve_aliases_in_list(aliases, recipe.input, merge_item_count) 
+			resolve_aliases_in_list(aliases, recipe.returns, merge_item_count)
+			
+			local output = ItemStack(recipe.output)
+			local output_alias = aliases[output:get_name()]
+			if output_alias then
+				output:set_name(output_alias)
+				recipe.output = output
+			end
+		end		
+		resolve_aliases_in_list(aliases, recs.recipes_by_in, merge_sublists)
+		resolve_aliases_in_list(aliases, recs.recipes_by_out, merge_sublists)
+	end
+end
+
 local purge_uncraftable_recipes = function()
 	for item, def in pairs(minetest.registered_items) do
 		for group, _ in pairs(def.groups) do
@@ -288,6 +337,7 @@ local disintermediate = function(craft_type, contents)
 end
 
 local postprocess = function()
+	resolve_aliases()
 	purge_uncraftable_recipes()
 	
 	for craft_type, contents in pairs(simplecrafting_lib.type) do
