@@ -376,7 +376,7 @@ simplecrafting_lib.handle_guide_receive_fields = function(craft_type, player, fi
 				playerdata.selection = 0
 			end
 					
-		elseif field == "apply_search" then
+		elseif field == "apply_search" or fields.key_enter_field == "search_filter"then
 			stay_in_formspec = true
 			
 		elseif field == "quit" then
