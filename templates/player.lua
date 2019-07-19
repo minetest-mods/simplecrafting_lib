@@ -33,9 +33,6 @@ local output_height = table_def.output_height or 6
 local controls_x = table_def.controls_x or 9.3
 local controls_y = table_def.controls_y or 6.5
 
--- TEMP for salvaging inputs of players who had an earlier version of this
-local deprecated_input_list_name = craft_type .. "_input"
--- TEMP end of temp code
 local input_list_name = "craft"
 
 local input_count = input_width * input_height
@@ -65,7 +62,7 @@ elseif input_height > output_height then
 end
 
 -- pre-declare this so that get_or_create_context can reference it
-local refresh_inv
+local update_output
 
 local get_or_create_context = function(player)
 	local player_name = player:get_player_name()
@@ -112,7 +109,7 @@ local get_or_create_context = function(player)
 							awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
 						end
 					end
-					refresh_inv(player_inv, player)
+					update_output(player_inv, player)
 					return stack:get_count()
 				end
 			end,
@@ -125,7 +122,7 @@ local get_or_create_context = function(player)
 	return context
 end
 
-refresh_inv = function(player_inv, player)
+update_output = function(player_inv, player)
 	local context = get_or_create_context(player)
 	local max_mode = context.simplecrafting_lib_max_mode
 
@@ -135,17 +132,13 @@ refresh_inv = function(player_inv, player)
 	local output_size = math.max(math.ceil(#craftable / output_count), 1) * output_count
 	context.simplecrafting_lib_output_inventory:set_size("main", output_size)
 	context.simplecrafting_lib_output_inventory:set_list("main", craftable)
-	
-	if modpath_unified_inventory then
-		local player_name = player:get_player_name()
-		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
-	elseif modpath_sfinv then
-		sfinv.set_player_inventory_formspec(player, context)
-	end
 end
 
 local make_formspec = function(player)
 	local context = get_or_create_context(player)
+	local player_inv = minetest.get_inventory({type="player", name=player:get_player_name()})
+	update_output(player_inv, player)
+
 	local row = context.simplecrafting_lib_row or 0
 	local item_count
 	if context.simplecrafting_lib_output_inventory then
@@ -216,9 +209,12 @@ local make_formspec = function(player)
 end
 
 minetest.register_on_joinplayer(function(player)
-	local player_inv = minetest.get_inventory({type="player", name=player:get_player_name()})
+	local player_name = player:get_player_name()
+	local player_inv = minetest.get_inventory({type="player", name=player_name})
 	player_inv:set_size(input_list_name, input_count)
+
 	-- TEMP code to save crafting inputs from a brief window when this mod was using this inventory for crafting inputs
+	local deprecated_input_list_name = craft_type .. "_input"
 	if not player_inv:is_empty(deprecated_input_list_name) then
 		local old_items = player_inv:get_list(deprecated_input_list_name)
 		for _, item in ipairs(old_items) do
@@ -229,7 +225,13 @@ minetest.register_on_joinplayer(function(player)
 		player_inv:set_size(deprecated_input_list_name, 0)
 	end
 	--TEMP end of temp code
-	refresh_inv(player_inv, player)
+	
+	update_output(player_inv, player)	
+	if modpath_unified_inventory then
+		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
+	elseif modpath_sfinv then
+		sfinv.set_player_inventory_formspec(player, context)
+	end
 end)
 
 minetest.register_on_leaveplayer(function(player)
@@ -259,7 +261,7 @@ end)
 minetest.register_on_player_inventory_action(function(player, action, inventory, inventory_info)
 	if inventory_info.to_list == input_list_name or inventory_info.from_list == input_list_name then
 		local context = get_or_create_context(player)
-		refresh_inv(inventory, player)
+		update_output(inventory, player)
 	end	
 end)
   
@@ -281,7 +283,7 @@ local handle_receive_fields = function(player, fields, context)
 	context.simplecrafting_lib_row = row
 	if refresh then
 		local player_inv = minetest.get_inventory({type="player", name=player:get_player_name()})
-		refresh_inv(player_inv, player)
+		update_output(player_inv, player)
 	end
 	return true
 end
