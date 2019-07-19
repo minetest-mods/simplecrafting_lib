@@ -33,7 +33,10 @@ local output_height = table_def.output_height or 6
 local controls_x = table_def.controls_x or 9.3
 local controls_y = table_def.controls_y or 6.5
 
-local input_list_name = craft_type .. "_input"
+-- TEMP for salvaging inputs of players who had an earlier version of this
+local deprecated_input_list_name = craft_type .. "_input"
+-- TEMP end of temp code
+local input_list_name = "craft"
 
 local input_count = input_width * input_height
 local output_count = output_width * output_height
@@ -215,6 +218,17 @@ end
 minetest.register_on_joinplayer(function(player)
 	local player_inv = minetest.get_inventory({type="player", name=player:get_player_name()})
 	player_inv:set_size(input_list_name, input_count)
+	-- TEMP code to save crafting inputs from a brief window when this mod was using this inventory for crafting inputs
+	if not player_inv:is_empty(deprecated_input_list_name) then
+		local old_items = player_inv:get_list(deprecated_input_list_name)
+		for _, item in ipairs(old_items) do
+			local leftover = player_inv:add_item(input_list_name, item)
+			minetest.item_drop(leftover, player, player:get_pos())
+		end
+		player_inv:set_list(deprecated_input_list_name, {})
+		player_inv:set_size(deprecated_input_list_name, 0)
+	end
+	--TEMP end of temp code
 	refresh_inv(player_inv, player)
 end)
 
