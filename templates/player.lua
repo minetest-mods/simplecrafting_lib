@@ -64,6 +64,7 @@ end
 -- pre-declare this so that get_or_create_context can reference it
 local update_output
 
+-- context contains persistent player state
 local get_or_create_context = function(player)
 	local player_name = player:get_player_name()
 	local context
@@ -122,6 +123,7 @@ local get_or_create_context = function(player)
 	return context
 end
 
+-- updates the contents of the detached output inventory to match the input inventory's contents
 update_output = function(player_inv, player)
 	local context = get_or_create_context(player)
 	local max_mode = context.simplecrafting_lib_max_mode
@@ -132,6 +134,15 @@ update_output = function(player_inv, player)
 	local output_size = math.max(math.ceil(#craftable / output_count), 1) * output_count
 	context.simplecrafting_lib_output_inventory:set_size("main", output_size)
 	context.simplecrafting_lib_output_inventory:set_list("main", craftable)
+end
+
+-- refreshes the inventory formspec when there's been a change that would affect it
+local update_formspec = function(player, context)
+	if modpath_unified_inventory then
+		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player:get_player_name()])
+	elseif modpath_sfinv then
+		sfinv.set_player_inventory_formspec(player, context)
+	end
 end
 
 local make_formspec = function(player)
@@ -226,12 +237,8 @@ minetest.register_on_joinplayer(function(player)
 	end
 	--TEMP end of temp code
 	
-	update_output(player_inv, player)	
-	if modpath_unified_inventory then
-		unified_inventory.set_inventory_formspec(player, unified_inventory.current_page[player_name])
-	elseif modpath_sfinv then
-		sfinv.set_player_inventory_formspec(player, context)
-	end
+	update_output(player_inv, player)
+	update_formspec(player, context)
 end)
 
 minetest.register_on_leaveplayer(function(player)
@@ -262,6 +269,7 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 	if inventory_info.to_list == input_list_name or inventory_info.from_list == input_list_name then
 		local context = get_or_create_context(player)
 		update_output(inventory, player)
+		update_formspec(player, context)
 	end	
 end)
   
