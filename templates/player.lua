@@ -238,7 +238,7 @@ minetest.register_on_joinplayer(function(player)
 	--TEMP end of temp code
 	
 	update_output(player_inv, player)
-	update_formspec(player, context)
+	update_formspec(player, get_or_create_context(player))
 end)
 
 minetest.register_on_leaveplayer(function(player)

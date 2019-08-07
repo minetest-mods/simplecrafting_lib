@@ -370,7 +370,7 @@ simplecrafting_lib.handle_guide_receive_fields = function(craft_type, player, fi
 		elseif field == "search_filter" then
 			value = string.lower(value)
 			if playerdata.search ~= value then
-				playerdata.search = string.lower(value)
+				playerdata.search = value
 				playerdata.output_page = 0
 				playerdata.input_page = 0
 				playerdata.selection = 0

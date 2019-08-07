@@ -148,7 +148,7 @@ simplecrafting_lib.get_description = function(craft_type)
 end
 
 simplecrafting_lib.set_disintermediation_cycles = function(craft_type, cycle_count)
-	simplecrafting_lib.get_crafting_info(craft_type).disintermediation_cycles = cycle_count
+	simplecrafting_lib.get_crafting_info(craft_type).disintermediation_cycles = tonumber(cycle_count)
 end
 
 -- returns a fuel definition for the item if it is fuel, nil otherwise
