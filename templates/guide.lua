@@ -202,9 +202,10 @@ simplecrafting_lib.make_guide_formspec = function(craft_type, player_name)
 		)
 	end
 
-	if playerdata.selection == 0 then
+	if playerdata.selection <= 0 or playerdata.selection > #outputs then
 		-- No output selected
 		table.insert(formspec,  "item_image[" .. 5 .. "," .. middle_buttons_height .. ";1,1;]")
+		playerdata.selection = 0
 	else
 		-- Output selected, show an image of it
 		table.insert(formspec, "item_image[" .. 5 .. "," .. middle_buttons_height .. ";1,1;" ..
