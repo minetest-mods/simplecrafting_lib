@@ -2,7 +2,6 @@ local MP = minetest.get_modpath(minetest.get_current_modname())
 local S, NS = dofile(MP.."/intllib.lua")
 
 local modpath_default = minetest.get_modpath("default")
-local modpath_awards = minetest.get_modpath("awards")
 
 --TODO: currently, this acts as useful inventory storage space in addition to crafting. Would be nice to do something about that, perhaps making the "input" inventory illusory. Will require modification to the "craft_stack" method or perhaps a variant on it.
 
@@ -158,8 +157,8 @@ minetest.register_on_player_inventory_action(function(player, action, inventory,
 			local stack = inventory:get_stack(inventory_info.to_list, inventory_info.to_index)
 			stack:set_count(inventory_info.count)
 			simplecrafting_lib.craft_stack(craft_type, stack, inventory, craft_type.."_input", inventory, inventory_info.to_list, player)
-			if modpath_awards then
-				awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
+			if simplecrafting_lib.award_crafting then
+				simplecrafting_lib.award_crafting(player, stack)
 			end
 		end
 		if from_output or to_input or inventory_info.from_list == craft_type.."_input" then

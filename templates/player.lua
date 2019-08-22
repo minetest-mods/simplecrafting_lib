@@ -3,7 +3,6 @@ local S, NS = dofile(MP.."/intllib.lua")
 local F = minetest.formspec_escape
 
 local modpath_default = minetest.get_modpath("default")
-local modpath_awards = minetest.get_modpath("awards")
 local modpath_sfinv = minetest.get_modpath("sfinv")
 local modpath_unified_inventory = minetest.get_modpath("unified_inventory")
 
@@ -106,8 +105,8 @@ local get_or_create_context = function(player)
 					local player_inv = minetest.get_inventory({type="player", name=player_name})
 					if listname == "main" then
 						simplecrafting_lib.craft_stack(craft_type, stack, player_inv, input_list_name, player_inv, input_list_name, player)
-						if modpath_awards then
-							awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
+						if simplecrafting_lib.award_crafting then
+							simplecrafting_lib.award_crafting(player, stack)
 						end
 					end
 					update_output(player_inv, player)

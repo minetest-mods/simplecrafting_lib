@@ -78,3 +78,14 @@ if minetest.settings:get_bool("simplecrafting_lib_override_default_player_crafti
 		end,
 	}
 end
+
+if minetest.get_modpath("awards") then
+	simplecrafting_lib.award_crafting = function(player, stack)
+		-- The API changed at some point.
+		if awards.players then
+			awards.increment_item_counter(awards.players[player:get_player_name()], "craft", ItemStack(stack):get_name(), ItemStack(stack):get_count()) 
+		elseif awards.notify_craft then
+			awards.notify_craft(player, stack:get_name(), stack:get_count())
+		end
+	end
+end
