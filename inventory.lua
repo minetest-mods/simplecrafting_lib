@@ -55,7 +55,9 @@ simplecrafting_lib.remove_items = function(inv, listname, count_list)
 		while count > 0 do
 			-- We need to do this loop because we may be wanting to remove more items than
 			-- a single stack of that item can hold.
-			local removed = inv:remove_item(listname, ItemStack({name=item, count=count}))
+			local stack_to_remove = ItemStack({name=item, count=count})
+			stack_to_remove:set_count(math.min(count, stack_to_remove:get_stack_max()))
+			local removed = inv:remove_item(listname, stack_to_remove)
 			if removed:is_empty() then
 				-- ran out of things to take. Reset the inventory and return false
 				inv:set_list(listname, old_list)
