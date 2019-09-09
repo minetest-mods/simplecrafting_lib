@@ -94,11 +94,6 @@ local function compare_items_by_desc(item1, item2)
 	return def1.description < def2.description
 end
 
-safe_add_entity = function(pos, name)
-	local success, ret = pcall(minetest.add_entity, pos, name)
-	if success then return ret else return nil end
-end
-
 local safe_find = function(item, search_filter)
 	local success, ret = pcall(string.find, item, search_filter)
 	if success then
