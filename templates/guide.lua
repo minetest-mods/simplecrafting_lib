@@ -94,6 +94,21 @@ local function compare_items_by_desc(item1, item2)
 	return def1.description < def2.description
 end
 
+safe_add_entity = function(pos, name)
+	local success, ret = pcall(minetest.add_entity, pos, name)
+	if success then return ret else return nil end
+end
+
+local safe_find = function(item, search_filter)
+	local success, ret = pcall(string.find, item, search_filter)
+	if success then
+		return ret
+	else
+		minetest.log("error", "[simplecrafting_lib] string.find failed with error code: " ..dump(ret))
+		return false
+	end
+end
+
 local function get_output_list(craft_type, player_name, search_filter)
 	local guide_def = get_guide_def(craft_type)
 	local is_recipe_included = guide_def.is_recipe_included
@@ -104,7 +119,7 @@ local function get_output_list(craft_type, player_name, search_filter)
 		for _, recipe in ipairs(recipes) do
 			-- and there is no is_recipe_included callback, or at least one recipe passes the is_recipe_included callback
 			if ((is_recipe_included == nil) or (is_recipe_included(recipe, player_name)))
-				and (search_filter == "" or string.find(item, search_filter))
+				and (search_filter == "" or safe_find(item, search_filter))
 			then
 				-- then this output is included in this guide
 				table.insert(outputs, item)
