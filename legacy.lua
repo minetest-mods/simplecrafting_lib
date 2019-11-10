@@ -227,7 +227,7 @@ end
 local function register_legacy_recipe(legacy_recipe)
 	local clear_recipe = false
 	for _, filter in ipairs(simplecrafting_lib.import_filters) do
-		local working_recipe = table.copy(legacy_recipe)
+		local working_recipe = simplecrafting_lib.deep_copy(legacy_recipe)
 		local craft_type, clear_this = filter(working_recipe)
 		if craft_type then
 			if (working_recipe.input["simplecrafting_lib:heat"]) or

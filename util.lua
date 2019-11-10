@@ -53,7 +53,7 @@ end
 -- in the input_list that matches them
 local function get_craft_count(input_list, recipe)
 	-- Recipe without groups (most common node in group instead)
-	local work_recipe = table.copy(recipe)
+	local work_recipe = simplecrafting_lib.deep_copy(recipe)
 	if recipe.output then
 		work_recipe.output = ItemStack(recipe.output)
 	end
@@ -129,6 +129,23 @@ end
 
 --------------------------------------------------------------------------------------------------------------------
 -- Public API
+
+-- Note that a circular table reference will result in a crash, TODO: guard against that.
+-- Unlikely to be needed, though - it'd take a lot of work for users to get into this bit of trouble.
+simplecrafting_lib.deep_copy = function(recipe_in)
+	local recipe_out = {}
+	
+	for index, value in pairs(recipe_in) do
+		if type(value) == "table" then
+			recipe_out[index] = simplecrafting_lib.deep_copy(value)
+		elseif type(value) == "userdata" and index == "output" then
+			recipe_out[index] = ItemStack(value)
+		else
+			recipe_out[index] = value
+		end
+	end
+	return recipe_out
+end
 
 simplecrafting_lib.get_crafting_info = function(craft_type)
 	-- ensure the destination tables exist

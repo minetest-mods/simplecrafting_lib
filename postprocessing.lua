@@ -204,23 +204,6 @@ local purge_uncraftable_recipes = function()
 	group_examples = nil -- don't need this any more.
 end
 
--- Note that a circular table reference will result in a crash, TODO: guard against that.
--- Unlikely to be needed, though - it'd take a lot of work for users to get into this bit of trouble.
-local function deep_copy(recipe_in)
-	local recipe_out = {}
-	
-	for index, value in pairs(recipe_in) do
-		if type(value) == "table" then
-			recipe_out[index] = deep_copy(value)
-		elseif type(value) == "userdata" and index == "output" then
-			recipe_out[index] = ItemStack(value)
-		else
-			recipe_out[index] = value
-		end
-	end
-	return recipe_out
-end
-
 -- Tests for recipies that don't actually do anything (A => A)
 -- and for recipes that pointlessly consume input without giving new output
 local operative_recipe = function(recipe)
@@ -264,7 +247,7 @@ local disintermediate = function(craft_type, contents)
 								
 							local multiplier = in_count / recipe_producing_in_item.output:get_count()
 
-							local working_recipe = deep_copy(recipe)
+							local working_recipe = simplecrafting_lib.deep_copy(recipe)
 							working_recipe.input[in_item] = nil -- clear the input from the working recipe (soon to be our newly created disintermediated recipe)
 							
 							if multiplier < 1 then

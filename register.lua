@@ -184,7 +184,7 @@ end
 -- Don't use a recipe that has a "group:" input with this, because obviously that
 -- can't be turned into an output. The mod will assert if you try to do this.
 simplecrafting_lib.register_reversible = function(craft_type, forward_def)
-	local reverse_def = table.copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
+	local reverse_def = simplecrafting_lib.deep_copy(forward_def) -- copy before registering, registration messes with "group:" prefixes
 	simplecrafting_lib.register(craft_type, forward_def)
 
 	local forward_in = reverse_def.input
